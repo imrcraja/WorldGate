@@ -2,6 +2,10 @@ package com.rcraja.worldgate.client.gui;
 
 import com.rcraja.worldgate.Constants;
 import com.rcraja.worldgate.client.WorldGateModClient;
+import com.rcraja.worldgate.network.HostBridge;
+
+import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.world.level.GameType;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -63,17 +67,56 @@ public class WorldGateScreen extends Screen {
     private void onCreate() {
         this.minecraft.player.sendSystemMessage(
                 Component.translatable("worldgate.msg.creating"));
+
+        IntegratedServer server = this.minecraft.getSingleplayerServer();
+
+        if (server == null) {
+            this.minecraft.player.sendSystemMessage(
+                    Component.literal("WorldGate: no singleplayer world is running."));
+            return;
+        }
+
+        if (!server.isPublished()) {
+            boolean published = server.publishServer(
+                    GameType.DEFAULT_MODE,
+                    true,
+                    0
+            );
+
+            if (!published) {
+                this.minecraft.player.sendSystemMessage(
+                        Component.literal("WorldGate: failed to publish the world."));
+                return;
+            }
+        }
+
+        int port = server.getPort();
+
+        if (!HostBridge.start(port)) {
+            this.minecraft.player.sendSystemMessage(
+                    Component.literal("WorldGate: failed to start host bridge."));
+            return;
+        }
+
+        this.minecraft.player.sendSystemMessage(
+                Component.literal("WorldGate: Minecraft server published on port " + port));
+
         WorldGateModClient.EXECUTOR.submit(() -> {
-            String code = WorldGateModClient.ROOM_MANAGER.createRoom("0.0.0.0", 25565);
+            String code = WorldGateModClient.ROOM_MANAGER.createRoom("0.0.0.0", port);
+
             this.minecraft.execute(() -> {
                 if (code == null) {
+                    HostBridge.stop();
                     this.minecraft.player.sendSystemMessage(
                             Component.translatable("worldgate.msg.create_failed"));
                     return;
                 }
+
                 WorldGateModClient.CURRENT_ROOM_CODE = code;
+
                 this.minecraft.player.sendSystemMessage(
                         Component.translatable("worldgate.msg.room_code", code));
+
                 startRoomListeners(code);
             });
         });
