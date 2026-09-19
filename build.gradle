@@ -1,0 +1,4 @@
+// Root project has no build logic of its own -- each version module
+// (v26_1_2, v1_21_1, ...) applies Fabric Loom independently, because each
+// targets a different Minecraft release with different mappings.
+// Running `gradle build` from here builds every module's jar in one go.
