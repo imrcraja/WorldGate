@@ -1,0 +1,12 @@
+runtime:
+  image: node:22
+
+commands:
+  package: ""
+  build:
+    - "cd relay && npm install"
+  start: "cd relay && npm run start"
+
+repository:
+  branch: main
+  auto_deploy: true
