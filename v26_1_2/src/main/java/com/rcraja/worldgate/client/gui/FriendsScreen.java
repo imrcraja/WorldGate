@@ -27,9 +27,8 @@ public class FriendsScreen extends Screen {
         int centerX = this.width / 2;
         int y = this.height / 2 - 80;
 
-        this.minecraft.player.displayClientMessage(
-                Component.translatable("worldgate.friends.your_uid", WorldGateModClient.FRIEND_MANAGER.myUid()),
-                false);
+        this.minecraft.player.sendSystemMessage(
+                Component.translatable("worldgate.friends.your_uid", WorldGateModClient.FRIEND_MANAGER.myUid()));
 
         this.targetUidBox = new EditBox(this.font, centerX - 100, y, 200, 20,
                 Component.translatable("worldgate.friends.uid_hint"));
@@ -59,8 +58,8 @@ public class FriendsScreen extends Screen {
     private void run(java.util.function.BooleanSupplier action, String successKey) {
         WorldGateModClient.EXECUTOR.submit(() -> {
             boolean ok = action.getAsBoolean();
-            this.minecraft.execute(() -> this.minecraft.player.displayClientMessage(
-                    Component.translatable(ok ? successKey : "worldgate.friends.failed"), false));
+            this.minecraft.execute(() -> this.minecraft.player.sendSystemMessage(
+                    Component.translatable(ok ? successKey : "worldgate.friends.failed")));
         });
     }
 
@@ -69,10 +68,10 @@ public class FriendsScreen extends Screen {
             String requests = WorldGateModClient.FRIEND_MANAGER.getIncomingRequests();
             String friends = WorldGateModClient.FRIEND_MANAGER.getFriends();
             this.minecraft.execute(() -> {
-                this.minecraft.player.displayClientMessage(
-                        Component.translatable("worldgate.friends.requests", String.valueOf(requests)), false);
-                this.minecraft.player.displayClientMessage(
-                        Component.translatable("worldgate.friends.list", String.valueOf(friends)), false);
+                this.minecraft.player.sendSystemMessage(
+                        Component.translatable("worldgate.friends.requests", String.valueOf(requests)));
+                this.minecraft.player.sendSystemMessage(
+                        Component.translatable("worldgate.friends.list", String.valueOf(friends)));
             });
         });
     }

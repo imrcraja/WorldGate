@@ -32,7 +32,7 @@ java {
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    loader "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     api "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // Used by PlayerTabOverlayMixin for the colored ping display

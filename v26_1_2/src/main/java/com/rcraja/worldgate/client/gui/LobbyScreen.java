@@ -34,8 +34,8 @@ public class LobbyScreen extends Screen {
         this.addRenderableWidget(this.skinUrlBox);
 
         this.addRenderableWidget(Button.builder(Component.translatable("worldgate.lobby.set_skin"), btn ->
-                this.minecraft.player.displayClientMessage(
-                        Component.translatable("worldgate.lobby.skin_todo"), false)
+                this.minecraft.player.sendSystemMessage(
+                        Component.translatable("worldgate.lobby.skin_todo"))
         ).bounds(centerX - 100, y + 25, 200, 20).build());
 
         int emoteY = y + 55;
@@ -56,8 +56,8 @@ public class LobbyScreen extends Screen {
     private void sendEmote(String emote) {
         String room = WorldGateModClient.CURRENT_ROOM_CODE;
         if (room == null) {
-            this.minecraft.player.displayClientMessage(
-                    Component.translatable("worldgate.lobby.no_room"), false);
+            this.minecraft.player.sendSystemMessage(
+                    Component.translatable("worldgate.lobby.no_room"));
             return;
         }
         WorldGateModClient.EXECUTOR.submit(() -> WorldGateModClient.EMOTE_MANAGER.sendEmote(room, emote));

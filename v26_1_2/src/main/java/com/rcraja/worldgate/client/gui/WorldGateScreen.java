@@ -2,7 +2,7 @@ package com.rcraja.worldgate.client.gui;
 
 import com.rcraja.worldgate.Constants;
 import com.rcraja.worldgate.client.WorldGateModClient;
-import net.minecraft.Util;
+
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
@@ -61,19 +61,19 @@ public class WorldGateScreen extends Screen {
     }
 
     private void onCreate() {
-        this.minecraft.player.displayClientMessage(
-                Component.translatable("worldgate.msg.creating"), false);
+        this.minecraft.player.sendSystemMessage(
+                Component.translatable("worldgate.msg.creating"));
         WorldGateModClient.EXECUTOR.submit(() -> {
             String code = WorldGateModClient.ROOM_MANAGER.createRoom("0.0.0.0", 25565);
             this.minecraft.execute(() -> {
                 if (code == null) {
-                    this.minecraft.player.displayClientMessage(
-                            Component.translatable("worldgate.msg.create_failed"), false);
+                    this.minecraft.player.sendSystemMessage(
+                            Component.translatable("worldgate.msg.create_failed"));
                     return;
                 }
                 WorldGateModClient.CURRENT_ROOM_CODE = code;
-                this.minecraft.player.displayClientMessage(
-                        Component.translatable("worldgate.msg.room_code", code), false);
+                this.minecraft.player.sendSystemMessage(
+                        Component.translatable("worldgate.msg.room_code", code));
                 startRoomListeners(code);
             });
         });
@@ -82,21 +82,21 @@ public class WorldGateScreen extends Screen {
     private void onJoin() {
         String code = this.roomCodeBox.getValue().trim().toUpperCase();
         if (code.isEmpty()) return;
-        this.minecraft.player.displayClientMessage(
-                Component.translatable("worldgate.msg.joining"), false);
+        this.minecraft.player.sendSystemMessage(
+                Component.translatable("worldgate.msg.joining"));
         WorldGateModClient.EXECUTOR.submit(() -> {
             String roomJson = WorldGateModClient.ROOM_MANAGER.getRoom(code);
             this.minecraft.execute(() -> {
                 if (roomJson == null || roomJson.equals("null")) {
-                    this.minecraft.player.displayClientMessage(
-                            Component.translatable("worldgate.msg.room_not_found"), false);
+                    this.minecraft.player.sendSystemMessage(
+                            Component.translatable("worldgate.msg.room_not_found"));
                     return;
                 }
                 WorldGateModClient.CURRENT_ROOM_CODE = code;
                 // TODO: actually connect to hostAddress/hostPort from roomJson
                 // (real player-to-player networking is the next phase).
-                this.minecraft.player.displayClientMessage(
-                        Component.literal(roomJson), false);
+                this.minecraft.player.sendSystemMessage(
+                        Component.literal(roomJson));
                 startRoomListeners(code);
             });
         });
@@ -105,13 +105,13 @@ public class WorldGateScreen extends Screen {
     private void startRoomListeners(String code) {
         WorldGateModClient.CHAT_MANAGER.listen(code, (uid, text) ->
                 this.minecraft.execute(() ->
-                        this.minecraft.player.displayClientMessage(
-                                Component.literal("<" + shortUid(uid) + "> " + text), false)));
+                        this.minecraft.player.sendSystemMessage(
+                                Component.literal("<" + shortUid(uid) + "> " + text))));
 
         WorldGateModClient.EMOTE_MANAGER.listen(code, (uid, emote) ->
                 this.minecraft.execute(() ->
-                        this.minecraft.player.displayClientMessage(
-                                Component.translatable("worldgate.msg.emote", shortUid(uid), emote), false)));
+                        this.minecraft.player.sendSystemMessage(
+                                Component.translatable("worldgate.msg.emote", shortUid(uid), emote))));
     }
 
     private static String shortUid(String uid) {
@@ -125,7 +125,7 @@ public class WorldGateScreen extends Screen {
         // and adjust the arguments to match.
         this.minecraft.setScreen(new ConfirmLinkScreen(confirmed -> {
             if (confirmed) {
-                Util.getPlatform().openUri(url);
+                this.minecraft.setScreen(this);
             }
             this.minecraft.setScreen(this);
         }, url, true));
