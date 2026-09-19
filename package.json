@@ -1,0 +1,8 @@
+{
+  "name": "worldgate",
+  "private": true,
+  "scripts": {
+    "start": "node relay/server.js"
+  },
+  "dependencies": {}
+}
