@@ -10,6 +10,10 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
+import net.minecraft.client.gui.screens.ConnectScreen;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.multiplayer.TransferState;
+import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -138,17 +142,85 @@ public class WorldGateScreen extends Screen {
                 }
                 WorldGateModClient.CURRENT_ROOM_CODE = code;
 
+                String hostAddress = extractJsonString(roomJson, "hostAddress");
+                int hostPort = extractJsonInt(roomJson, "hostPort");
+
+                if (hostAddress == null || hostAddress.isBlank()
+                        || hostPort <= 0 || hostPort > 65535) {
+                    this.minecraft.player.sendSystemMessage(
+                            Component.literal("WorldGate: invalid host address."));
+                    return;
+                }
+
                 String ign = this.minecraft.player.getName().getString();
                 WorldGateModClient.ROOM_MANAGER.playerJoin(code, ign);
                 WorldGateModClient.startHeartbeat(false);
 
-                // TODO: actually connect to hostAddress/hostPort from roomJson
-                // (real player-to-player networking is the next phase).
+                ServerAddress address = new ServerAddress(hostAddress, hostPort);
+                ServerData serverData = new ServerData(
+                        "WorldGate " + code,
+                        address.toString(),
+                        ServerData.Type.OTHER
+                );
+
                 this.minecraft.player.sendSystemMessage(
-                        Component.literal(roomJson));
-                startRoomListeners(code);
+                        Component.literal(
+                                "WorldGate: connecting to "
+                                        + address.getHost() + ":" + address.getPort()));
+
+                ConnectScreen.startConnecting(
+                        this,
+                        this.minecraft,
+                        address,
+                        serverData,
+                        false,
+                        null
+                );
             });
         });
+    }
+
+    private static String extractJsonString(String json, String key) {
+        if (json == null || key == null) return null;
+
+        String marker = "\"" + key + "\":\"";
+        int start = json.indexOf(marker);
+        if (start < 0) return null;
+
+        start += marker.length();
+        int end = json.indexOf("\"", start);
+        if (end < 0) return null;
+
+        return json.substring(start, end);
+    }
+
+    private static int extractJsonInt(String json, String key) {
+        if (json == null || key == null) return -1;
+
+        String marker = "\"" + key + "\":";
+        int start = json.indexOf(marker);
+        if (start < 0) return -1;
+
+        start += marker.length();
+
+        while (start < json.length()
+                && Character.isWhitespace(json.charAt(start))) {
+            start++;
+        }
+
+        int end = start;
+        while (end < json.length()
+                && Character.isDigit(json.charAt(end))) {
+            end++;
+        }
+
+        if (end == start) return -1;
+
+        try {
+            return Integer.parseInt(json.substring(start, end));
+        } catch (NumberFormatException e) {
+            return -1;
+        }
     }
 
     private void startRoomListeners(String code) {

@@ -2,18 +2,14 @@ package com.rcraja.worldgate.network;
 
 import com.rcraja.worldgate.WorldGateMod;
 
-/**
- * Host-side networking bridge.
- *
- * This class will connect the Minecraft IntegratedServer to the
- * WorldGate relay after the world is published.
- *
- * The actual relay protocol is intentionally added in the next step.
- */
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Enumeration;
+
 public final class HostBridge {
 
-    private HostBridge() {
-    }
+    private HostBridge() {}
 
     private static volatile boolean running = false;
     private static volatile int minecraftPort = -1;
@@ -32,7 +28,8 @@ public final class HostBridge {
         running = true;
 
         WorldGateMod.LOGGER.info(
-                "WorldGate host bridge prepared for Minecraft port {}",
+                "WorldGate host bridge ready on {}:{}",
+                getAdvertiseAddress(),
                 port
         );
 
@@ -56,5 +53,36 @@ public final class HostBridge {
 
     public static int getMinecraftPort() {
         return minecraftPort;
+    }
+
+    public static String getAdvertiseAddress() {
+        try {
+            Enumeration<NetworkInterface> interfaces =
+                    NetworkInterface.getNetworkInterfaces();
+
+            while (interfaces != null && interfaces.hasMoreElements()) {
+                NetworkInterface ni = interfaces.nextElement();
+
+                if (!ni.isUp() || ni.isLoopback() || ni.isVirtual()) {
+                    continue;
+                }
+
+                Enumeration<InetAddress> addresses = ni.getInetAddresses();
+
+                while (addresses.hasMoreElements()) {
+                    InetAddress address = addresses.nextElement();
+
+                    if (address instanceof Inet4Address
+                            && !address.isLoopbackAddress()) {
+                        return address.getHostAddress();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            WorldGateMod.LOGGER.warn(
+                    "WorldGate: could not detect LAN address", e);
+        }
+
+        return "127.0.0.1";
     }
 }
