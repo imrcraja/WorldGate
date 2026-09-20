@@ -1136,7 +1136,7 @@ public class WorldGateScreen extends Screen {
     }
 
     @Override
-    public void onClose() {
+    public void close() {
         goBack();
     }
 
@@ -1203,7 +1203,7 @@ public class WorldGateScreen extends Screen {
                     delta
             );
 
-            context.drawCenteredTextWithShadow(
+            graphics.drawCenteredTextWithShadow(
                     this.textRenderer,
                     Text.literal(
                             "WorldGate"
@@ -1213,7 +1213,7 @@ public class WorldGateScreen extends Screen {
                     0xFFFFFF
             );
 
-            context.drawCenteredTextWithShadow(
+            graphics.drawCenteredTextWithShadow(
                     this.textRenderer,
                     Text.literal(
                             message
