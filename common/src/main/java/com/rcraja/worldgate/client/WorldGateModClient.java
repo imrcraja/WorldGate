@@ -10,6 +10,8 @@ import net.fabricmc.api.ClientModInitializer;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Shared client entrypoint and shared Firebase session -- identical on
@@ -32,8 +34,38 @@ public class WorldGateModClient implements ClientModInitializer {
         return t;
     });
 
-    /** Set once Create/Join succeeds; null until then. Read by the emote/chat UI. */
+    /** Set once Create/Join succeeds; null until then. */
     public static volatile String CURRENT_ROOM_CODE = null;
+
+    /** Keeps Firebase presence fresh while the player is in a WorldGate room. */
+    private static final ScheduledExecutorService HEARTBEAT =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "WorldGate-Heartbeat");
+                t.setDaemon(true);
+                return t;
+            });
+
+    private static volatile boolean heartbeatRunning = false;
+
+    public static synchronized void startHeartbeat(boolean host) {
+        if (heartbeatRunning) return;
+        heartbeatRunning = true;
+
+        HEARTBEAT.scheduleAtFixedRate(() -> {
+            String room = CURRENT_ROOM_CODE;
+            if (room == null) return;
+
+            if (host) {
+                ROOM_MANAGER.hostHeartbeat(room);
+            } else {
+                ROOM_MANAGER.playerHeartbeat(room);
+            }
+        }, 0, 15, TimeUnit.SECONDS);
+    }
+
+    public static synchronized void stopHeartbeat() {
+        heartbeatRunning = false;
+    }
 
     @Override
     public void onInitializeClient() {

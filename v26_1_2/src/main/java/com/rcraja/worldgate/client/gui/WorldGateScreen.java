@@ -113,6 +113,7 @@ public class WorldGateScreen extends Screen {
                 }
 
                 WorldGateModClient.CURRENT_ROOM_CODE = code;
+                WorldGateModClient.startHeartbeat(true);
 
                 this.minecraft.player.sendSystemMessage(
                         Component.translatable("worldgate.msg.room_code", code));
@@ -136,6 +137,11 @@ public class WorldGateScreen extends Screen {
                     return;
                 }
                 WorldGateModClient.CURRENT_ROOM_CODE = code;
+
+                String ign = this.minecraft.player.getName().getString();
+                WorldGateModClient.ROOM_MANAGER.playerJoin(code, ign);
+                WorldGateModClient.startHeartbeat(false);
+
                 // TODO: actually connect to hostAddress/hostPort from roomJson
                 // (real player-to-player networking is the next phase).
                 this.minecraft.player.sendSystemMessage(
