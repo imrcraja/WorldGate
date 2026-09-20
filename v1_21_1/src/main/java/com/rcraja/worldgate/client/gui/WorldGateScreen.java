@@ -220,7 +220,7 @@ public class WorldGateScreen extends Screen {
     private void onCreate() {
 
         if (
-                minecraft == null
+                client == null
                         || client.player == null
         ) {
             return;
@@ -388,7 +388,7 @@ public class WorldGateScreen extends Screen {
                     }
 
                     String hostName =
-                            minecraft
+                            client
                                     .getUser()
                                     .getName();
 
@@ -500,7 +500,7 @@ public class WorldGateScreen extends Screen {
                                 }
 
                                 String ign =
-                                        minecraft
+                                        client
                                                 .getUser()
                                                 .getName();
 
@@ -569,7 +569,7 @@ public class WorldGateScreen extends Screen {
 
                                 ConnectScreen.connect(
                                         this,
-                                        minecraft,
+                                        client,
                                         address,
                                         serverData,
                                         false,
@@ -1019,13 +1019,13 @@ public class WorldGateScreen extends Screen {
     ) {
 
         if (
-                minecraft != null
+                client != null
                         && client.player != null
         ) {
 
             client.player.sendMessage(Text.literal(message), false);
 
-        } else if (minecraft != null) {
+        } else if (client != null) {
 
             client.setScreen(
                     new WorldGateScreenWithMessage(
@@ -1038,7 +1038,7 @@ public class WorldGateScreen extends Screen {
 
     private void openLink(String url) {
 
-        if (minecraft == null) {
+        if (client == null) {
             return;
         }
 
@@ -1127,7 +1127,7 @@ public class WorldGateScreen extends Screen {
                     null;
         }
 
-        if (minecraft != null) {
+        if (client != null) {
 
             client.setScreen(
                     parent
@@ -1190,7 +1190,7 @@ public class WorldGateScreen extends Screen {
 
         @Override
         public void render(
-                GuiGraphicsExtractor graphics,
+                DrawContext graphics,
                 int mouseX,
                 int mouseY,
                 float delta
