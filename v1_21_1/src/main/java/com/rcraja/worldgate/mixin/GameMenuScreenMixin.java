@@ -22,20 +22,14 @@ public abstract class GameMenuScreenMixin extends Screen {
     @Inject(method = "init", at = @At("TAIL"))
     private void worldgate$addButton(CallbackInfo ci) {
         int centerX = this.width / 2;
+        int y = this.height / 4 + 96;
 
         this.addDrawableChild(
                 ButtonWidget.builder(
                         Text.translatable("worldgate.button.open"),
-                        btn -> this.client.setScreen(
-                                new WorldGateScreen(this)
-                        )
+                        btn -> this.client.setScreen(new WorldGateScreen(this))
                 )
-                .dimensions(
-                        centerX - 100,
-                        this.height / 4 + 96,
-                        200,
-                        20
-                )
+                .dimensions(centerX - 100, y, 200, 20)
                 .build()
         );
     }
