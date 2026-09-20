@@ -606,7 +606,7 @@ public class FriendsScreen extends Screen {
         int centerX =
                 this.width / 2;
 
-        context.drawCenteredTextWithShadow(
+        graphics.drawCenteredTextWithShadow(
                 this.textRenderer,
                 "WorldGate Friends",
                 centerX,
@@ -614,7 +614,7 @@ public class FriendsScreen extends Screen {
                 0xFFFFFF
         );
 
-        context.drawCenteredTextWithShadow(
+        graphics.drawCenteredTextWithShadow(
                 this.textRenderer,
                 "Your Code: " + myCode,
                 centerX,
@@ -622,7 +622,7 @@ public class FriendsScreen extends Screen {
                 0x55FFFF
         );
 
-        context.drawTextWithShadow(
+        graphics.drawTextWithShadow(
                 this.textRenderer,
                 "Friend Requests",
                 centerX - 140,
@@ -635,7 +635,7 @@ public class FriendsScreen extends Screen {
 
         if (requests.isEmpty()) {
 
-            context.drawTextWithShadow(
+            graphics.drawTextWithShadow(
                     this.textRenderer,
                     "No pending requests.",
                     centerX - 140,
@@ -661,7 +661,7 @@ public class FriendsScreen extends Screen {
                                 ? 0x55FFFF
                                 : 0xFFFFFF;
 
-                context.drawTextWithShadow(
+                graphics.drawTextWithShadow(
                         this.textRenderer,
                         (selected
                                 ? "> "
@@ -672,7 +672,7 @@ public class FriendsScreen extends Screen {
                         textColor
                 );
 
-                context.drawTextWithShadow(
+                graphics.drawTextWithShadow(
                         this.textRenderer,
                         request.code(),
                         centerX - 140,
@@ -690,7 +690,7 @@ public class FriendsScreen extends Screen {
                         225
                 );
 
-        context.drawTextWithShadow(
+        graphics.drawTextWithShadow(
                 this.textRenderer,
                 "Friends",
                 centerX - 140,
@@ -702,7 +702,7 @@ public class FriendsScreen extends Screen {
 
         if (friends.isEmpty()) {
 
-            context.drawTextWithShadow(
+            graphics.drawTextWithShadow(
                     this.textRenderer,
                     "No friends yet.",
                     centerX - 140,
@@ -717,7 +717,7 @@ public class FriendsScreen extends Screen {
                     friends
             ) {
 
-                context.drawTextWithShadow(
+                graphics.drawTextWithShadow(
                         this.textRenderer,
                         friend.name(),
                         centerX - 140,
@@ -725,7 +725,7 @@ public class FriendsScreen extends Screen {
                         0xFFFFFF
                 );
 
-                context.drawTextWithShadow(
+                graphics.drawTextWithShadow(
                         this.textRenderer,
                         friend.code(),
                         centerX - 140,
@@ -738,10 +738,10 @@ public class FriendsScreen extends Screen {
                                 ? "● Online"
                                 : "○ Offline";
 
-                context.drawTextWithShadow(
+                graphics.drawTextWithShadow(
         this.textRenderer,
         state,
-        centerX + 140 - this.textRenderer.width(state),
+        centerX + 140 - this.textRenderer.getWidth(state),
         friendY + 5,
         friend.online()
                 ? 0x55FF55
@@ -770,7 +770,7 @@ public class FriendsScreen extends Screen {
             int boxY =
                     5;
 
-            context.fill(
+            graphics.fill(
                     boxX,
                     boxY,
                     boxX + boxWidth,
@@ -778,7 +778,7 @@ public class FriendsScreen extends Screen {
                     0xDD111111
             );
 
-            context.drawCenteredTextWithShadow(
+            graphics.drawCenteredTextWithShadow(
                     this.textRenderer,
                     requestNotification,
                     centerX,
@@ -789,7 +789,7 @@ public class FriendsScreen extends Screen {
 
         if (!status.isEmpty()) {
 
-            context.drawCenteredTextWithShadow(
+            graphics.drawCenteredTextWithShadow(
                     this.textRenderer,
                     status,
                     centerX,
@@ -855,7 +855,7 @@ public boolean mouseClicked(double mouseX, double mouseY, int button) {
     }
 
     @Override
-    public void onClose() {
+    public void close() {
 
         closeScreen();
     }
