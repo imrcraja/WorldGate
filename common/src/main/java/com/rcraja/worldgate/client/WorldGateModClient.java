@@ -6,6 +6,7 @@ import com.rcraja.worldgate.network.EmoteManager;
 import com.rcraja.worldgate.network.FirebaseSession;
 import com.rcraja.worldgate.network.FriendManager;
 import com.rcraja.worldgate.network.RoomManager;
+
 import net.fabricmc.api.ClientModInitializer;
 
 import java.util.concurrent.ExecutorService;
@@ -13,31 +14,32 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Shared client entrypoint and shared Firebase session -- identical on
- * every Minecraft version. Only the GUI screens and mixins that touch
- * actual Minecraft classes need a per-version copy (see each v*_*_*
- * module).
- */
 public class WorldGateModClient implements ClientModInitializer {
 
-    public static final FirebaseSession SESSION = new FirebaseSession();
-    public static final RoomManager ROOM_MANAGER = new RoomManager(SESSION);
-    public static final FriendManager FRIEND_MANAGER = new FriendManager(SESSION);
-    public static final ChatManager CHAT_MANAGER = new ChatManager(SESSION);
-    public static final EmoteManager EMOTE_MANAGER = new EmoteManager(SESSION);
+    public static final FirebaseSession SESSION =
+            new FirebaseSession();
 
-    /** Firebase calls block on HTTP, so every button click hands off to this. */
-    public static final ExecutorService EXECUTOR = Executors.newCachedThreadPool(r -> {
-        Thread t = new Thread(r, "WorldGate-Worker");
-        t.setDaemon(true);
-        return t;
-    });
+    public static final RoomManager ROOM_MANAGER =
+            new RoomManager(SESSION);
 
-    /** Set once Create/Join succeeds; null until then. */
+    public static final FriendManager FRIEND_MANAGER =
+            new FriendManager(SESSION);
+
+    public static final ChatManager CHAT_MANAGER =
+            new ChatManager(SESSION);
+
+    public static final EmoteManager EMOTE_MANAGER =
+            new EmoteManager(SESSION);
+
+    public static final ExecutorService EXECUTOR =
+            Executors.newCachedThreadPool(r -> {
+                Thread t = new Thread(r, "WorldGate-Worker");
+                t.setDaemon(true);
+                return t;
+            });
+
     public static volatile String CURRENT_ROOM_CODE = null;
 
-    /** Keeps Firebase presence fresh while the player is in a WorldGate room. */
     private static final ScheduledExecutorService HEARTBEAT =
             Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = new Thread(r, "WorldGate-Heartbeat");
@@ -48,18 +50,25 @@ public class WorldGateModClient implements ClientModInitializer {
     private static volatile boolean heartbeatRunning = false;
 
     public static synchronized void startHeartbeat(boolean host) {
-        if (heartbeatRunning) return;
+        if (heartbeatRunning) {
+            return;
+        }
+
         heartbeatRunning = true;
 
         HEARTBEAT.scheduleAtFixedRate(() -> {
             String room = CURRENT_ROOM_CODE;
-            if (room == null) return;
+
+            if (room == null) {
+                return;
+            }
 
             if (host) {
                 ROOM_MANAGER.hostHeartbeat(room);
             } else {
                 ROOM_MANAGER.playerHeartbeat(room);
             }
+
         }, 0, 15, TimeUnit.SECONDS);
     }
 
@@ -69,15 +78,29 @@ public class WorldGateModClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        WorldGateMod.LOGGER.info("WorldGate client initialized.");
-        // Sign in anonymously in the background so it's ready by the time
-        // the player opens the WorldGate screen -- no need to block startup.
+
+        WorldGateMod.LOGGER.info(
+                "WorldGate client initialized."
+        );
+
+        // Register WorldGate keyboard shortcut.
+        WorldGateKeybinds.register();
+
+        // Firebase login happens in background.
         EXECUTOR.submit(() -> {
+
             boolean ok = SESSION.connect();
+
             if (ok) {
-                WorldGateMod.LOGGER.info("WorldGate Firebase session ready (uid={})", SESSION.uid());
+                WorldGateMod.LOGGER.info(
+                        "WorldGate Firebase session ready (uid={})",
+                        SESSION.uid()
+                );
+
             } else {
-                WorldGateMod.LOGGER.error("WorldGate could not sign in to Firebase -- check internet/API key.");
+                WorldGateMod.LOGGER.error(
+                        "WorldGate could not sign in to Firebase -- check internet/API key."
+                );
             }
         });
     }
