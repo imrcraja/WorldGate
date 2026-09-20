@@ -4,11 +4,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
 
-import net.client.client.gui.DrawContext;
-import net.client.client.gui.widget.ButtonWidget;
-import net.client.client.gui.widget.TextFieldWidget;
-import net.client.client.gui.screen.Screen;
-import net.client.text.Text;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.HashSet;
