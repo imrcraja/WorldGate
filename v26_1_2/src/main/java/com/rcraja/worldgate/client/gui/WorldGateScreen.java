@@ -579,8 +579,9 @@ public class WorldGateScreen extends Screen {
                     );
                 }
         );
-                                    }
-        private void startRoomListeners(
+    }
+
+    private void startRoomListeners(
             String code
     ) {
 
@@ -1012,7 +1013,8 @@ public class WorldGateScreen extends Screen {
             return -1;
         }
     }
-        private void sendMessage(
+
+    private void sendMessage(
             String message
     ) {
 
@@ -1022,8 +1024,8 @@ public class WorldGateScreen extends Screen {
         ) {
 
             minecraft.player.sendSystemMessage(
-        Component.literal(message)
-);
+                    Component.literal(message)
+            );
 
         } else if (minecraft != null) {
 
@@ -1036,7 +1038,7 @@ public class WorldGateScreen extends Screen {
         }
     }
 
-        private void openLink(String url) {
+    private void openLink(String url) {
 
         if (minecraft == null) {
             return;
@@ -1066,8 +1068,6 @@ public class WorldGateScreen extends Screen {
                 )
         );
     }
-
-    private void stopWorldGateRealtime() {
 
     private void stopWorldGateRealtime() {
 
