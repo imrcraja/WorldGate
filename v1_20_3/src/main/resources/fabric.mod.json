@@ -1,0 +1,8 @@
+{
+  "schemaVersion":1,"id":"worldgate","version":"${version}","name":"WorldGate",
+  "description":"Play Minecraft with friends over the internet from any world -- no dedicated server needed.",
+  "authors":["RC RAJA GAMER 2.0"],"license":"MIT","environment":"*",
+  "entrypoints":{"main":["com.rcraja.worldgate.WorldGateMod"],"client":["com.rcraja.worldgate.client.WorldGateModClient"]},
+  "mixins":["worldgate.mixins.json"],
+  "depends":{"fabricloader":">=0.15.6","fabric-api":"*","minecraft":"~1.20.3","java":">=17"}
+}
