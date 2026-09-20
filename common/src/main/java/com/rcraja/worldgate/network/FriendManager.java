@@ -2,6 +2,7 @@ package com.rcraja.worldgate.network;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.rcraja.worldgate.Constants;
 import com.rcraja.worldgate.WorldGateMod;
 
 import java.util.Map;
@@ -35,15 +36,12 @@ public class FriendManager {
 
     /**
      * Returns the short Friend Code.
-     * The code is stored permanently in Firebase so it does not change.
+     * The code is stored permanently in Firebase.
      */
     public String myFriendCode() {
+
         if (!session.isReady()) {
             return null;
-        }
-
-        if (myFriendCode != null) {
-            return myFriendCode;
         }
 
         String uid = session.uid();
@@ -52,8 +50,14 @@ public class FriendManager {
             return null;
         }
 
+        if (myFriendCode != null) {
+            return myFriendCode;
+        }
+
         String existing =
-                session.db().get("/profiles/" + uid + "/friendCode");
+                session.db().get(
+                        "/profiles/" + uid + "/friendCode"
+                );
 
         if (existing != null
                 && !existing.equals("null")
@@ -61,7 +65,19 @@ public class FriendManager {
                 && existing.endsWith("\"")) {
 
             myFriendCode =
-                    existing.substring(1, existing.length() - 1);
+                    existing.substring(
+                            1,
+                            existing.length() - 1
+                    );
+
+            /*
+             * Make sure the Friend Code -> UID mapping
+             * also exists.
+             */
+            session.db().put(
+                    "/friend_codes/" + myFriendCode,
+                    "\"" + uid + "\""
+            );
 
             return myFriendCode;
         }
@@ -71,6 +87,11 @@ public class FriendManager {
         session.db().put(
                 "/profiles/" + uid + "/friendCode",
                 "\"" + code + "\""
+        );
+
+        session.db().put(
+                "/friend_codes/" + code,
+                "\"" + uid + "\""
         );
 
         myFriendCode = code;
@@ -107,11 +128,18 @@ public class FriendManager {
 
         String json =
                 "{"
-                        + "\"uid\":\"" + escapeJson(uid) + "\","
-                        + "\"friendCode\":\"" + escapeJson(code) + "\","
-                        + "\"displayName\":\"" + safeName + "\","
+                        + "\"uid\":\""
+                        + escapeJson(uid)
+                        + "\","
+                        + "\"friendCode\":\""
+                        + escapeJson(code)
+                        + "\","
+                        + "\"displayName\":\""
+                        + safeName
+                        + "\","
                         + "\"online\":true,"
-                        + "\"lastSeen\":" + System.currentTimeMillis()
+                        + "\"lastSeen\":"
+                        + System.currentTimeMillis()
                         + "}";
 
         return session.db().put(
@@ -181,7 +209,8 @@ public class FriendManager {
 
         String value =
                 session.db().get(
-                        "/friend_codes/" + code.trim().toUpperCase()
+                        "/friend_codes/"
+                                + code.trim().toUpperCase()
                 );
 
         if (value == null || value.equals("null")) {
@@ -191,14 +220,17 @@ public class FriendManager {
         if (value.startsWith("\"")
                 && value.endsWith("\"")) {
 
-            return value.substring(1, value.length() - 1);
+            return value.substring(
+                    1,
+                    value.length() - 1
+            );
         }
 
         return value;
     }
 
     /**
-     * Send request using Friend Code.
+     * Send friend request using Friend Code.
      */
     public boolean sendRequestByCode(String friendCode) {
 
@@ -391,19 +423,25 @@ public class FriendManager {
         }
 
         String profile =
-                session.db().get("/profiles/" + uid);
+                session.db().get(
+                        "/profiles/" + uid
+                );
 
-        if (profile == null || profile.equals("null")) {
+        if (profile == null
+                || profile.equals("null")) {
             return "Player";
         }
 
         try {
+
             JsonObject object =
                     JsonParser.parseString(profile)
                             .getAsJsonObject();
 
             if (object.has("displayName")) {
-                return object.get("displayName").getAsString();
+                return object
+                        .get("displayName")
+                        .getAsString();
             }
 
         } catch (Exception ignored) {
@@ -431,18 +469,20 @@ public class FriendManager {
         }
 
         requestStream.listen(
-                com.rcraja.worldgate.Constants.FIREBASE_DATABASE_URL,
+                Constants.FIREBASE_DATABASE_URL,
                 "/friend_requests/" + session.uid(),
                 session.idToken(),
                 data -> notifyFriendListChanged()
         );
 
         friendsStream.listen(
-                com.rcraja.worldgate.Constants.FIREBASE_DATABASE_URL,
+                Constants.FIREBASE_DATABASE_URL,
                 "/friends/" + session.uid(),
                 session.idToken(),
                 data -> {
+
                     refreshProfileStreams();
+
                     notifyFriendListChanged();
                 }
         );
@@ -454,12 +494,16 @@ public class FriendManager {
 
         String friends = getFriends();
 
-        if (friends == null || friends.equals("null")) {
+        if (friends == null
+                || friends.equals("null")) {
+
             stopUnusedProfileStreams();
+
             return;
         }
 
         try {
+
             JsonObject object =
                     JsonParser.parseString(friends)
                             .getAsJsonObject();
@@ -473,10 +517,13 @@ public class FriendManager {
                 FirebaseStreamClient stream =
                         new FirebaseStreamClient();
 
-                profileStreams.put(uid, stream);
+                profileStreams.put(
+                        uid,
+                        stream
+                );
 
                 stream.listen(
-                        com.rcraja.worldgate.Constants.FIREBASE_DATABASE_URL,
+                        Constants.FIREBASE_DATABASE_URL,
                         "/profiles/" + uid,
                         session.idToken(),
                         data -> notifyFriendListChanged()
@@ -486,6 +533,7 @@ public class FriendManager {
             stopUnusedProfileStreams(object);
 
         } catch (Exception e) {
+
             WorldGateMod.LOGGER.error(
                     "WorldGate friends realtime refresh failed",
                     e
@@ -497,6 +545,7 @@ public class FriendManager {
 
         for (FirebaseStreamClient stream :
                 profileStreams.values()) {
+
             stream.stop();
         }
 
@@ -514,6 +563,7 @@ public class FriendManager {
             }
 
             entry.getValue().stop();
+
             return true;
         });
     }
@@ -533,10 +583,12 @@ public class FriendManager {
     public void stopRealtime() {
 
         requestStream.stop();
+
         friendsStream.stop();
 
         for (FirebaseStreamClient stream :
                 profileStreams.values()) {
+
             stream.stop();
         }
 
@@ -548,17 +600,15 @@ public class FriendManager {
         String uid = session.uid();
 
         if (uid == null || uid.isBlank()) {
-            return "WG" + UUID.randomUUID()
-                    .toString()
-                    .replace("-", "")
-                    .substring(0, 6)
-                    .toUpperCase();
+
+            return "WG"
+                    + UUID.randomUUID()
+                            .toString()
+                            .replace("-", "")
+                            .substring(0, 6)
+                            .toUpperCase();
         }
 
-        /*
-         * Short, readable code.
-         * Example: WG7K4P2Q
-         */
         String raw =
                 uid.replace("-", "")
                         .toUpperCase();
