@@ -83,9 +83,6 @@ public class WorldGateModClient implements ClientModInitializer {
                 "WorldGate client initialized."
         );
 
-        // Register WorldGate keyboard shortcut.
-        WorldGateKeybinds.register();
-
         // Firebase login happens in background.
         EXECUTOR.submit(() -> {
 
