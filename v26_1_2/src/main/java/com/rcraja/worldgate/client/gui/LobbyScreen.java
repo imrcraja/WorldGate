@@ -312,7 +312,7 @@ public class LobbyScreen extends Screen {
 
     @Override
     public void render(
-            GuiGraphics graphics,
+            DrawContext graphics,
             int mouseX,
             int mouseY,
             float delta
@@ -372,7 +372,7 @@ public class LobbyScreen extends Screen {
     }
 
     private void drawPanel(
-            GuiGraphics graphics,
+            DrawContext graphics,
             int x,
             int y,
             int width,
@@ -383,7 +383,7 @@ public class LobbyScreen extends Screen {
     }
 
     private void drawFriends(
-            GuiGraphics graphics,
+            DrawContext graphics,
             int x,
             int y,
             int width
@@ -528,7 +528,7 @@ public class LobbyScreen extends Screen {
     }
 
     private void drawChat(
-            GuiGraphics graphics,
+            DrawContext graphics,
             int x,
             int y,
             int width
