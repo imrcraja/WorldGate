@@ -1,26 +1,34 @@
 'use strict';
 
-const net = require('net');
-const crypto = require('crypto');
+const http = require('http');
+const { WebSocketServer } = require('ws');
 
-const PORT = Number(process.env.PORT || 3000);
-
-// Maximum simultaneous Minecraft connections.
-// A pair = 1 host socket + 1 player socket.
+const PORT = Number(process.env.PORT || 10000);
 const MAX_PAIRS = Number(process.env.MAX_PAIRS || 25);
-
 const HANDSHAKE_TIMEOUT = 10000;
-const MAX_HANDSHAKE_BYTES = 4096;
 
-// roomCode -> { host, player, createdAt }
 const rooms = new Map();
 
-function makeRoomId() {
-  return crypto.randomBytes(16).toString('hex');
+function sendJson(ws, value) {
+  if (ws.readyState === ws.OPEN) {
+    ws.send(JSON.stringify(value));
+  }
 }
 
-function sendLine(socket, object) {
-  socket.write(JSON.stringify(object) + '\n');
+function cleanup(roomCode, reason) {
+  const room = rooms.get(roomCode);
+  if (!room) return;
+
+  if (room.host && room.host.readyState === room.host.OPEN) {
+    room.host.close();
+  }
+
+  if (room.player && room.player.readyState === room.player.OPEN) {
+    room.player.close();
+  }
+
+  rooms.delete(roomCode);
+  console.log(`Room closed: ${roomCode} (${reason})`);
 }
 
 function activePairs() {
@@ -35,143 +43,74 @@ function activePairs() {
   return count;
 }
 
-function cleanupRoom(roomCode) {
-  const room = rooms.get(roomCode);
+function startPair(roomCode, room) {
+  if (!room.host || !room.player) return;
 
-  if (!room) {
-    return;
-  }
+  sendJson(room.host, { type: 'connected' });
+  sendJson(room.player, { type: 'connected' });
 
-  if (room.host && !room.host.destroyed) {
-    room.host.destroy();
-  }
+  console.log(`WebSocket forwarding started: ${roomCode}`);
 
-  if (room.player && !room.player.destroyed) {
-    room.player.destroy();
-  }
-
-  rooms.delete(roomCode);
-
-  console.log(`Room closed: ${roomCode}`);
-}
-
-function startForwarding(roomCode, room) {
-  const host = room.host;
-  const player = room.player;
-
-  if (!host || !player) {
-    return;
-  }
-
-  console.log(`TCP forwarding started: ${roomCode}`);
-
-  sendLine(host, {
-    type: 'connected'
+  room.host.on('message', (data, isBinary) => {
+    if (room.player && room.player.readyState === room.player.OPEN) {
+      room.player.send(data, { binary: isBinary });
+    }
   });
 
-  sendLine(player, {
-    type: 'connected'
+  room.player.on('message', (data, isBinary) => {
+    if (room.host && room.host.readyState === room.host.OPEN) {
+      room.host.send(data, { binary: isBinary });
+    }
   });
 
-  // Everything after the handshake is now Minecraft TCP traffic.
-  host.pipe(player);
-  player.pipe(host);
+  const closePair = (reason) => {
+    if (!rooms.has(roomCode)) return;
+    cleanup(roomCode, reason);
+  };
 
-  let closed = false;
+  room.host.once('close', () => closePair('host disconnected'));
+  room.player.once('close', () => closePair('player disconnected'));
 
-  function closePair(reason) {
-    if (closed) {
-      return;
-    }
-
-    closed = true;
-
-    console.log(`TCP forwarding closed: ${roomCode} (${reason})`);
-
-    host.unpipe(player);
-    player.unpipe(host);
-
-    if (!host.destroyed) {
-      host.destroy();
-    }
-
-    if (!player.destroyed) {
-      player.destroy();
-    }
-
-    rooms.delete(roomCode);
-  }
-
-  host.on('close', () => closePair('host disconnected'));
-  player.on('close', () => closePair('player disconnected'));
-
-  host.on('error', (err) => {
-    console.error(`Host socket error ${roomCode}: ${err.message}`);
-    closePair('host error');
+  room.host.once('error', (err) => {
+    console.error(`Host error ${roomCode}: ${err.message}`);
   });
 
-  player.on('error', (err) => {
-    console.error(`Player socket error ${roomCode}: ${err.message}`);
-    closePair('player error');
+  room.player.once('error', (err) => {
+    console.error(`Player error ${roomCode}: ${err.message}`);
   });
 }
 
-function handleHandshake(socket, line, remaining) {
-  let message;
-
-  try {
-    message = JSON.parse(line);
-  } catch {
-    sendLine(socket, {
-      type: 'error',
-      code: 'BAD_HANDSHAKE'
-    });
-
-    socket.destroy();
-    return;
-  }
-
-  if (!message || typeof message !== 'object') {
-    sendLine(socket, {
-      type: 'error',
-      code: 'BAD_HANDSHAKE'
-    });
-
-    socket.destroy();
-    return;
-  }
-
-  const role = message.role;
-  const roomCode = String(message.room || '').trim().toUpperCase();
+function register(ws, message) {
+  const role = message && message.role;
+  const roomCode = String(
+    message && message.room || ''
+  ).trim().toUpperCase();
 
   if (role !== 'host' && role !== 'player') {
-    sendLine(socket, {
+    sendJson(ws, {
       type: 'error',
       code: 'INVALID_ROLE'
     });
-
-    socket.destroy();
+    ws.close();
     return;
   }
 
   if (!roomCode || roomCode.length > 64) {
-    sendLine(socket, {
+    sendJson(ws, {
       type: 'error',
       code: 'INVALID_ROOM'
     });
-
-    socket.destroy();
+    ws.close();
     return;
   }
 
-  // Count only rooms that are already paired.
-  // This gives the player an immediate FULL response instead of queueing.
-  if (role === 'player' && !rooms.has(roomCode) && activePairs() >= MAX_PAIRS) {
-    sendLine(socket, {
-      type: 'full'
-    });
-
-    socket.end();
+  if (
+    role === 'player' &&
+    !rooms.has(roomCode) &&
+    activePairs() >= MAX_PAIRS
+  ) {
+    sendJson(ws, { type: 'full' });
+    ws.close();
     return;
   }
 
@@ -180,159 +119,151 @@ function handleHandshake(socket, line, remaining) {
   if (!room) {
     room = {
       host: null,
-      player: null,
-      createdAt: Date.now()
+      player: null
     };
 
     rooms.set(roomCode, room);
   }
 
   if (role === 'host') {
-    if (room.host && !room.host.destroyed) {
-      sendLine(socket, {
+    if (room.host && room.host.readyState === room.host.OPEN) {
+      sendJson(ws, {
         type: 'error',
         code: 'HOST_ALREADY_CONNECTED'
       });
-
-      socket.destroy();
+      ws.close();
       return;
     }
 
-    room.host = socket;
+    room.host = ws;
+    ws.roomCode = roomCode;
+    ws.role = 'host';
 
-    sendLine(socket, {
+    sendJson(ws, {
       type: 'waiting',
       room: roomCode
     });
 
     console.log(`Host registered: ${roomCode}`);
 
-    if (room.player && !room.player.destroyed) {
-      startForwarding(roomCode, room);
+    if (room.player) {
+      startPair(roomCode, room);
     }
 
     return;
   }
 
-  // Player
-  if (!room.host || room.host.destroyed) {
-    sendLine(socket, {
+  if (!room.host || room.host.readyState !== room.host.OPEN) {
+    sendJson(ws, {
       type: 'error',
       code: 'HOST_NOT_CONNECTED'
     });
 
-    socket.end();
+    ws.close();
     rooms.delete(roomCode);
     return;
   }
 
-  if (room.player && !room.player.destroyed) {
-    sendLine(socket, {
+  if (room.player && room.player.readyState === room.player.OPEN) {
+    sendJson(ws, {
       type: 'error',
       code: 'ROOM_BUSY'
     });
 
-    socket.destroy();
+    ws.close();
     return;
   }
 
-  room.player = socket;
+  room.player = ws;
+  ws.roomCode = roomCode;
+  ws.role = 'player';
 
   console.log(`Player joined: ${roomCode}`);
 
-  if (remaining && remaining.length > 0) {
-    // The player should normally send no Minecraft data before
-    // receiving "connected", but preserve any bytes just in case.
-    socket.unshift(remaining);
-  }
-
-  startForwarding(roomCode, room);
+  startPair(roomCode, room);
 }
 
-const server = net.createServer((socket) => {
-  socket.setNoDelay(true);
-  socket.setKeepAlive(true, 30000);
+const server = http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, {
+      'content-type': 'text/plain; charset=utf-8'
+    });
 
-  let handshakeBuffer = Buffer.alloc(0);
-  let handshakeComplete = false;
+    res.end('WorldGate relay OK');
+    return;
+  }
+
+  res.writeHead(200, {
+    'content-type': 'text/plain; charset=utf-8'
+  });
+
+  res.end('WorldGate relay');
+});
+
+const wss = new WebSocketServer({
+  server,
+  path: '/ws'
+});
+
+wss.on('connection', (ws) => {
+  let registered = false;
 
   const timer = setTimeout(() => {
-    if (!handshakeComplete) {
-      sendLine(socket, {
+    if (!registered) {
+      sendJson(ws, {
         type: 'error',
         code: 'HANDSHAKE_TIMEOUT'
       });
 
-      socket.destroy();
+      ws.close();
     }
   }, HANDSHAKE_TIMEOUT);
 
-  function onHandshakeData(chunk) {
-    if (handshakeComplete) {
-      return;
-    }
-
-    handshakeBuffer = Buffer.concat([handshakeBuffer, chunk]);
-
-    if (handshakeBuffer.length > MAX_HANDSHAKE_BYTES) {
-      clearTimeout(timer);
-
-      sendLine(socket, {
+  ws.once('message', (data, isBinary) => {
+    if (isBinary) {
+      sendJson(ws, {
         type: 'error',
-        code: 'HANDSHAKE_TOO_LARGE'
+        code: 'HANDSHAKE_MUST_BE_TEXT'
       });
 
-      socket.destroy();
+      ws.close();
       return;
     }
 
-    const newlineIndex = handshakeBuffer.indexOf(0x0a);
+    let message;
 
-    if (newlineIndex === -1) {
+    try {
+      message = JSON.parse(data.toString('utf8'));
+    } catch {
+      sendJson(ws, {
+        type: 'error',
+        code: 'BAD_HANDSHAKE'
+      });
+
+      ws.close();
       return;
     }
 
-    handshakeComplete = true;
+    registered = true;
     clearTimeout(timer);
 
-    socket.removeListener('data', onHandshakeData);
+    register(ws, message);
+  });
 
-    const line = handshakeBuffer
-      .subarray(0, newlineIndex)
-      .toString('utf8')
-      .trim();
+  ws.on('error', (err) => {
+    console.error(`WebSocket error: ${err.message}`);
+  });
+});
 
-    const remaining = handshakeBuffer.subarray(newlineIndex + 1);
-
-    handleHandshake(socket, line, remaining);
+setInterval(() => {
+  for (const ws of wss.clients) {
+    if (ws.readyState === ws.OPEN) {
+      ws.ping();
+    }
   }
-
-  socket.on('data', onHandshakeData);
-
-  socket.on('close', () => {
-    clearTimeout(timer);
-
-    for (const [roomCode, room] of rooms) {
-      if (room.host === socket) {
-        console.log(`Host disconnected before forwarding: ${roomCode}`);
-        cleanupRoom(roomCode);
-      } else if (room.player === socket) {
-        console.log(`Player disconnected before forwarding: ${roomCode}`);
-        cleanupRoom(roomCode);
-      }
-    }
-  });
-
-  socket.on('error', (err) => {
-    console.error(`Relay socket error: ${err.message}`);
-  });
-});
-
-server.on('error', (err) => {
-  console.error(`Relay server error: ${err.message}`);
-});
+}, 30000);
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`WorldGate relay listening on ${PORT}`);
+  console.log(`WorldGate WebSocket relay listening on ${PORT}`);
   console.log(`Maximum simultaneous pairs: ${MAX_PAIRS}`);
 });
