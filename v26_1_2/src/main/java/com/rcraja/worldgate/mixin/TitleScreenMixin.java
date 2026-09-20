@@ -2,7 +2,6 @@ package com.rcraja.worldgate.mixin;
 
 import com.rcraja.worldgate.client.gui.WorldGateScreen;
 
-import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
