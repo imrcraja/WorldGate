@@ -470,7 +470,7 @@ public class LobbyScreen extends Screen {
 
         stopRealtime();
 
-        if (minecraft != null) {
+        if (client != null) {
 
             client.setScreen(parent);
         }
@@ -506,7 +506,7 @@ public class LobbyScreen extends Screen {
 
     @Override
     public void render(
-            GuiGraphicsExtractor graphics,
+            DrawContext graphics,
             int mouseX,
             int mouseY,
             float delta
@@ -641,7 +641,7 @@ public class LobbyScreen extends Screen {
     }
 
     private void drawPanel(
-            GuiGraphicsExtractor graphics,
+            DrawContext graphics,
             int x,
             int y,
             int width,
@@ -666,7 +666,7 @@ public class LobbyScreen extends Screen {
     }
 
     private void drawFriends(
-            GuiGraphicsExtractor graphics,
+            DrawContext graphics,
             int x,
             int y,
             int width
@@ -771,7 +771,7 @@ public class LobbyScreen extends Screen {
     }
 
     private void drawRoomPlayers(
-            GuiGraphicsExtractor graphics,
+            DrawContext graphics,
             int x,
             int y,
             int width
@@ -908,7 +908,7 @@ public class LobbyScreen extends Screen {
     }
 
     private void drawChat(
-            GuiGraphicsExtractor graphics,
+            DrawContext graphics,
             int x,
             int y,
             int width
