@@ -31,6 +31,8 @@ public class WorldGateScreen extends Screen {
     private final Map<String, Boolean> knownPlayers =
             new HashMap<>();
 
+    private boolean roomSnapshotInitialized = false;
+
     public WorldGateScreen(Screen parent) {
         super(Component.translatable("worldgate.screen.title"));
         this.parent = parent;
@@ -76,16 +78,12 @@ public class WorldGateScreen extends Screen {
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.friends"),
-                btn -> this.minecraft.setScreen(
-                        new FriendsScreen(this)
-                )
+                btn -> this.minecraft.setScreen(new FriendsScreen(this))
         ).bounds(centerX - 100, y + 50, 200, 20).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.lobby"),
-                btn -> this.minecraft.setScreen(
-                        new LobbyScreen(this)
-                )
+                btn -> this.minecraft.setScreen(new LobbyScreen(this))
         ).bounds(centerX - 100, y + 75, 200, 20).build());
 
         addRenderableWidget(Button.builder(
@@ -107,13 +105,10 @@ public class WorldGateScreen extends Screen {
     private void onCreate() {
         if (minecraft == null || minecraft.player == null) return;
 
-        IntegratedServer server =
-                minecraft.getSingleplayerServer();
+        IntegratedServer server = minecraft.getSingleplayerServer();
 
         if (server == null) {
-            sendMessage(
-                    "WorldGate: no singleplayer world is running."
-            );
+            sendMessage("WorldGate: no singleplayer world is running.");
             return;
         }
 
@@ -129,10 +124,7 @@ public class WorldGateScreen extends Screen {
                 return;
             }
 
-            startWorldGateHost(
-                    server,
-                    existingPort
-            );
+            startWorldGateHost(server, existingPort);
             return;
         }
 
@@ -145,49 +137,37 @@ public class WorldGateScreen extends Screen {
             return;
         }
 
-        sendMessage(
-                "WorldGate: using port " + port
-        );
+        sendMessage("WorldGate: using port " + port);
 
-        boolean published =
-                server.publishServer(
-                        GameType.DEFAULT_MODE,
-                        true,
-                        port
-                );
+        boolean published = server.publishServer(
+                GameType.DEFAULT_MODE,
+                true,
+                port
+        );
 
         if (!published) {
             sendMessage(
-                    "WorldGate: failed to publish the world on port "
-                            + port
+                    "WorldGate: failed to publish the world on port " + port
             );
             return;
         }
 
         int publishedPort = server.getPort();
 
-        if (publishedPort <= 0
-                || publishedPort > 65535) {
+        if (publishedPort <= 0 || publishedPort > 65535) {
             sendMessage(
                     "WorldGate: Minecraft returned an invalid published port."
             );
             return;
         }
 
-        startWorldGateHost(
-                server,
-                publishedPort
-        );
+        startWorldGateHost(server, publishedPort);
     }
 
     private static int findFreePort() {
-        try (ServerSocket socket =
-                     new ServerSocket(0)) {
-
+        try (ServerSocket socket = new ServerSocket(0)) {
             socket.setReuseAddress(true);
-
             return socket.getLocalPort();
-
         } catch (IOException e) {
             return -1;
         }
@@ -199,21 +179,18 @@ public class WorldGateScreen extends Screen {
     ) {
         if (!HostBridge.start(port)) {
             sendMessage(
-                    "WorldGate: failed to start host bridge on port "
-                            + port
+                    "WorldGate: failed to start host bridge on port " + port
             );
             return;
         }
 
         sendMessage(
-                "WorldGate: Minecraft server published on port "
-                        + port
+                "WorldGate: Minecraft server published on port " + port
         );
 
         WorldGateModClient.EXECUTOR.submit(() -> {
 
-            String hostAddress =
-                    HostBridge.getAdvertiseAddress();
+            String hostAddress = HostBridge.getAdvertiseAddress();
 
             String code =
                     WorldGateModClient.ROOM_MANAGER.createRoom(
@@ -233,20 +210,16 @@ public class WorldGateScreen extends Screen {
                 return;
             }
 
-            String hostName =
-                    minecraft.getUser().getName();
+            String hostName = minecraft.getUser().getName();
 
             WorldGateModClient.ROOM_MANAGER.playerJoin(
                     code,
                     hostName
             );
 
-            boolean relayStarted =
-                    HostBridge.startRelay(code);
+            boolean relayStarted = HostBridge.startRelay(code);
 
-            WorldGateModClient.CURRENT_ROOM_CODE =
-                    code;
-
+            WorldGateModClient.CURRENT_ROOM_CODE = code;
             WorldGateModClient.startHeartbeat(true);
 
             minecraft.execute(() -> {
@@ -267,67 +240,59 @@ public class WorldGateScreen extends Screen {
     }
 
     private void onJoin() {
-        String code =
-                roomCodeBox.getValue()
-                        .trim()
-                        .toUpperCase();
+        String code = roomCodeBox.getValue()
+                .trim()
+                .toUpperCase();
 
         if (code.isEmpty()) return;
 
-        sendMessage(
-                "WorldGate: joining..."
-        );
+        sendMessage("WorldGate: joining...");
 
         WorldGateModClient.EXECUTOR.submit(() -> {
 
             String roomJson =
-                    WorldGateModClient.ROOM_MANAGER
-                            .getRoom(code);
+                    WorldGateModClient.ROOM_MANAGER.getRoom(code);
 
             minecraft.execute(() -> {
 
-                if (roomJson == null
-                        || roomJson.equals("null")) {
-                    sendMessage(
-                            "WorldGate: room not found."
-                    );
+                if (roomJson == null || roomJson.equals("null")) {
+                    sendMessage("WorldGate: room not found.");
                     return;
                 }
 
                 String hostAddress =
-                        extractJsonString(
-                                roomJson,
-                                "hostAddress"
-                        );
+                        extractJsonString(roomJson, "hostAddress");
 
                 int hostPort =
-                        extractJsonInt(
-                                roomJson,
-                                "hostPort"
-                        );
+                        extractJsonInt(roomJson, "hostPort");
 
                 if (hostAddress == null
                         || hostAddress.isBlank()
                         || hostPort <= 0
                         || hostPort > 65535) {
+
                     sendMessage(
                             "WorldGate: invalid host address."
                     );
                     return;
                 }
 
-                String ign =
-                        minecraft.getUser().getName();
+                String ign = minecraft.getUser().getName();
 
-                WorldGateModClient.ROOM_MANAGER
-                        .playerJoin(
+                boolean joined =
+                        WorldGateModClient.ROOM_MANAGER.playerJoin(
                                 code,
                                 ign
                         );
 
-                WorldGateModClient.CURRENT_ROOM_CODE =
-                        code;
+                if (!joined) {
+                    sendMessage(
+                            "WorldGate: could not register you in the room."
+                    );
+                    return;
+                }
 
+                WorldGateModClient.CURRENT_ROOM_CODE = code;
                 WorldGateModClient.startHeartbeat(false);
 
                 int relayPort =
@@ -378,24 +343,21 @@ public class WorldGateScreen extends Screen {
     }
 
     private void startRoomListeners(String code) {
+        roomSnapshotInitialized = false;
+        knownPlayers.clear();
 
-        WorldGateModClient.ROOM_MANAGER
-                .setRoomChangedListener(
-                        this::handleRoomChanged
-                );
+        WorldGateModClient.ROOM_MANAGER.setRoomChangedListener(
+                this::handleRoomChanged
+        );
 
-        WorldGateModClient.ROOM_MANAGER
-                .startRealtime(code);
+        WorldGateModClient.ROOM_MANAGER.startRealtime(code);
 
         WorldGateModClient.CHAT_MANAGER.listen(
                 code,
                 (uid, text) ->
                         minecraft.execute(() ->
                                 sendMessage(
-                                        "<"
-                                                + shortUid(uid)
-                                                + "> "
-                                                + text
+                                        "<" + shortUid(uid) + "> " + text
                                 )
                         )
         );
@@ -405,26 +367,18 @@ public class WorldGateScreen extends Screen {
                 (uid, emote) ->
                         minecraft.execute(() ->
                                 sendMessage(
-                                        shortUid(uid)
-                                                + " "
-                                                + emote
+                                        shortUid(uid) + " " + emote
                                 )
                         )
         );
     }
 
-    private void handleRoomChanged(
-            String roomJson
-    ) {
-        if (roomJson == null
-                || roomJson.equals("null")) {
-            return;
-        }
+    private void handleRoomChanged(String roomJson) {
+        if (roomJson == null || roomJson.equals("null")) return;
 
         try {
             JsonObject room =
-                    JsonParser.parseString(roomJson)
-                            .getAsJsonObject();
+                    JsonParser.parseString(roomJson).getAsJsonObject();
 
             if (!room.has("players")
                     || !room.get("players").isJsonObject()) {
@@ -438,52 +392,67 @@ public class WorldGateScreen extends Screen {
                     new HashMap<>();
 
             for (String uid : players.keySet()) {
-
                 JsonObject player =
                         players.getAsJsonObject(uid);
 
                 boolean online =
                         player.has("online")
-                                && player.get("online")
-                                        .getAsBoolean();
+                                && player.get("online").getAsBoolean();
 
                 current.put(uid, online);
+            }
 
+            if (!roomSnapshotInitialized) {
+                knownPlayers.clear();
+                knownPlayers.putAll(current);
+                roomSnapshotInitialized = true;
+                return;
+            }
+
+            for (String uid : current.keySet()) {
+                boolean online = current.get(uid);
                 boolean wasOnline =
-                        knownPlayers.getOrDefault(
-                                uid,
-                                false
-                        );
+                        knownPlayers.getOrDefault(uid, false);
 
                 if (online && !wasOnline) {
+                    JsonObject player =
+                            players.getAsJsonObject(uid);
 
                     String name =
                             player.has("ign")
-                                    ? player.get("ign")
-                                            .getAsString()
+                                    ? player.get("ign").getAsString()
                                     : shortUid(uid);
 
                     minecraft.execute(() ->
                             sendMessage(
-                                    "WorldGate: "
-                                            + name
+                                    "WorldGate: " + name
                                             + " joined the room."
                             )
                     );
                 }
+            }
 
-                if (!online && wasOnline) {
+            for (String uid : knownPlayers.keySet()) {
+                boolean wasOnline = knownPlayers.get(uid);
+
+                boolean online =
+                        current.getOrDefault(uid, false);
+
+                if (wasOnline && !online) {
+                    JsonObject player =
+                            players.has(uid)
+                                    && players.get(uid).isJsonObject()
+                                    ? players.getAsJsonObject(uid)
+                                    : null;
 
                     String name =
-                            player.has("ign")
-                                    ? player.get("ign")
-                                            .getAsString()
+                            player != null && player.has("ign")
+                                    ? player.get("ign").getAsString()
                                     : shortUid(uid);
 
                     minecraft.execute(() ->
                             sendMessage(
-                                    "WorldGate: "
-                                            + name
+                                    "WorldGate: " + name
                                             + " left the room."
                             )
                     );
@@ -502,14 +471,11 @@ public class WorldGateScreen extends Screen {
             String json,
             String key
     ) {
-        if (json == null || key == null) {
-            return null;
-        }
+        if (json == null || key == null) return null;
 
         try {
             JsonObject object =
-                    JsonParser.parseString(json)
-                            .getAsJsonObject();
+                    JsonParser.parseString(json).getAsJsonObject();
 
             if (!object.has(key)
                     || object.get(key).isJsonNull()) {
@@ -527,14 +493,11 @@ public class WorldGateScreen extends Screen {
             String json,
             String key
     ) {
-        if (json == null || key == null) {
-            return -1;
-        }
+        if (json == null || key == null) return -1;
 
         try {
             JsonObject object =
-                    JsonParser.parseString(json)
-                            .getAsJsonObject();
+                    JsonParser.parseString(json).getAsJsonObject();
 
             if (!object.has(key)
                     || object.get(key).isJsonNull()) {
@@ -549,9 +512,7 @@ public class WorldGateScreen extends Screen {
     }
 
     private static String shortUid(String uid) {
-        if (uid == null || uid.isBlank()) {
-            return "?";
-        }
+        if (uid == null || uid.isBlank()) return "?";
 
         return uid.substring(
                 0,
@@ -611,7 +572,6 @@ public class WorldGateScreen extends Screen {
                 String message
         ) {
             super(Component.literal("WorldGate"));
-
             this.parentScreen = parentScreen;
             this.message = message;
         }
@@ -623,9 +583,7 @@ public class WorldGateScreen extends Screen {
             addRenderableWidget(
                     Button.builder(
                             Component.literal("Back"),
-                            btn -> minecraft.setScreen(
-                                    parentScreen
-                            )
+                            btn -> minecraft.setScreen(parentScreen)
                     )
                     .bounds(
                             centerX - 100,
