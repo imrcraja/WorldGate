@@ -13,6 +13,7 @@ import java.util.function.BiConsumer;
 public class RoomChannel {
 
     private final FirebaseSession session;
+
     private final String channelName;
 
     private final FirebaseStreamClient stream =
@@ -33,9 +34,11 @@ public class RoomChannel {
             String roomCode,
             JsonObject payload
     ) {
+
         if (!session.isReady()
                 || roomCode == null
-                || roomCode.isBlank()) {
+                || roomCode.isBlank()
+                || payload == null) {
             return;
         }
 
@@ -62,15 +65,23 @@ public class RoomChannel {
             String roomCode,
             BiConsumer<String, JsonObject> onEntry
     ) {
+
         if (!session.isReady()
                 || roomCode == null
-                || roomCode.isBlank()) {
+                || roomCode.isBlank()
+                || onEntry == null) {
             return;
         }
 
         stream.stop();
-        seenKeys.clear();
 
+        /*
+         * Do not clear seenKeys here.
+         *
+         * Firebase may reconnect and send the existing
+         * messages again. Keeping the keys prevents the
+         * same chat/emote from appearing twice.
+         */
         stream.listen(
                 Constants.FIREBASE_DATABASE_URL,
                 "/rooms/"
@@ -78,10 +89,11 @@ public class RoomChannel {
                         + "/"
                         + channelName,
                 session.idToken(),
-                raw -> handleEvent(
-                        raw,
-                        onEntry
-                )
+                raw ->
+                        handleEvent(
+                                raw,
+                                onEntry
+                        )
         );
     }
 
@@ -89,7 +101,14 @@ public class RoomChannel {
             String raw,
             BiConsumer<String, JsonObject> onEntry
     ) {
+
+        if (raw == null
+                || raw.isBlank()) {
+            return;
+        }
+
         try {
+
             JsonObject event =
                     JsonParser.parseString(raw)
                             .getAsJsonObject();
@@ -109,8 +128,7 @@ public class RoomChannel {
             }
 
             /*
-             * Firebase sends the existing channel contents
-             * when the stream first connects.
+             * Initial Firebase snapshot.
              */
             if ("/".equals(path)) {
 
@@ -122,6 +140,7 @@ public class RoomChannel {
                         data.getAsJsonObject();
 
                 for (String key : all.keySet()) {
+
                     emit(
                             key,
                             all.get(key),
@@ -133,7 +152,7 @@ public class RoomChannel {
             }
 
             /*
-             * Firebase sends paths such as:
+             * Firebase child event:
              * /-OABC123
              */
             String key =
@@ -142,8 +161,8 @@ public class RoomChannel {
                             : path;
 
             /*
-             * Ignore nested updates unless the path points
-             * directly at a message entry.
+             * Ignore nested child updates.
+             * Chat/emote entries are immutable POST objects.
              */
             if (key.contains("/")) {
                 return;
@@ -156,6 +175,7 @@ public class RoomChannel {
             );
 
         } catch (Exception e) {
+
             WorldGateMod.LOGGER.error(
                     "WorldGate {} realtime parse error",
                     channelName,
@@ -169,6 +189,7 @@ public class RoomChannel {
             JsonElement element,
             BiConsumer<String, JsonObject> onEntry
     ) {
+
         if (key == null
                 || key.isBlank()
                 || element == null
@@ -178,8 +199,10 @@ public class RoomChannel {
         }
 
         /*
-         * A Firebase POST key identifies one message.
-         * Do not display the same message twice.
+         * Prevent duplicate delivery after:
+         * - Firebase reconnect
+         * - initial snapshot
+         * - repeated server events
          */
         if (!seenKeys.add(key)) {
             return;
@@ -200,7 +223,9 @@ public class RoomChannel {
     }
 
     public void stopListening() {
+
         stream.stop();
+
         seenKeys.clear();
     }
 }
