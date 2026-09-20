@@ -591,7 +591,7 @@ public class FriendsScreen extends Screen {
 
     @Override
     public void render(
-            GuiGraphics graphics,
+            DrawContext graphics,
             int mouseX,
             int mouseY,
             float delta
