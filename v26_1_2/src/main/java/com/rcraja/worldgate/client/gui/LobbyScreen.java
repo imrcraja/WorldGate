@@ -345,7 +345,7 @@ public class LobbyScreen extends Screen {
             return "You";
         }
 
-        return shortUid(uid);
+        return roomPlayerName(uid) != null ? roomPlayerName(uid) : "Player";
     }
 
     private static String shortUid(
