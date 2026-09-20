@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
 
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -449,8 +449,7 @@ public class FriendsScreen extends Screen {
 
                                 requestSnapshotReady =
                                         true;
-
-                                requests.clear();
+                                                                requests.clear();
 
                                 requests.addAll(
                                         result
@@ -590,14 +589,14 @@ public class FriendsScreen extends Screen {
     }
 
     @Override
-    public void render(
-            DrawContext graphics,
+    public void extractRenderState(
+            GuiGraphicsExtractor graphics,
             int mouseX,
             int mouseY,
             float delta
     ) {
 
-        this.renderBackground(
+        super.extractRenderState(
                 graphics,
                 mouseX,
                 mouseY,
@@ -607,7 +606,7 @@ public class FriendsScreen extends Screen {
         int centerX =
                 this.width / 2;
 
-        graphics.drawCenteredString(
+        graphics.centeredText(
                 this.font,
                 "WorldGate Friends",
                 centerX,
@@ -615,7 +614,7 @@ public class FriendsScreen extends Screen {
                 0xFFFFFF
         );
 
-        graphics.drawCenteredString(
+        graphics.centeredText(
                 this.font,
                 "Your Code: " + myCode,
                 centerX,
@@ -623,7 +622,7 @@ public class FriendsScreen extends Screen {
                 0x55FFFF
         );
 
-        graphics.drawString(
+        graphics.text(
                 this.font,
                 "Friend Requests",
                 centerX - 140,
@@ -636,7 +635,7 @@ public class FriendsScreen extends Screen {
 
         if (requests.isEmpty()) {
 
-            graphics.drawString(
+            graphics.text(
                     this.font,
                     "No pending requests.",
                     centerX - 140,
@@ -662,7 +661,7 @@ public class FriendsScreen extends Screen {
                                 ? 0x55FFFF
                                 : 0xFFFFFF;
 
-                graphics.drawString(
+                graphics.text(
                         this.font,
                         (selected
                                 ? "> "
@@ -673,7 +672,7 @@ public class FriendsScreen extends Screen {
                         textColor
                 );
 
-                graphics.drawString(
+                graphics.text(
                         this.font,
                         request.code(),
                         centerX - 140,
@@ -691,7 +690,7 @@ public class FriendsScreen extends Screen {
                         225
                 );
 
-        graphics.drawString(
+        graphics.text(
                 this.font,
                 "Friends",
                 centerX - 140,
@@ -703,7 +702,7 @@ public class FriendsScreen extends Screen {
 
         if (friends.isEmpty()) {
 
-            graphics.drawString(
+            graphics.text(
                     this.font,
                     "No friends yet.",
                     centerX - 140,
@@ -718,7 +717,7 @@ public class FriendsScreen extends Screen {
                     friends
             ) {
 
-                graphics.drawString(
+                graphics.text(
                         this.font,
                         friend.name(),
                         centerX - 140,
@@ -726,7 +725,7 @@ public class FriendsScreen extends Screen {
                         0xFFFFFF
                 );
 
-                graphics.drawString(
+                graphics.text(
                         this.font,
                         friend.code(),
                         centerX - 140,
@@ -739,7 +738,7 @@ public class FriendsScreen extends Screen {
                                 ? "● Online"
                                 : "○ Offline";
 
-                graphics.drawRightAlignedString(
+                graphics.rightAlignedText(
                         this.font,
                         state,
                         centerX + 140,
@@ -779,7 +778,7 @@ public class FriendsScreen extends Screen {
                     0xDD111111
             );
 
-            graphics.drawCenteredString(
+            graphics.centeredText(
                     this.font,
                     requestNotification,
                     centerX,
@@ -790,7 +789,7 @@ public class FriendsScreen extends Screen {
 
         if (!status.isEmpty()) {
 
-            graphics.drawCenteredString(
+            graphics.centeredText(
                     this.font,
                     status,
                     centerX,
@@ -798,13 +797,6 @@ public class FriendsScreen extends Screen {
                     0xAAAAAA
             );
         }
-
-        super.render(
-                graphics,
-                mouseX,
-                mouseY,
-                delta
-        );
     }
 
     @Override
