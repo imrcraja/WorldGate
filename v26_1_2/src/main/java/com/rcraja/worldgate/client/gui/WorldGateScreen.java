@@ -1022,9 +1022,8 @@ public class WorldGateScreen extends Screen {
         ) {
 
             minecraft.player.sendSystemMessage(
-                    Component.literal(message),
-                    false
-            );
+        Component.literal(message)
+);
 
         } else if (minecraft != null) {
 
