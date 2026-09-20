@@ -6,11 +6,11 @@ repositories { maven { url = 'https://maven.fabricmc.net/' } }
 sourceSets {
     main {
         java {
-            srcDirs = ['../common/src/main/java', '../v1_20_1/src/main/java', '../v1_20_2/src/main/java/com/rcraja/worldgate/client/gui']
-            exclude 'com/rcraja/worldgate/client/gui/WorldGateScreen.java'
+            srcDir '../common/src/main/java'
+            srcDir '../v1_20_2/src/main/java'
         }
         resources {
-            srcDirs = ['../v1_20_1/src/main/resources']
+            srcDir '../v1_20_1/src/main/resources'
         }
     }
 }
