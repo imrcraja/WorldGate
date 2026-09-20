@@ -550,7 +550,7 @@ public class WorldGateScreen extends Screen {
                                                 "WorldGate "
                                                         + code,
                                                 address.toString(),
-                                                ServerInfo.ServerType.OTHER
+                                                false
                                         );
 
                                 String connectionType =
