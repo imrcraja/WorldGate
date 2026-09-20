@@ -1,10 +1,14 @@
 {
-  "schemaVersion": 1, "id": "worldgate", "version": "${version}", "name": "WorldGate",
+  "schemaVersion": 1,
+  "id": "worldgate",
+  "version": "${version}",
+  "name": "WorldGate",
   "description": "Play Minecraft with friends over the internet from any world -- no dedicated server needed.",
   "authors": ["RC RAJA GAMER 2.0"],
   "contact": {"sources":"https://github.com/imrcraja/WorldGate","issues":"https://github.com/imrcraja/WorldGate/issues","youtube":"https://youtube.com/@RCRAJAGAMER2.0"},
-  "license":"MIT", "environment":"*",
-  "entrypoints":{"main":["com.rcraja.worldgate.WorldGateMod"],"client":["com.rcraja.worldgate.client.WorldGateModClient"]},
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {"main":["com.rcraja.worldgate.WorldGateMod"],"client":["com.rcraja.worldgate.client.WorldGateModClient"]},
   "mixins":["worldgate.mixins.json"],
-  "depends":{"fabricloader":">=0.14.0","fabric-api":"*","minecraft":"~1.20.1","java":">=17"}
+  "depends":{"fabric-api":"*"}
 }
