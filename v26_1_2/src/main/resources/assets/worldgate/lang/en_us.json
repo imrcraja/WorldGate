@@ -34,4 +34,6 @@
   "worldgate.lobby.set_skin": "Set Skin (coming soon)",
   "worldgate.lobby.skin_todo": "Skin URL saved for later -- live skin swapping isn't wired up yet.",
   "worldgate.lobby.no_room": "Join or create a room first."
+  "key.worldgate.emote": "WorldGate",
+"key.category.worldgate.worldgate": "WorldGate",
 }
