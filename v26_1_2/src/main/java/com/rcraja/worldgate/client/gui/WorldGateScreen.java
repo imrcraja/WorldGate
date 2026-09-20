@@ -7,6 +7,7 @@ import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.network.HostBridge;
 import com.rcraja.worldgate.network.RelayBridge;
 
+import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -17,6 +18,7 @@ import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.GameType;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -284,7 +286,7 @@ public class WorldGateScreen extends Screen {
 
         boolean published =
                 server.publishServer(
-                        GameType.DEFAULT_MODE,
+                        GameType.SURVIVAL,
                         true,
                         port
                 );
@@ -1019,7 +1021,7 @@ public class WorldGateScreen extends Screen {
                         && minecraft.player != null
         ) {
 
-            minecraft.player.displayClientMessage(
+            minecraft.player.sendSystemMessage(
                     Component.literal(message),
                     false
             );
@@ -1211,7 +1213,8 @@ public class WorldGateScreen extends Screen {
                             "WorldGate"
                     ),
                     this.width / 2,
-                    this.height / 2 - 25
+                    this.height / 2 - 25,
+                    0xFFFFFF
             );
 
             graphics.centeredText(
