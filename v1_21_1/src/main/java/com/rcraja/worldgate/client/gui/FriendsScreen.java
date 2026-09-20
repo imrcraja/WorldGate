@@ -179,8 +179,8 @@ public class FriendsScreen extends Screen {
 
                     String name =
                             this.client
-                                    .getUser()
-                                    .getName();
+                                    .getSession()
+                                    .getUsername();
 
                     WorldGateModClient
                             .FRIEND_MANAGER
