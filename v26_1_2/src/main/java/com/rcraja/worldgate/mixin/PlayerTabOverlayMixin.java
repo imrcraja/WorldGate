@@ -11,14 +11,12 @@ import org.spongepowered.asm.mixin.injection.At;
 /**
  * Colors each player's Tab-list ping: white -> yellow -> orange -> red.
  *
- * NOTE: "getNameForPlayer" is the Mojang-mapping method name as of ~1.21.x.
- * If the build fails on this class, open PlayerTabOverlay via the loom
- * genSources task and update the method name/signature to match 26.1.2.
+ * Minecraft 26.1.2 uses "getNameForDisplay" for the player name component.
  */
 @Mixin(PlayerTabOverlay.class)
 public class PlayerTabOverlayMixin {
 
-    @ModifyReturnValue(method = "getNameForPlayer", at = @At("RETURN"))
+    @ModifyReturnValue(method = "getNameForDisplay", at = @At("RETURN"))
     private Component worldgate$colorPingName(Component original, PlayerInfo info) {
         int ping = info.getLatency();
         PingColor color = PingColor.forPing(ping);
