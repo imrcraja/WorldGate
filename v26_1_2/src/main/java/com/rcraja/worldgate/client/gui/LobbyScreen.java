@@ -21,7 +21,10 @@ public class LobbyScreen extends Screen {
 
     private EditBox chatBox;
 
-    private final Map<String, String> friendNames =
+    /*
+     * uid -> profile information
+     */
+    private final Map<String, FriendProfile> friendProfiles =
             new ConcurrentHashMap<>();
 
     private volatile String friendsJson = null;
@@ -37,8 +40,26 @@ public class LobbyScreen extends Screen {
         this.parent = parent;
     }
 
+    private static class FriendProfile {
+
+        final String name;
+        final String friendCode;
+        final boolean online;
+
+        FriendProfile(
+                String name,
+                String friendCode,
+                boolean online
+        ) {
+            this.name = name;
+            this.friendCode = friendCode;
+            this.online = online;
+        }
+    }
+
     @Override
     protected void init() {
+
         int centerX = this.width / 2;
 
         chatBox = new EditBox(
@@ -51,7 +72,10 @@ public class LobbyScreen extends Screen {
         );
 
         chatBox.setMaxLength(200);
-        chatBox.setHint(Component.literal("Type a message..."));
+        chatBox.setHint(
+                Component.literal("Type a message...")
+        );
+
         addRenderableWidget(chatBox);
 
         addRenderableWidget(
@@ -86,23 +110,39 @@ public class LobbyScreen extends Screen {
     }
 
     private void startRealtime() {
+
         loading = true;
 
+        /*
+         * Friend list realtime update.
+         */
         WorldGateModClient.FRIEND_MANAGER
                 .setFriendListChangedListener(json -> {
+
                     friendsJson = json;
-                    refreshFriendNames();
+
+                    this.minecraft.execute(
+                            this::refreshFriendProfiles
+                    );
                 });
 
-        WorldGateModClient.FRIEND_MANAGER.startRealtime();
+        WorldGateModClient.FRIEND_MANAGER
+                .startRealtime();
 
+        /*
+         * Initial friend list.
+         */
         WorldGateModClient.EXECUTOR.submit(() -> {
+
             String json =
-                    WorldGateModClient.FRIEND_MANAGER.getFriends();
+                    WorldGateModClient.FRIEND_MANAGER
+                            .getFriends();
 
             this.minecraft.execute(() -> {
+
                 friendsJson = json;
-                refreshFriendNames();
+
+                refreshFriendProfiles();
             });
         });
 
@@ -110,98 +150,170 @@ public class LobbyScreen extends Screen {
                 WorldGateModClient.CURRENT_ROOM_CODE;
 
         if (room != null && !room.isBlank()) {
+
+            /*
+             * Room realtime update.
+             */
             WorldGateModClient.ROOM_MANAGER
                     .setRoomChangedListener(json -> {
+
                         roomJson = json;
+
                         this.minecraft.execute(
-                                this::refreshFriendNames
+                                this::refreshFriendProfiles
                         );
                     });
 
             WorldGateModClient.ROOM_MANAGER
                     .startRealtime(room);
 
+            /*
+             * Realtime chat.
+             */
             WorldGateModClient.CHAT_MANAGER.listen(
                     room,
-                    (uid, text) -> this.minecraft.execute(() -> {
-                        String name = displayName(uid);
-                        addChatMessage(
-                                "<" + name + "> " + text
-                        );
-                    })
-            );
+                    (uid, text) ->
+                            this.minecraft.execute(() -> {
 
-            loading = false;
-        } else {
-            loading = false;
+                                String name =
+                                        displayName(uid);
+
+                                addChatMessage(
+                                        "<" + name + "> " + text
+                                );
+                            })
+            );
         }
+
+        loading = false;
     }
 
-    private void refreshFriendNames() {
+    /*
+     * Load/update all friend profiles.
+     */
+    private void refreshFriendProfiles() {
+
         String json = friendsJson;
 
         if (json == null
-                || json.equals("null")) {
+                || json.equals("null")
+                || json.isBlank()) {
             return;
         }
 
         try {
+
             JsonObject friends =
                     JsonParser.parseString(json)
                             .getAsJsonObject();
 
             for (String uid : friends.keySet()) {
-                if (friendNames.containsKey(uid)) {
-                    continue;
-                }
 
+                /*
+                 * Already loaded profile.
+                 * It will still be refreshed when the
+                 * friend list itself changes.
+                 */
                 WorldGateModClient.EXECUTOR.submit(() -> {
+
                     String profile =
                             WorldGateModClient.FRIEND_MANAGER
                                     .getProfile(uid);
 
-                    String name = uid;
+                    String name =
+                            "Unknown";
+
+                    String friendCode =
+                            "WG------";
+
+                    boolean online =
+                            false;
 
                     try {
+
                         if (profile != null
-                                && !profile.equals("null")) {
+                                && !profile.equals("null")
+                                && !profile.isBlank()) {
+
                             JsonObject object =
-                                    JsonParser.parseString(profile)
+                                    JsonParser
+                                            .parseString(profile)
                                             .getAsJsonObject();
 
                             if (object.has("displayName")) {
-                                name = object
-                                        .get("displayName")
-                                        .getAsString();
+
+                                name =
+                                        object.get(
+                                                "displayName"
+                                        ).getAsString();
+                            }
+
+                            if (object.has("friendCode")) {
+
+                                friendCode =
+                                        object.get(
+                                                "friendCode"
+                                        ).getAsString();
+                            }
+
+                            if (object.has("online")) {
+
+                                online =
+                                        object.get(
+                                                "online"
+                                        ).getAsBoolean();
                             }
                         }
+
                     } catch (Exception ignored) {
                     }
 
-                    final String finalName = name;
+                    final String finalName =
+                            name;
 
-                    this.minecraft.execute(() ->
-                            friendNames.put(uid, finalName)
-                    );
+                    final String finalCode =
+                            friendCode;
+
+                    final boolean finalOnline =
+                            online;
+
+                    this.minecraft.execute(() -> {
+
+                        friendProfiles.put(
+                                uid,
+                                new FriendProfile(
+                                        finalName,
+                                        finalCode,
+                                        finalOnline
+                                )
+                        );
+                    });
                 });
             }
+
         } catch (Exception ignored) {
         }
     }
 
     private String displayName(String uid) {
+
         if (uid == null) {
             return "?";
         }
 
-        String name = friendNames.get(uid);
+        FriendProfile profile =
+                friendProfiles.get(uid);
 
-        if (name != null && !name.isBlank()) {
-            return name;
+        if (profile != null
+                && profile.name != null
+                && !profile.name.isBlank()) {
+
+            return profile.name;
         }
 
         String currentUid =
-                WorldGateModClient.FRIEND_MANAGER.myUid();
+                WorldGateModClient.FRIEND_MANAGER
+                        .myUid();
 
         if (uid.equals(currentUid)) {
             return "You";
@@ -211,6 +323,11 @@ public class LobbyScreen extends Screen {
     }
 
     private static String shortUid(String uid) {
+
+        if (uid == null || uid.isBlank()) {
+            return "?";
+        }
+
         return uid.substring(
                 0,
                 Math.min(6, uid.length())
@@ -218,11 +335,16 @@ public class LobbyScreen extends Screen {
     }
 
     private void sendChat() {
+
         String room =
                 WorldGateModClient.CURRENT_ROOM_CODE;
 
         if (room == null || room.isBlank()) {
-            addChatMessage("Join or create a room to use chat.");
+
+            addChatMessage(
+                    "Join or create a room to use chat."
+            );
+
             return;
         }
 
@@ -237,12 +359,19 @@ public class LobbyScreen extends Screen {
 
         WorldGateModClient.EXECUTOR.submit(() ->
                 WorldGateModClient.CHAT_MANAGER
-                        .sendMessage(room, text)
+                        .sendMessage(
+                                room,
+                                text
+                        )
         );
     }
 
-    private void addChatMessage(String message) {
+    private void addChatMessage(
+            String message
+    ) {
+
         synchronized (chatMessages) {
+
             chatMessages.add(message);
 
             while (chatMessages.size() > 6) {
@@ -252,6 +381,7 @@ public class LobbyScreen extends Screen {
     }
 
     private void goBack() {
+
         stopRealtime();
 
         if (minecraft != null) {
@@ -260,6 +390,7 @@ public class LobbyScreen extends Screen {
     }
 
     private void stopRealtime() {
+
         WorldGateModClient.FRIEND_MANAGER
                 .stopRealtime();
 
@@ -280,7 +411,9 @@ public class LobbyScreen extends Screen {
 
     @Override
     public void removed() {
+
         stopRealtime();
+
         super.removed();
     }
 
@@ -291,6 +424,7 @@ public class LobbyScreen extends Screen {
             int mouseY,
             float delta
     ) {
+
         renderBackground(
                 graphics,
                 mouseX,
@@ -298,7 +432,8 @@ public class LobbyScreen extends Screen {
                 delta
         );
 
-        int centerX = this.width / 2;
+        int centerX =
+                this.width / 2;
 
         graphics.drawCenteredString(
                 font,
@@ -345,9 +480,12 @@ public class LobbyScreen extends Screen {
         );
 
         synchronized (chatMessages) {
-            int y = this.height - 68;
+
+            int y =
+                    this.height - 68;
 
             for (String message : chatMessages) {
+
                 graphics.drawString(
                         font,
                         message,
@@ -361,6 +499,7 @@ public class LobbyScreen extends Screen {
         }
 
         if (loading) {
+
             graphics.drawCenteredString(
                     font,
                     "Loading...",
@@ -383,8 +522,10 @@ public class LobbyScreen extends Screen {
             int x,
             int y
     ) {
+
         if (friendsJson == null
                 || friendsJson.equals("null")) {
+
             graphics.drawString(
                     font,
                     "No friends yet.",
@@ -392,10 +533,12 @@ public class LobbyScreen extends Screen {
                     y,
                     0xAAAAAA
             );
+
             return;
         }
 
         try {
+
             JsonObject friends =
                     JsonParser.parseString(friendsJson)
                             .getAsJsonObject();
@@ -403,10 +546,46 @@ public class LobbyScreen extends Screen {
             int row = 0;
 
             for (String uid : friends.keySet()) {
-                if (row >= 9) break;
 
-                String name = displayName(uid);
+                if (row >= 9) {
+                    break;
+                }
 
+                FriendProfile profile =
+                        friendProfiles.get(uid);
+
+                String name;
+
+                String code;
+
+                boolean online;
+
+                if (profile != null) {
+
+                    name =
+                            profile.name;
+
+                    code =
+                            profile.friendCode;
+
+                    online =
+                            profile.online;
+
+                } else {
+
+                    name =
+                            "Loading...";
+
+                    code =
+                            "--------";
+
+                    online =
+                            false;
+                }
+
+                /*
+                 * Name
+                 */
                 graphics.drawString(
                         font,
                         name,
@@ -415,17 +594,37 @@ public class LobbyScreen extends Screen {
                         0xFFFFFF
                 );
 
+                /*
+                 * Friend Code
+                 */
                 graphics.drawString(
                         font,
-                        shortUid(uid),
-                        x + 95,
+                        code,
+                        x + 85,
                         y + row * 12,
                         0xAAAAAA
                 );
 
+                /*
+                 * Online / Offline
+                 */
+                graphics.drawString(
+                        font,
+                        online
+                                ? "● Online"
+                                : "○ Offline",
+                        x + 165,
+                        y + row * 12,
+                        online
+                                ? 0x55FF55
+                                : 0xAAAAAA
+                );
+
                 row++;
             }
+
         } catch (Exception ignored) {
+
             graphics.drawString(
                     font,
                     "Friends unavailable.",
@@ -441,10 +640,13 @@ public class LobbyScreen extends Screen {
             int x,
             int y
     ) {
-        String json = roomJson;
+
+        String json =
+                roomJson;
 
         if (json == null
                 || json.equals("null")) {
+
             graphics.drawString(
                     font,
                     "No active room.",
@@ -452,16 +654,20 @@ public class LobbyScreen extends Screen {
                     y,
                     0xAAAAAA
             );
+
             return;
         }
 
         try {
+
             JsonObject room =
                     JsonParser.parseString(json)
                             .getAsJsonObject();
 
             if (!room.has("players")
-                    || !room.get("players").isJsonObject()) {
+                    || !room.get("players")
+                            .isJsonObject()) {
+
                 graphics.drawString(
                         font,
                         "No players.",
@@ -469,23 +675,30 @@ public class LobbyScreen extends Screen {
                         y,
                         0xAAAAAA
                 );
+
                 return;
             }
 
             JsonObject players =
-                    room.getAsJsonObject("players");
+                    room.getAsJsonObject(
+                            "players"
+                    );
 
             int row = 0;
 
             for (String uid : players.keySet()) {
-                if (row >= 9) break;
+
+                if (row >= 9) {
+                    break;
+                }
 
                 JsonObject player =
                         players.getAsJsonObject(uid);
 
                 String name =
                         player.has("ign")
-                                ? player.get("ign").getAsString()
+                                ? player.get("ign")
+                                        .getAsString()
                                 : shortUid(uid);
 
                 boolean online =
@@ -494,7 +707,9 @@ public class LobbyScreen extends Screen {
                                         .getAsBoolean();
 
                 String status =
-                        online ? "● Online" : "○ Offline";
+                        online
+                                ? "● Online"
+                                : "○ Offline";
 
                 graphics.drawString(
                         font,
@@ -516,7 +731,9 @@ public class LobbyScreen extends Screen {
 
                 row++;
             }
+
         } catch (Exception ignored) {
+
             graphics.drawString(
                     font,
                     "Players unavailable.",
