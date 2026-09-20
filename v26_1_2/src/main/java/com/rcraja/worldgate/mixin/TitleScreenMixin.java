@@ -20,35 +20,40 @@ public abstract class TitleScreenMixin extends Screen {
         super(title);
     }
 
-    @Inject(
-            method = "init",
-            at = @At("TAIL")
-    )
-    private void worldgate$addButton(
-            CallbackInfo ci
-    ) {
+    @Inject(method = "init", at = @At("TAIL"))
+    private void worldgate$addButton(CallbackInfo ci) {
+        Button modsButton = null;
 
-        int centerX =
-                this.width / 2;
+        for (var child : this.children()) {
+            if (child instanceof Button button) {
+                String label = button.getMessage().getString();
+                if ("Mods".equalsIgnoreCase(label)
+                        || label.toLowerCase().contains("mod menu")) {
+                    modsButton = button;
+                    break;
+                }
+            }
+        }
 
-        int y =
-                this.height / 4 + 96;
+        int x;
+        int y;
+
+        if (modsButton != null) {
+            x = modsButton.getX();
+            y = Math.max(8, modsButton.getY() - 24);
+        } else {
+            x = this.width / 2 - 100;
+            y = this.height - 28;
+        }
 
         this.addRenderableWidget(
                 Button.builder(
-                        net.minecraft.network.chat.Component.literal(
-                                "WorldGate"
-                        ),
+                        net.minecraft.network.chat.Component.literal("WorldGate"),
                         btn -> this.minecraft.setScreen(
                                 new WorldGateScreen(this)
                         )
                 )
-                .bounds(
-                        centerX - 100,
-                        y,
-                        200,
-                        20
-                )
+                .bounds(x, y, 200, 20)
                 .build()
         );
     }

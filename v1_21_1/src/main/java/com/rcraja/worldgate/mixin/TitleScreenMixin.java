@@ -21,21 +21,39 @@ public abstract class TitleScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void worldgate$addButton(CallbackInfo ci) {
-        int centerX = this.width / 2;
+        ButtonWidget modsButton = null;
+
+        // Mod Menu creates its button during TitleScreen.init(). When present,
+        // anchor WorldGate to it instead of using a hard-coded screen position.
+        // This keeps the layout correct across resolutions and Mod Menu versions.
+        for (var child : this.children()) {
+            if (child instanceof ButtonWidget button) {
+                String label = button.getMessage().getString();
+                if ("Mods".equalsIgnoreCase(label)
+                        || label.toLowerCase().contains("mod menu")) {
+                    modsButton = button;
+                    break;
+                }
+            }
+        }
+
+        int x;
+        int y;
+
+        if (modsButton != null) {
+            x = modsButton.getX();
+            y = Math.max(8, modsButton.getY() - 24);
+        } else {
+            x = this.width / 2 - 100;
+            y = this.height - 28;
+        }
 
         this.addDrawableChild(
                 ButtonWidget.builder(
                         Text.translatable("worldgate.button.open"),
-                        btn -> this.client.setScreen(
-                                new WorldGateScreen(this)
-                        )
+                        btn -> this.client.setScreen(new WorldGateScreen(this))
                 )
-                .dimensions(
-                        centerX - 100,
-                        this.height / 4 + 96,
-                        200,
-                        20
-                )
+                .dimensions(x, y, 200, 20)
                 .build()
         );
     }
