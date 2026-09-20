@@ -22,6 +22,11 @@ public class FriendsScreen extends Screen {
     private final List<FriendEntry> friends =
             new ArrayList<>();
 
+    private final List<RequestEntry> requests =
+            new ArrayList<>();
+
+    private String selectedRequestUid = null;
+
     private String myCode = "...";
     private String status = "";
 
@@ -41,7 +46,7 @@ public class FriendsScreen extends Screen {
         friendCodeBox = new EditBox(
                 this.font,
                 centerX - 100,
-                65,
+                60,
                 200,
                 20,
                 Component.literal("Friend Code")
@@ -61,8 +66,36 @@ public class FriendsScreen extends Screen {
                 )
                 .bounds(
                         centerX - 100,
-                        90,
+                        85,
                         200,
+                        20
+                )
+                .build()
+        );
+
+        this.addRenderableWidget(
+                Button.builder(
+                        Component.literal("Accept"),
+                        btn -> acceptSelectedRequest()
+                )
+                .bounds(
+                        centerX - 100,
+                        110,
+                        97,
+                        20
+                )
+                .build()
+        );
+
+        this.addRenderableWidget(
+                Button.builder(
+                        Component.literal("Reject"),
+                        btn -> rejectSelectedRequest()
+                )
+                .bounds(
+                        centerX + 3,
+                        110,
+                        97,
                         20
                 )
                 .build()
@@ -89,7 +122,7 @@ public class FriendsScreen extends Screen {
                         ignored -> {
                             if (this.minecraft != null) {
                                 this.minecraft.execute(
-                                        this::loadFriends
+                                        this::loadAll
                                 );
                             }
                         }
@@ -98,7 +131,7 @@ public class FriendsScreen extends Screen {
         WorldGateModClient.FRIEND_MANAGER
                 .startRealtime();
 
-        loadFriends();
+        loadAll();
     }
 
     private void loadProfile() {
@@ -124,8 +157,6 @@ public class FriendsScreen extends Screen {
 
                 status =
                         "Your Friend Code: " + myCode;
-
-                loadFriends();
             });
         });
     }
@@ -150,13 +181,20 @@ public class FriendsScreen extends Screen {
                     WorldGateModClient.FRIEND_MANAGER
                             .sendRequestByCode(code);
 
-            this.minecraft.execute(() ->
-                    status =
-                            ok
-                                    ? "Friend request sent."
-                                    : "Friend Code not found."
-            );
+            this.minecraft.execute(() -> {
+
+                status =
+                        ok
+                                ? "Friend request sent."
+                                : "Friend Code not found.";
+            });
         });
+    }
+
+    private void loadAll() {
+
+        loadFriends();
+        loadRequests();
     }
 
     private void loadFriends() {
@@ -224,8 +262,7 @@ public class FriendsScreen extends Screen {
                         );
                     }
 
-                } catch (Exception e) {
-                    status = "Could not load friends.";
+                } catch (Exception ignored) {
                 }
             }
 
@@ -233,6 +270,149 @@ public class FriendsScreen extends Screen {
 
                 friends.clear();
                 friends.addAll(result);
+            });
+        });
+    }
+
+    private void loadRequests() {
+
+        WorldGateModClient.EXECUTOR.submit(() -> {
+
+            String json =
+                    WorldGateModClient.FRIEND_MANAGER
+                            .getIncomingRequests();
+
+            List<RequestEntry> result =
+                    new ArrayList<>();
+
+            if (json != null
+                    && !json.equals("null")) {
+
+                try {
+
+                    JsonObject object =
+                            JsonParser.parseString(json)
+                                    .getAsJsonObject();
+
+                    for (String uid :
+                            object.keySet()) {
+
+                        JsonObject request =
+                                object.get(uid)
+                                        .getAsJsonObject();
+
+                        String name =
+                                request.has("fromName")
+                                        ? request.get(
+                                                "fromName"
+                                        ).getAsString()
+                                        : "Player";
+
+                        String code =
+                                request.has("fromFriendCode")
+                                        ? request.get(
+                                                "fromFriendCode"
+                                        ).getAsString()
+                                        : "--------";
+
+                        result.add(
+                                new RequestEntry(
+                                        uid,
+                                        name,
+                                        code
+                                )
+                        );
+                    }
+
+                } catch (Exception ignored) {
+                }
+            }
+
+            this.minecraft.execute(() -> {
+
+                requests.clear();
+                requests.addAll(result);
+
+                if (selectedRequestUid != null) {
+
+                    boolean stillExists =
+                            requests.stream()
+                                    .anyMatch(
+                                            request ->
+                                                    request.uid()
+                                                            .equals(
+                                                                    selectedRequestUid
+                                                            )
+                                    );
+
+                    if (!stillExists) {
+                        selectedRequestUid = null;
+                    }
+                }
+            });
+        });
+    }
+
+    private void acceptSelectedRequest() {
+
+        if (selectedRequestUid == null) {
+            status = "Select a friend request first.";
+            return;
+        }
+
+        String uid = selectedRequestUid;
+
+        status = "Accepting request...";
+
+        WorldGateModClient.EXECUTOR.submit(() -> {
+
+            boolean ok =
+                    WorldGateModClient.FRIEND_MANAGER
+                            .acceptRequest(uid);
+
+            this.minecraft.execute(() -> {
+
+                status =
+                        ok
+                                ? "Friend added."
+                                : "Could not accept request.";
+
+                if (ok) {
+                    selectedRequestUid = null;
+                    loadAll();
+                }
+            });
+        });
+    }
+
+    private void rejectSelectedRequest() {
+
+        if (selectedRequestUid == null) {
+            status = "Select a friend request first.";
+            return;
+        }
+
+        String uid = selectedRequestUid;
+
+        status = "Rejecting request...";
+
+        WorldGateModClient.EXECUTOR.submit(() -> {
+
+            boolean ok =
+                    WorldGateModClient.FRIEND_MANAGER
+                            .rejectRequest(uid);
+
+            this.minecraft.execute(() -> {
+
+                status =
+                        ok
+                                ? "Request rejected."
+                                : "Could not reject request.";
+
+                if (ok) {
+                    selectedRequestUid = null;
+                    loadRequests();
+                }
             });
         });
     }
@@ -258,67 +438,149 @@ public class FriendsScreen extends Screen {
                 this.font,
                 "WorldGate Friends",
                 centerX,
-                25,
+                20,
                 0xFFFFFF
         );
 
         graphics.drawCenteredString(
                 this.font,
-                status,
+                "Your Code: " + myCode,
                 centerX,
-                45,
-                0xAAAAAA
+                40,
+                0x55FFFF
         );
 
-        int y = 125;
+        graphics.drawString(
+                this.font,
+                "Friend Requests",
+                centerX - 140,
+                145,
+                0xFFFF55
+        );
 
-        if (friends.isEmpty()) {
+        int requestY = 160;
 
-            graphics.drawCenteredString(
+        if (requests.isEmpty()) {
+
+            graphics.drawString(
                     this.font,
-                    "No friends yet.",
-                    centerX,
-                    y,
+                    "No pending requests.",
+                    centerX - 140,
+                    requestY,
                     0x888888
             );
 
         } else {
 
-            for (FriendEntry friend : friends) {
+            for (RequestEntry request :
+                    requests) {
+
+                boolean selected =
+                        request.uid().equals(
+                                selectedRequestUid
+                        );
+
+                int textColor =
+                        selected
+                                ? 0x55FFFF
+                                : 0xFFFFFF;
 
                 graphics.drawString(
                         this.font,
-                        friend.name,
-                        centerX - 100,
-                        y,
+                        (selected ? "> " : "")
+                                + request.name(),
+                        centerX - 140,
+                        requestY,
+                        textColor
+                );
+
+                graphics.drawString(
+                        this.font,
+                        request.code(),
+                        centerX - 140,
+                        requestY + 12,
+                        0xAAAAAA
+                );
+
+                requestY += 32;
+            }
+        }
+
+        int friendY =
+                Math.max(
+                        requestY + 15,
+                        225
+                );
+
+        graphics.drawString(
+                this.font,
+                "Friends",
+                centerX - 140,
+                friendY,
+                0x55FF55
+        );
+
+        friendY += 18;
+
+        if (friends.isEmpty()) {
+
+            graphics.drawString(
+                    this.font,
+                    "No friends yet.",
+                    centerX - 140,
+                    friendY,
+                    0x888888
+            );
+
+        } else {
+
+            for (FriendEntry friend :
+                    friends) {
+
+                graphics.drawString(
+                        this.font,
+                        friend.name(),
+                        centerX - 140,
+                        friendY,
                         0xFFFFFF
                 );
 
                 graphics.drawString(
                         this.font,
-                        friend.code,
-                        centerX - 100,
-                        y + 12,
+                        friend.code(),
+                        centerX - 140,
+                        friendY + 12,
                         0xAAAAAA
                 );
 
                 String state =
-                        friend.online
+                        friend.online()
                                 ? "● Online"
                                 : "○ Offline";
 
                 graphics.drawRightAlignedString(
                         this.font,
                         state,
-                        centerX + 100,
-                        y + 6,
-                        friend.online
+                        centerX + 140,
+                        friendY + 5,
+                        friend.online()
                                 ? 0x55FF55
                                 : 0x888888
                 );
 
-                y += 35;
+                friendY += 32;
             }
+        }
+
+        if (!status.isEmpty()) {
+
+            graphics.drawCenteredString(
+                    this.font,
+                    status,
+                    centerX,
+                    this.height - 50,
+                    0xAAAAAA
+            );
         }
 
         super.render(
@@ -326,6 +588,45 @@ public class FriendsScreen extends Screen {
                 mouseX,
                 mouseY,
                 delta
+        );
+    }
+
+    @Override
+    public boolean mouseClicked(
+            double mouseX,
+            double mouseY,
+            int button
+    ) {
+
+        int centerX = this.width / 2;
+
+        int requestY = 160;
+
+        for (RequestEntry request :
+                requests) {
+
+            if (mouseX >= centerX - 145
+                    && mouseX <= centerX + 145
+                    && mouseY >= requestY - 4
+                    && mouseY <= requestY + 27) {
+
+                selectedRequestUid =
+                        request.uid();
+
+                status =
+                        "Selected: "
+                                + request.name();
+
+                return true;
+            }
+
+            requestY += 32;
+        }
+
+        return super.mouseClicked(
+                mouseX,
+                mouseY,
+                button
         );
     }
 
@@ -355,4 +656,11 @@ public class FriendsScreen extends Screen {
             boolean online
     ) {
     }
-}
+
+    private record RequestEntry(
+            String uid,
+            String name,
+            String code
+    ) {
+    }
+                    }
