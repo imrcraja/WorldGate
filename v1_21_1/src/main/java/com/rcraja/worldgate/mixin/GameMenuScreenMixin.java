@@ -21,15 +21,40 @@ public abstract class GameMenuScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void worldgate$addButton(CallbackInfo ci) {
-        int centerX = this.width / 2;
-        int y = this.height / 4 + 96;
+        ButtonWidget bottomButton = null;
+
+        // Put WorldGate into the existing pause-menu flow rather than
+        // overlaying an arbitrary fixed position.
+        for (var child : this.children()) {
+            if (child instanceof ButtonWidget button) {
+                if (bottomButton == null || button.getY() > bottomButton.getY()) {
+                    bottomButton = button;
+                }
+            }
+        }
+
+        int x = this.width / 2 - 100;
+        int y;
+
+        if (bottomButton != null) {
+            int below = bottomButton.getY() + bottomButton.getHeight() + 4;
+            int above = bottomButton.getY() - 24;
+
+            if (below + 20 <= this.height - 8) {
+                y = below;
+            } else {
+                y = Math.max(8, above);
+            }
+        } else {
+            y = this.height / 2 + 70;
+        }
 
         this.addDrawableChild(
                 ButtonWidget.builder(
                         Text.translatable("worldgate.button.open"),
                         btn -> this.client.setScreen(new WorldGateScreen(this))
                 )
-                .dimensions(centerX - 100, y, 200, 20)
+                .dimensions(x, y, 200, 20)
                 .build()
         );
     }
