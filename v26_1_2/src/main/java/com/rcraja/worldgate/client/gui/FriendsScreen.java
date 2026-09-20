@@ -801,14 +801,19 @@ public class FriendsScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(
-            double mouseX,
-            double mouseY,
-            int button
-    ) {
+public boolean mouseClicked(
+        MouseButtonEvent event,
+        boolean doubleClick
+) {
 
-        int centerX =
-                this.width / 2;
+    double mouseX =
+            event.x();
+
+    double mouseY =
+            event.y();
+
+    int centerX =
+            this.width / 2;
 
         int requestY =
                 160;
@@ -839,10 +844,9 @@ public class FriendsScreen extends Screen {
         }
 
         return super.mouseClicked(
-                mouseX,
-                mouseY,
-                button
-        );
+        event,
+        doubleClick
+);
     }
 
     private void closeScreen() {
