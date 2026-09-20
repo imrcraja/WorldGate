@@ -3,7 +3,7 @@ version = rootProject.mod_version
 group = rootProject.maven_group
 base { archivesName = project.archives_base_name }
 repositories { maven { url = 'https://maven.fabricmc.net/' } }
-sourceSets { main { java { srcDir '../v26_1_2/src/main/java' } resources { srcDir '../v26_1_2/src/main/resources' } } }
+sourceSets { main { java { srcDirs = ['../common/src/main/java', '../v26_1_2/src/main/java'] } resources { srcDirs = ['../v26_1_2/src/main/resources'] } } }
 java { toolchain { languageVersion = JavaLanguageVersion.of(25) }; withSourcesJar() }
 dependencies {
  minecraft "com.mojang:minecraft:${project.minecraft_version}"
