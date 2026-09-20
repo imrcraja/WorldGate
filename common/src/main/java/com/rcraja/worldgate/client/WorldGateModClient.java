@@ -1,181 +1,63 @@
-package com.rcraja.worldgate.client;
+@Override
+public void onInitializeClient() {
 
-import com.rcraja.worldgate.WorldGateMod;
-import com.rcraja.worldgate.network.ChatManager;
-import com.rcraja.worldgate.network.EmoteManager;
-import com.rcraja.worldgate.network.FirebaseSession;
-import com.rcraja.worldgate.network.FriendManager;
-import com.rcraja.worldgate.network.RoomManager;
+    WorldGateMod.LOGGER.info(
+            "WorldGate client initialized."
+    );
 
-import net.fabricmc.api.ClientModInitializer;
+    registerVersionKeybinds();
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+    EXECUTOR.submit(() -> {
 
-public class WorldGateModClient implements ClientModInitializer {
+        boolean connected =
+                SESSION.connect();
 
-    public static final FirebaseSession SESSION =
-            new FirebaseSession();
+        if (connected) {
 
-    public static final RoomManager ROOM_MANAGER =
-            new RoomManager(SESSION);
+            WorldGateMod.LOGGER.info(
+                    "WorldGate Firebase session ready (uid={})",
+                    SESSION.uid()
+            );
 
-    public static final FriendManager FRIEND_MANAGER =
-            new FriendManager(SESSION);
+        } else {
 
-    public static final ChatManager CHAT_MANAGER =
-            new ChatManager(SESSION);
-
-    public static final EmoteManager EMOTE_MANAGER =
-            new EmoteManager(SESSION);
-
-    public static final ExecutorService EXECUTOR =
-            Executors.newCachedThreadPool(r -> {
-                Thread thread =
-                        new Thread(
-                                r,
-                                "WorldGate-Worker"
-                        );
-
-                thread.setDaemon(true);
-                return thread;
-            });
-
-    public static volatile String CURRENT_ROOM_CODE =
-            null;
-
-    private static final ScheduledExecutorService HEARTBEAT =
-            Executors.newSingleThreadScheduledExecutor(r -> {
-                Thread thread =
-                        new Thread(
-                                r,
-                                "WorldGate-Heartbeat"
-                        );
-
-                thread.setDaemon(true);
-                return thread;
-            });
-
-    private static volatile boolean heartbeatRunning =
-            false;
-
-    private static volatile boolean heartbeatHost =
-            false;
-
-    public static synchronized void startHeartbeat(
-            boolean host
-    ) {
-
-        if (CURRENT_ROOM_CODE == null
-                || CURRENT_ROOM_CODE.isBlank()) {
-            return;
+            WorldGateMod.LOGGER.error(
+                    "WorldGate could not sign in to Firebase -- "
+                            + "check internet/API key."
+            );
         }
+    });
+}
 
-        /*
-         * If the heartbeat is already running for the same
-         * role, don't create another timer.
-         */
-        if (heartbeatRunning
-                && heartbeatHost == host) {
-            return;
-        }
+private static void registerVersionKeybinds() {
 
-        heartbeatRunning = true;
-        heartbeatHost = host;
+    try {
 
-        HEARTBEAT.scheduleAtFixedRate(
-                () -> {
+        Class<?> keybindClass =
+                Class.forName(
+                        "com.rcraja.worldgate.client.WorldGateKeybinds"
+                );
 
-                    String room =
-                            CURRENT_ROOM_CODE;
-
-                    if (!heartbeatRunning
-                            || room == null
-                            || room.isBlank()) {
-                        return;
-                    }
-
-                    if (heartbeatHost) {
-                        ROOM_MANAGER.hostHeartbeat(room);
-                    } else {
-                        ROOM_MANAGER.playerHeartbeat(room);
-                    }
-
-                },
-                0,
-                15,
-                TimeUnit.SECONDS
-        );
-    }
-
-    public static synchronized void stopHeartbeat() {
-        heartbeatRunning = false;
-    }
-
-    public static synchronized void leaveCurrentRoom(
-            boolean host
-    ) {
-
-        String room =
-                CURRENT_ROOM_CODE;
-
-        if (room == null
-                || room.isBlank()) {
-            stopHeartbeat();
-            return;
-        }
-
-        stopHeartbeat();
-
-        EXECUTOR.submit(() -> {
-
-            try {
-
-                if (host) {
-                    ROOM_MANAGER.hostLeave(room);
-                } else {
-                    ROOM_MANAGER.playerLeave(room);
-                }
-
-            } finally {
-
-                if (room.equals(
-                        CURRENT_ROOM_CODE
-                )) {
-                    CURRENT_ROOM_CODE = null;
-                }
-            }
-        });
-    }
-
-    @Override
-    public void onInitializeClient() {
+        keybindClass
+                .getMethod("register")
+                .invoke(null);
 
         WorldGateMod.LOGGER.info(
-                "WorldGate client initialized."
+                "WorldGate keybinds registered."
         );
 
-        EXECUTOR.submit(() -> {
+    } catch (ClassNotFoundException ignored) {
 
-            boolean connected =
-                    SESSION.connect();
+        /*
+         * A version module without the optional
+         * keybind implementation simply continues.
+         */
 
-            if (connected) {
+    } catch (Exception e) {
 
-                WorldGateMod.LOGGER.info(
-                        "WorldGate Firebase session ready (uid={})",
-                        SESSION.uid()
-                );
-
-            } else {
-
-                WorldGateMod.LOGGER.error(
-                        "WorldGate could not sign in to Firebase -- "
-                                + "check internet/API key."
-                );
-            }
-        });
+        WorldGateMod.LOGGER.error(
+                "WorldGate keybind registration failed.",
+                e
+        );
     }
 }
