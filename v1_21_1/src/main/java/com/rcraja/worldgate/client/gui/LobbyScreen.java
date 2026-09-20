@@ -112,7 +112,7 @@ public class LobbyScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderBackground(context);
+        renderBackground(context, mouseX, mouseY, delta);
 
         int panelTop = 28;
         int panelHeight = height - 80;
