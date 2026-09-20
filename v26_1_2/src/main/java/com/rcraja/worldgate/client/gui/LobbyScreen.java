@@ -745,15 +745,15 @@ public class LobbyScreen extends Screen {
                                 ? "● Online"
                                 : "○ Offline";
 
-                graphics.rightAlignedText(
-                        font,
-                        state,
-                        x + width,
-                        rowY + 4,
-                        online
-                                ? 0x55FF55
-                                : 0x777777
-                );
+                graphics.text(
+        font,
+        state,
+        x + width - font.width(state),
+        rowY + 4,
+        online
+                ? 0x55FF55
+                : 0x777777
+);
 
                 row++;
             }
