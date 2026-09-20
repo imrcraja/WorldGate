@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 public class RoomManager {
 
     private final FirebaseSession session;
+
     private final FirebaseStreamClient roomStream =
             new FirebaseStreamClient();
 
@@ -22,23 +23,22 @@ public class RoomManager {
         if (!session.isReady()) return null;
 
         String roomCode = generateRoomCode();
+        long now = System.currentTimeMillis();
 
         String json = "{"
-                + "\"hostUid\":\"" + session.uid() + "\","
+                + "\"hostUid\":\"" + escape(session.uid()) + "\","
                 + "\"hostAddress\":\"" + escape(hostAddress) + "\","
                 + "\"hostPort\":" + hostPort + ","
                 + "\"status\":\"waiting\","
-                + "\"host\":{\"online\":true,\"lastSeen\":"
-                + System.currentTimeMillis() + "},"
-                + "\"player\":{\"online\":false},"
-                + "\"createdAt\":" + System.currentTimeMillis()
+                + "\"host\":{\"online\":true,\"lastSeen\":" + now + "},"
+                + "\"players\":{},"
+                + "\"createdAt\":" + now
                 + "}";
 
-        String result =
-                session.db().put(
-                        "/rooms/" + roomCode,
-                        json
-                );
+        String result = session.db().put(
+                "/rooms/" + roomCode,
+                json
+        );
 
         if (result == null) {
             WorldGateMod.LOGGER.error(
@@ -65,21 +65,25 @@ public class RoomManager {
     }
 
     public boolean hostHeartbeat(String roomCode) {
-        if (!session.isReady()
-                || roomCode == null) {
+        if (!session.isReady() || roomCode == null) {
             return false;
         }
 
-        String json = "{"
+        long now = System.currentTimeMillis();
+
+        String hostJson = "{"
                 + "\"online\":true,"
-                + "\"lastSeen\":"
-                + System.currentTimeMillis()
+                + "\"lastSeen\":" + now
                 + "}";
 
-        return session.db().patch(
+        boolean hostOk = session.db().patch(
                 "/rooms/" + roomCode + "/host",
-                json
+                hostJson
         ) != null;
+
+        boolean playerOk = updatePlayerHeartbeat(roomCode, now);
+
+        return hostOk && playerOk;
     }
 
     public boolean playerJoin(
@@ -87,14 +91,15 @@ public class RoomManager {
             String ign
     ) {
         if (!session.isReady()
-                || roomCode == null) {
+                || roomCode == null
+                || roomCode.isBlank()) {
             return false;
         }
 
         String safeIgn =
-                ign == null
+                ign == null || ign.isBlank()
                         ? "Unknown"
-                        : escape(ign);
+                        : escape(ign.trim());
 
         String json = "{"
                 + "\"uid\":\""
@@ -108,40 +113,57 @@ public class RoomManager {
                 + System.currentTimeMillis()
                 + "}";
 
-        String result =
-                session.db().patch(
-                        "/rooms/" + roomCode,
-                        "{"
-                                + "\"status\":\"connected\","
-                                + "\"player\":"
-                                + json
-                                + "}"
-                );
+        String result = session.db().put(
+                "/rooms/" + roomCode
+                        + "/players/" + session.uid(),
+                json
+        );
 
-        return result != null;
+        if (result == null) {
+            return false;
+        }
+
+        session.db().patch(
+                "/rooms/" + roomCode,
+                "{\"status\":\"connected\"}"
+        );
+
+        return true;
     }
 
     public boolean playerHeartbeat(String roomCode) {
         if (!session.isReady()
-                || roomCode == null) {
+                || roomCode == null
+                || roomCode.isBlank()) {
             return false;
         }
 
+        return updatePlayerHeartbeat(
+                roomCode,
+                System.currentTimeMillis()
+        );
+    }
+
+    private boolean updatePlayerHeartbeat(
+            String roomCode,
+            long now
+    ) {
         String json = "{"
                 + "\"online\":true,"
-                + "\"lastSeen\":"
-                + System.currentTimeMillis()
+                + "\"lastSeen\":" + now
                 + "}";
 
         return session.db().patch(
-                "/rooms/" + roomCode + "/player",
+                "/rooms/" + roomCode
+                        + "/players/" + session.uid(),
                 json
         ) != null;
     }
 
     public boolean playerLeave(String roomCode) {
         if (!session.isReady()
-                || roomCode == null) {
+                || roomCode == null
+                || roomCode.isBlank()) {
             return false;
         }
 
@@ -152,18 +174,16 @@ public class RoomManager {
                 + "}";
 
         return session.db().patch(
-                "/rooms/" + roomCode,
-                "{"
-                        + "\"status\":\"waiting\","
-                        + "\"player\":"
-                        + json
-                        + "}"
+                "/rooms/" + roomCode
+                        + "/players/" + session.uid(),
+                json
         ) != null;
     }
 
     public boolean hostLeave(String roomCode) {
         if (!session.isReady()
-                || roomCode == null) {
+                || roomCode == null
+                || roomCode.isBlank()) {
             return false;
         }
 
@@ -181,7 +201,6 @@ public class RoomManager {
     }
 
     public void startRealtime(String roomCode) {
-
         if (!session.isReady()
                 || roomCode == null
                 || roomCode.isBlank()) {
@@ -195,9 +214,7 @@ public class RoomManager {
                 "/rooms/" + roomCode,
                 session.idToken(),
                 data -> {
-
-                    Consumer<String> listener =
-                            roomChanged;
+                    Consumer<String> listener = roomChanged;
 
                     if (listener != null) {
                         listener.accept(data);
@@ -211,7 +228,6 @@ public class RoomManager {
     }
 
     private static String escape(String value) {
-
         if (value == null) {
             return "";
         }
@@ -222,12 +238,10 @@ public class RoomManager {
     }
 
     private String generateRoomCode() {
-
         String chars =
                 "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-        Random rnd =
-                new Random();
+        Random rnd = new Random();
 
         StringBuilder sb =
                 new StringBuilder();
