@@ -21,14 +21,31 @@ public abstract class PauseScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void worldgate$addButton(CallbackInfo ci) {
+        Button bottomButton = null;
 
-        int centerX = this.width / 2;
+        for (var child : this.children()) {
+            if (child instanceof Button button) {
+                if (bottomButton == null || button.getY() > bottomButton.getY()) {
+                    bottomButton = button;
+                }
+            }
+        }
 
-        /*
-         * Put WorldGate into the normal pause-menu button area
-         * instead of the old y=10 position.
-         */
-        int y = this.height / 4 + 96;
+        int x = this.width / 2 - 100;
+        int y;
+
+        if (bottomButton != null) {
+            int below = bottomButton.getY() + bottomButton.getHeight() + 4;
+            int above = bottomButton.getY() - 24;
+
+            if (below + 20 <= this.height - 8) {
+                y = below;
+            } else {
+                y = Math.max(8, above);
+            }
+        } else {
+            y = this.height / 2 + 70;
+        }
 
         this.addRenderableWidget(
                 Button.builder(
@@ -37,12 +54,7 @@ public abstract class PauseScreenMixin extends Screen {
                                 new WorldGateScreen(this)
                         )
                 )
-                .bounds(
-                        centerX - 100,
-                        y,
-                        200,
-                        20
-                )
+                .bounds(x, y, 200, 20)
                 .build()
         );
     }
