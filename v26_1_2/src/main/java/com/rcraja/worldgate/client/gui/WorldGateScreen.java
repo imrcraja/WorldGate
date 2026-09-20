@@ -5,27 +5,23 @@ import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.network.HostBridge;
 import com.rcraja.worldgate.network.RelayBridge;
 
-import net.minecraft.client.server.IntegratedServer;
-import net.minecraft.world.level.GameType;
-
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.ConnectScreen;
-import net.minecraft.client.multiplayer.ServerData;
-import net.minecraft.client.multiplayer.TransferState;
-import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.multiplayer.resolver.ServerAddress;
+import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.GameType;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 
-/**
- * Main WorldGate menu, opened from the Escape (Pause) screen.
- * Minecraft 26.1.2 (Mojang mappings) build.
- */
 public class WorldGateScreen extends Screen {
+
     private final Screen parent;
     private EditBox roomCodeBox;
 
@@ -36,10 +32,11 @@ public class WorldGateScreen extends Screen {
 
     @Override
     protected void init() {
+
         int centerX = this.width / 2;
         int y = this.height / 2 - 95;
 
-        this.roomCodeBox = new EditBox(
+        roomCodeBox = new EditBox(
                 this.font,
                 centerX - 100,
                 y,
@@ -48,14 +45,14 @@ public class WorldGateScreen extends Screen {
                 Component.translatable("worldgate.roomcode.hint")
         );
 
-        this.roomCodeBox.setMaxLength(6);
-        this.roomCodeBox.setHint(
+        roomCodeBox.setMaxLength(6);
+        roomCodeBox.setHint(
                 Component.translatable("worldgate.roomcode.hint")
         );
 
-        this.addRenderableWidget(this.roomCodeBox);
+        addRenderableWidget(roomCodeBox);
 
-        this.addRenderableWidget(
+        addRenderableWidget(
                 Button.builder(
                         Component.translatable("worldgate.button.join"),
                         btn -> onJoin()
@@ -64,16 +61,28 @@ public class WorldGateScreen extends Screen {
                 .build()
         );
 
-        this.addRenderableWidget(
-                Button.builder(
-                        Component.translatable("worldgate.button.create"),
-                        btn -> onCreate()
-                )
-                .bounds(centerX - 100, y + 25, 200, 20)
-                .build()
-        );
+        Button createButton = Button.builder(
+                Component.translatable("worldgate.button.create"),
+                btn -> onCreate()
+        )
+        .bounds(centerX - 100, y + 25, 200, 20)
+        .build();
 
-        this.addRenderableWidget(
+        /*
+         * Creating a Minecraft world only works when an actual
+         * singleplayer world is running.
+         *
+         * Therefore the button is disabled when WorldGate
+         * is opened from the Main Menu.
+         */
+        createButton.active =
+                this.minecraft != null
+                        && this.minecraft.player != null
+                        && this.minecraft.getSingleplayerServer() != null;
+
+        addRenderableWidget(createButton);
+
+        addRenderableWidget(
                 Button.builder(
                         Component.translatable("worldgate.button.friends"),
                         btn -> this.minecraft.setScreen(
@@ -84,7 +93,7 @@ public class WorldGateScreen extends Screen {
                 .build()
         );
 
-        this.addRenderableWidget(
+        addRenderableWidget(
                 Button.builder(
                         Component.translatable("worldgate.button.lobby"),
                         btn -> this.minecraft.setScreen(
@@ -95,7 +104,7 @@ public class WorldGateScreen extends Screen {
                 .build()
         );
 
-        this.addRenderableWidget(
+        addRenderableWidget(
                 Button.builder(
                         Component.translatable("worldgate.button.report"),
                         btn -> openLink(Constants.GITHUB_ISSUES)
@@ -104,7 +113,7 @@ public class WorldGateScreen extends Screen {
                 .build()
         );
 
-        this.addRenderableWidget(
+        addRenderableWidget(
                 Button.builder(
                         Component.translatable("worldgate.button.youtube"),
                         btn -> openLink(Constants.YOUTUBE_CHANNEL)
@@ -113,10 +122,10 @@ public class WorldGateScreen extends Screen {
                 .build()
         );
 
-        this.addRenderableWidget(
+        addRenderableWidget(
                 Button.builder(
                         Component.translatable("worldgate.button.back"),
-                        btn -> this.minecraft.setScreen(parent)
+                        btn -> goBack()
                 )
                 .bounds(centerX - 100, y + 140, 200, 20)
                 .build()
@@ -124,97 +133,103 @@ public class WorldGateScreen extends Screen {
     }
 
     private void onCreate() {
-        this.minecraft.player.sendSystemMessage(
-                Component.translatable("worldgate.msg.creating")
-        );
+
+        if (this.minecraft == null
+                || this.minecraft.player == null) {
+            return;
+        }
 
         IntegratedServer server =
                 this.minecraft.getSingleplayerServer();
 
         if (server == null) {
-            this.minecraft.player.sendSystemMessage(
-                    Component.literal(
-                            "WorldGate: no singleplayer world is running."
-                    )
+            sendMessage(
+                    "WorldGate: no singleplayer world is running."
             );
             return;
         }
 
+        sendMessage(
+                "WorldGate: creating room..."
+        );
+
         if (server.isPublished()) {
+
             int existingPort = server.getPort();
 
-            if (existingPort <= 0 || existingPort > 65535) {
-                this.minecraft.player.sendSystemMessage(
-                        Component.literal(
-                                "WorldGate: existing published server has an invalid port."
-                        )
+            if (existingPort <= 0
+                    || existingPort > 65535) {
+
+                sendMessage(
+                        "WorldGate: existing published server has an invalid port."
                 );
                 return;
             }
 
-            startWorldGateHost(server, existingPort);
+            startWorldGateHost(
+                    server,
+                    existingPort
+            );
             return;
         }
 
         int port = findFreePort();
 
         if (port <= 0) {
-            this.minecraft.player.sendSystemMessage(
-                    Component.literal(
-                            "WorldGate: could not find a free network port."
-                    )
+            sendMessage(
+                    "WorldGate: could not find a free network port."
             );
             return;
         }
 
-        this.minecraft.player.sendSystemMessage(
-                Component.literal(
-                        "WorldGate: using port " + port
-                )
+        sendMessage(
+                "WorldGate: using port " + port
         );
 
-        boolean published = server.publishServer(
-                GameType.DEFAULT_MODE,
-                true,
-                port
-        );
+        boolean published =
+                server.publishServer(
+                        GameType.DEFAULT_MODE,
+                        true,
+                        port
+                );
 
         if (!published) {
-            this.minecraft.player.sendSystemMessage(
-                    Component.literal(
-                            "WorldGate: failed to publish the world on port "
-                                    + port
-                    )
+            sendMessage(
+                    "WorldGate: failed to publish the world on port "
+                            + port
             );
             return;
         }
 
-        int publishedPort = server.getPort();
+        int publishedPort =
+                server.getPort();
 
-        if (publishedPort <= 0 || publishedPort > 65535) {
-            this.minecraft.player.sendSystemMessage(
-                    Component.literal(
-                            "WorldGate: Minecraft returned an invalid published port."
-                    )
+        if (publishedPort <= 0
+                || publishedPort > 65535) {
+
+            sendMessage(
+                    "WorldGate: Minecraft returned an invalid published port."
             );
             return;
         }
 
-        startWorldGateHost(server, publishedPort);
+        startWorldGateHost(
+                server,
+                publishedPort
+        );
     }
 
-    /**
-     * Finds an available TCP port.
-     *
-     * Port 0 is used only for the temporary ServerSocket so the operating
-     * system selects a free port. The socket is then closed and the selected
-     * port is passed explicitly to Minecraft's publishServer().
-     */
     private static int findFreePort() {
-        try (ServerSocket socket = new ServerSocket(0)) {
+
+        try (ServerSocket socket =
+                     new ServerSocket(0)) {
+
             socket.setReuseAddress(true);
+
             return socket.getLocalPort();
+
         } catch (IOException e) {
+
             return -1;
         }
     }
@@ -223,24 +238,23 @@ public class WorldGateScreen extends Screen {
             IntegratedServer server,
             int port
     ) {
+
         if (!HostBridge.start(port)) {
-            this.minecraft.player.sendSystemMessage(
-                    Component.literal(
-                            "WorldGate: failed to start host bridge on port "
-                                    + port
-                    )
+
+            sendMessage(
+                    "WorldGate: failed to start host bridge on port "
+                            + port
             );
             return;
         }
 
-        this.minecraft.player.sendSystemMessage(
-                Component.literal(
-                        "WorldGate: Minecraft server published on port "
-                                + port
-                )
+        sendMessage(
+                "WorldGate: Minecraft server published on port "
+                        + port
         );
 
         WorldGateModClient.EXECUTOR.submit(() -> {
+
             String hostAddress =
                     HostBridge.getAdvertiseAddress();
 
@@ -251,41 +265,38 @@ public class WorldGateScreen extends Screen {
                     );
 
             if (code != null) {
+
                 boolean relayStarted =
                         HostBridge.startRelay(code);
 
-                WorldGateModClient.CURRENT_ROOM_CODE = code;
+                WorldGateModClient.CURRENT_ROOM_CODE =
+                        code;
 
                 WorldGateModClient.startHeartbeat(true);
 
                 this.minecraft.execute(() -> {
+
                     if (!relayStarted) {
-                        this.minecraft.player.sendSystemMessage(
-                                Component.literal(
-                                        "WorldGate: relay could not start; "
-                                                + "LAN fallback is available."
-                                )
+
+                        sendMessage(
+                                "WorldGate: relay could not start; LAN fallback is available."
                         );
                     }
 
-                    this.minecraft.player.sendSystemMessage(
-                            Component.translatable(
-                                    "worldgate.msg.room_code",
-                                    code
-                            )
+                    sendMessage(
+                            "WorldGate: Room Code = " + code
                     );
 
                     startRoomListeners(code);
                 });
 
             } else {
+
                 HostBridge.stop();
 
                 this.minecraft.execute(() ->
-                        this.minecraft.player.sendSystemMessage(
-                                Component.translatable(
-                                        "worldgate.msg.create_failed"
-                                )
+                        sendMessage(
+                                "WorldGate: failed to create room."
                         )
                 );
             }
@@ -293,36 +304,40 @@ public class WorldGateScreen extends Screen {
     }
 
     private void onJoin() {
-        String code = this.roomCodeBox
-                .getValue()
-                .trim()
-                .toUpperCase();
+
+        String code =
+                roomCodeBox
+                        .getValue()
+                        .trim()
+                        .toUpperCase();
 
         if (code.isEmpty()) {
             return;
         }
 
-        this.minecraft.player.sendSystemMessage(
-                Component.translatable("worldgate.msg.joining")
+        sendMessage(
+                "WorldGate: joining..."
         );
 
         WorldGateModClient.EXECUTOR.submit(() -> {
+
             String roomJson =
-                    WorldGateModClient.ROOM_MANAGER.getRoom(code);
+                    WorldGateModClient.ROOM_MANAGER
+                            .getRoom(code);
 
             this.minecraft.execute(() -> {
+
                 if (roomJson == null
                         || roomJson.equals("null")) {
 
-                    this.minecraft.player.sendSystemMessage(
-                            Component.translatable(
-                                    "worldgate.msg.room_not_found"
-                            )
+                    sendMessage(
+                            "WorldGate: room not found."
                     );
                     return;
                 }
 
-                WorldGateModClient.CURRENT_ROOM_CODE = code;
+                WorldGateModClient.CURRENT_ROOM_CODE =
+                        code;
 
                 String hostAddress =
                         extractJsonString(
@@ -341,21 +356,21 @@ public class WorldGateScreen extends Screen {
                         || hostPort <= 0
                         || hostPort > 65535) {
 
-                    this.minecraft.player.sendSystemMessage(
-                            Component.literal(
-                                    "WorldGate: invalid host address."
-                            )
+                    sendMessage(
+                            "WorldGate: invalid host address."
                     );
                     return;
                 }
 
                 String ign =
-                        this.minecraft.player
-                                .getName()
-                                .getString();
+                        this.minecraft.getUser()
+                                .getName();
 
                 WorldGateModClient.ROOM_MANAGER
-                        .playerJoin(code, ign);
+                        .playerJoin(
+                                code,
+                                ign
+                        );
 
                 WorldGateModClient.startHeartbeat(false);
 
@@ -368,15 +383,20 @@ public class WorldGateScreen extends Screen {
                         relayPort > 0;
 
                 if (usingRelay) {
-                    address = new ServerAddress(
-                            "127.0.0.1",
-                            relayPort
-                    );
+
+                    address =
+                            new ServerAddress(
+                                    "127.0.0.1",
+                                    relayPort
+                            );
+
                 } else {
-                    address = new ServerAddress(
-                            hostAddress,
-                            hostPort
-                    );
+
+                    address =
+                            new ServerAddress(
+                                    hostAddress,
+                                    hostPort
+                            );
                 }
 
                 ServerData serverData =
@@ -391,15 +411,13 @@ public class WorldGateScreen extends Screen {
                                 ? "Internet relay"
                                 : "LAN fallback";
 
-                this.minecraft.player.sendSystemMessage(
-                        Component.literal(
-                                "WorldGate: connecting via "
-                                        + connectionType
-                                        + " to "
-                                        + address.getHost()
-                                        + ":"
-                                        + address.getPort()
-                        )
+                sendMessage(
+                        "WorldGate: connecting via "
+                                + connectionType
+                                + " to "
+                                + address.getHost()
+                                + ":"
+                                + address.getPort()
                 );
 
                 ConnectScreen.startConnecting(
@@ -418,6 +436,7 @@ public class WorldGateScreen extends Screen {
             String json,
             String key
     ) {
+
         if (json == null || key == null) {
             return null;
         }
@@ -441,13 +460,17 @@ public class WorldGateScreen extends Screen {
             return null;
         }
 
-        return json.substring(start, end);
+        return json.substring(
+                start,
+                end
+        );
     }
 
     private static int extractJsonInt(
             String json,
             String key
     ) {
+
         if (json == null || key == null) {
             return -1;
         }
@@ -486,25 +509,29 @@ public class WorldGateScreen extends Screen {
 
         try {
             return Integer.parseInt(
-                    json.substring(start, end)
+                    json.substring(
+                            start,
+                            end
+                    )
             );
         } catch (NumberFormatException e) {
             return -1;
         }
     }
 
-    private void startRoomListeners(String code) {
+    private void startRoomListeners(
+            String code
+    ) {
+
         WorldGateModClient.CHAT_MANAGER.listen(
                 code,
                 (uid, text) ->
                         this.minecraft.execute(() ->
-                                this.minecraft.player.sendSystemMessage(
-                                        Component.literal(
-                                                "<"
-                                                        + shortUid(uid)
-                                                        + "> "
-                                                        + text
-                                        )
+                                sendMessage(
+                                        "<"
+                                                + shortUid(uid)
+                                                + "> "
+                                                + text
                                 )
                         )
         );
@@ -513,39 +540,74 @@ public class WorldGateScreen extends Screen {
                 code,
                 (uid, emote) ->
                         this.minecraft.execute(() ->
-                                this.minecraft.player.sendSystemMessage(
-                                        Component.translatable(
-                                                "worldgate.msg.emote",
-                                                shortUid(uid),
-                                                emote
-                                        )
+                                sendMessage(
+                                        shortUid(uid)
+                                                + " "
+                                                + emote
                                 )
                         )
         );
     }
 
-    private static String shortUid(String uid) {
-        return uid == null
-                ? "?"
-                : uid.substring(
-                        0,
-                        Math.min(6, uid.length())
-                );
+    private static String shortUid(
+            String uid
+    ) {
+
+        if (uid == null) {
+            return "?";
+        }
+
+        return uid.substring(
+                0,
+                Math.min(
+                        6,
+                        uid.length()
+                )
+        );
     }
 
-    private void openLink(String url) {
-        // NOTE: ConfirmLinkScreen's constructor signature has shifted between
-        // Minecraft versions before. If this line fails to compile, check the
-        // decompiled ConfirmLinkScreen class (via the loom genSources task)
-        // and adjust the arguments to match.
+    private void sendMessage(
+            String message
+    ) {
+
+        if (this.minecraft == null) {
+            return;
+        }
+
+        if (this.minecraft.player != null) {
+
+            this.minecraft.player.sendSystemMessage(
+                    Component.literal(message)
+            );
+
+        } else {
+
+            /*
+             * Main Menu has no player.
+             * Show the message inside the WorldGate screen instead.
+             */
+            this.minecraft.setScreen(
+                    new WorldGateScreenWithMessage(
+                            this,
+                            message
+                    )
+            );
+        }
+    }
+
+    private void openLink(
+            String url
+    ) {
+
         this.minecraft.setScreen(
                 new ConfirmLinkScreen(
                         confirmed -> {
+
                             if (confirmed) {
                                 this.minecraft.setScreen(this);
+                            } else {
+                                this.minecraft.setScreen(this);
                             }
-
-                            this.minecraft.setScreen(this);
                         },
                         url,
                         true
@@ -553,8 +615,99 @@ public class WorldGateScreen extends Screen {
         );
     }
 
+    private void goBack() {
+
+        if (parent != null) {
+            this.minecraft.setScreen(parent);
+        } else {
+            this.minecraft.setScreen(null);
+        }
+    }
+
     @Override
     public void onClose() {
-        this.minecraft.setScreen(parent);
+        goBack();
+    }
+
+    /*
+     * Small message screen used only when WorldGate
+     * is opened from the Main Menu and no player exists.
+     */
+    private static class WorldGateScreenWithMessage
+            extends Screen {
+
+        private final Screen parentScreen;
+        private final String message;
+
+        private WorldGateScreenWithMessage(
+                Screen parentScreen,
+                String message
+        ) {
+            super(Component.literal("WorldGate"));
+            this.parentScreen = parentScreen;
+            this.message = message;
+        }
+
+        @Override
+        protected void init() {
+
+            int centerX =
+                    this.width / 2;
+
+            addRenderableWidget(
+                    Button.builder(
+                            Component.literal("Back"),
+                            btn -> this.minecraft.setScreen(
+                                    parentScreen
+                            )
+                    )
+                    .bounds(
+                            centerX - 100,
+                            this.height / 2 + 30,
+                            200,
+                            20
+                    )
+                    .build()
+            );
+        }
+
+        @Override
+        public void render(
+                net.minecraft.client.gui.GuiGraphics graphics,
+                int mouseX,
+                int mouseY,
+                float delta
+        ) {
+
+            renderBackground(
+                    graphics,
+                    mouseX,
+                    mouseY,
+                    delta
+            );
+
+            graphics.drawCenteredString(
+                    this.font,
+                    "WorldGate",
+                    this.width / 2,
+                    this.height / 2 - 30,
+                    0xFFFFFF
+            );
+
+            graphics.drawCenteredString(
+                    this.font,
+                    message,
+                    this.width / 2,
+                    this.height / 2,
+                    0xAAAAAA
+            );
+
+            super.render(
+                    graphics,
+                    mouseX,
+                    mouseY,
+                    delta
+            );
+        }
     }
 }
