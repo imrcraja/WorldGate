@@ -389,8 +389,8 @@ public class WorldGateScreen extends Screen {
 
                     String hostName =
                             client
-                                    .getUser()
-                                    .getName();
+                                    .getSession()
+                                    .getUsername();
 
                     WorldGateModClient
                             .ROOM_MANAGER
@@ -501,8 +501,8 @@ public class WorldGateScreen extends Screen {
 
                                 String ign =
                                         client
-                                                .getUser()
-                                                .getName();
+                                                .getSession()
+                                                .getUsername();
 
                                 boolean joined =
                                         WorldGateModClient
