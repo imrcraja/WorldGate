@@ -438,7 +438,7 @@ public class LobbyScreen extends Screen {
             return;
         }
 
-        chatBox.setValue("");
+        chatBox.setText("");
 
         WorldGateModClient.EXECUTOR.submit(
                 () ->
@@ -491,7 +491,7 @@ public class LobbyScreen extends Screen {
                 .stopListening();
     }
         @Override
-    public void onClose() {
+    public void close() {
 
         goBack();
     }
@@ -528,16 +528,16 @@ public class LobbyScreen extends Screen {
         int bottom =
                 this.height - 58;
 
-        context.drawCenteredTextWithShadow(
-                font,
+        graphics.drawCenteredTextWithShadow(
+                textRenderer,
                 "WorldGate Lobby",
                 centerX,
                 16,
                 0xFFFFFF
         );
 
-        context.drawCenteredTextWithShadow(
-                font,
+        graphics.drawCenteredTextWithShadow(
+                textRenderer,
                 "Friends • Players • Realtime Chat",
                 centerX,
                 27,
@@ -583,24 +583,24 @@ public class LobbyScreen extends Screen {
                 bottom - panelTop
         );
 
-        context.drawTextWithShadow(
-                font,
+        graphics.drawTextWithShadow(
+                textRenderer,
                 "FRIENDS",
                 leftX + 10,
                 panelTop + 10,
                 0x55FFFF
         );
 
-        context.drawTextWithShadow(
-                font,
+        graphics.drawTextWithShadow(
+                textRenderer,
                 "IN ROOM",
                 middleX + 10,
                 panelTop + 10,
                 0x55FF55
         );
 
-        context.drawTextWithShadow(
-                font,
+        graphics.drawTextWithShadow(
+                textRenderer,
                 "CHAT",
                 rightX + 10,
                 panelTop + 10,
@@ -630,8 +630,8 @@ public class LobbyScreen extends Screen {
 
         if (loading) {
 
-            context.drawCenteredTextWithShadow(
-                    font,
+            graphics.drawCenteredTextWithShadow(
+                    textRenderer,
                     "Loading...",
                     centerX,
                     panelTop + 2,
@@ -648,7 +648,7 @@ public class LobbyScreen extends Screen {
             int height
     ) {
 
-        context.fill(
+        graphics.fill(
                 x,
                 y,
                 x + width,
@@ -656,7 +656,7 @@ public class LobbyScreen extends Screen {
                 0xAA111111
         );
 
-        context.fill(
+        graphics.fill(
                 x,
                 y,
                 x + width,
@@ -676,8 +676,8 @@ public class LobbyScreen extends Screen {
                 || friendsJson.equals("null")
                 || friendsJson.isBlank()) {
 
-            context.drawTextWithShadow(
-                    font,
+            graphics.drawTextWithShadow(
+                    textRenderer,
                     "No friends yet.",
                     x,
                     y,
@@ -724,16 +724,16 @@ public class LobbyScreen extends Screen {
                 int rowY =
                         y + row * 25;
 
-                context.drawTextWithShadow(
-                        font,
+                graphics.drawTextWithShadow(
+                        textRenderer,
                         name,
                         x,
                         rowY,
                         0xFFFFFF
                 );
 
-                context.drawTextWithShadow(
-                        font,
+                graphics.drawTextWithShadow(
+                        textRenderer,
                         code,
                         x,
                         rowY + 10,
@@ -745,10 +745,10 @@ public class LobbyScreen extends Screen {
                                 ? "● Online"
                                 : "○ Offline";
 
-                context.drawTextWithShadow(
-        font,
+                graphics.drawTextWithShadow(
+        textRenderer,
         state,
-        x + width - font.width(state),
+        x + width - textRenderer.getWidth(state),
         rowY + 4,
         online
                 ? 0x55FF55
@@ -760,8 +760,8 @@ public class LobbyScreen extends Screen {
 
         } catch (Exception ignored) {
 
-            context.drawTextWithShadow(
-                    font,
+            graphics.drawTextWithShadow(
+                    textRenderer,
                     "Friends unavailable.",
                     x,
                     y,
@@ -784,8 +784,8 @@ public class LobbyScreen extends Screen {
                 || json.equals("null")
                 || json.isBlank()) {
 
-            context.drawTextWithShadow(
-                    font,
+            graphics.drawTextWithShadow(
+                    textRenderer,
                     "No active room.",
                     x,
                     y,
@@ -806,8 +806,8 @@ public class LobbyScreen extends Screen {
                     || !room.get("players")
                             .isJsonObject()) {
 
-                context.drawTextWithShadow(
-                        font,
+                graphics.drawTextWithShadow(
+                        textRenderer,
                         "No players.",
                         x,
                         y,
@@ -872,16 +872,16 @@ public class LobbyScreen extends Screen {
                 int rowY =
                         y + row * 25;
 
-                context.drawTextWithShadow(
-                        font,
+                graphics.drawTextWithShadow(
+                        textRenderer,
                         name,
                         x,
                         rowY,
                         0xFFFFFF
                 );
 
-                context.drawTextWithShadow(
-                        font,
+                graphics.drawTextWithShadow(
+                        textRenderer,
                         online
                                 ? "● Online"
                                 : "○ Offline",
@@ -897,8 +897,8 @@ public class LobbyScreen extends Screen {
 
         } catch (Exception ignored) {
 
-            context.drawTextWithShadow(
-                    font,
+            graphics.drawTextWithShadow(
+                    textRenderer,
                     "Players unavailable.",
                     x,
                     y,
@@ -918,8 +918,8 @@ public class LobbyScreen extends Screen {
 
             if (chatMessages.isEmpty()) {
 
-                context.drawTextWithShadow(
-                        font,
+                graphics.drawTextWithShadow(
+                        textRenderer,
                         "No messages yet.",
                         x,
                         y,
@@ -945,8 +945,8 @@ public class LobbyScreen extends Screen {
                 String message =
                         chatMessages.get(row);
 
-                context.drawTextWithShadow(
-                        font,
+                graphics.drawTextWithShadow(
+                        textRenderer,
                         message,
                         x,
                         drawY,
