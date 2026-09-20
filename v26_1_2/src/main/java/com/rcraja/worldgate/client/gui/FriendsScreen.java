@@ -38,15 +38,14 @@ public class FriendsScreen extends Screen {
 
         int centerX = this.width / 2;
 
-        friendCodeBox =
-                new EditBox(
-                        this.font,
-                        centerX - 100,
-                        65,
-                        200,
-                        20,
-                        Component.literal("Friend Code")
-                );
+        friendCodeBox = new EditBox(
+                this.font,
+                centerX - 100,
+                65,
+                200,
+                20,
+                Component.literal("Friend Code")
+        );
 
         friendCodeBox.setMaxLength(12);
         friendCodeBox.setHint(
@@ -72,7 +71,7 @@ public class FriendsScreen extends Screen {
         this.addRenderableWidget(
                 Button.builder(
                         Component.literal("Back"),
-                        btn -> this.minecraft.setScreen(parent)
+                        btn -> closeScreen()
                 )
                 .bounds(
                         centerX - 100,
@@ -87,10 +86,13 @@ public class FriendsScreen extends Screen {
 
         WorldGateModClient.FRIEND_MANAGER
                 .setFriendListChangedListener(
-                        ignored ->
+                        ignored -> {
+                            if (this.minecraft != null) {
                                 this.minecraft.execute(
                                         this::loadFriends
-                                )
+                                );
+                            }
+                        }
                 );
 
         WorldGateModClient.FRIEND_MANAGER
@@ -108,11 +110,7 @@ public class FriendsScreen extends Screen {
                             .myFriendCode();
 
             String name =
-                    this.minecraft.player == null
-                            ? "Player"
-                            : this.minecraft.player
-                                    .getName()
-                                    .getString();
+                    this.minecraft.getUser().getName();
 
             WorldGateModClient.FRIEND_MANAGER
                     .setOnline(name);
@@ -226,7 +224,8 @@ public class FriendsScreen extends Screen {
                         );
                     }
 
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    status = "Could not load friends.";
                 }
             }
 
@@ -287,11 +286,6 @@ public class FriendsScreen extends Screen {
 
             for (FriendEntry friend : friends) {
 
-                String state =
-                        friend.online
-                                ? "● Online"
-                                : "○ Offline";
-
                 graphics.drawString(
                         this.font,
                         friend.name,
@@ -307,6 +301,11 @@ public class FriendsScreen extends Screen {
                         y + 12,
                         0xAAAAAA
                 );
+
+                String state =
+                        friend.online
+                                ? "● Online"
+                                : "○ Offline";
 
                 graphics.drawRightAlignedString(
                         this.font,
@@ -330,8 +329,7 @@ public class FriendsScreen extends Screen {
         );
     }
 
-    @Override
-    public void onClose() {
+    private void closeScreen() {
 
         WorldGateModClient.FRIEND_MANAGER
                 .setFriendListChangedListener(null);
@@ -343,6 +341,11 @@ public class FriendsScreen extends Screen {
                 .setOffline();
 
         this.minecraft.setScreen(parent);
+    }
+
+    @Override
+    public void onClose() {
+        closeScreen();
     }
 
     private record FriendEntry(
