@@ -4,274 +4,874 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
 
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import net.client.client.gui.DrawContext;
+import net.client.client.gui.widget.ButtonWidget;
+import net.client.client.gui.widget.TextFieldWidget;
+import net.client.client.gui.screen.Screen;
+import net.client.text.Text;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class FriendsScreen extends Screen {
 
     private final Screen parent;
+
     private TextFieldWidget friendCodeBox;
+
+    private final List<FriendEntry> friends =
+            new ArrayList<>();
+
+    private final List<RequestEntry> requests =
+            new ArrayList<>();
+
+    private String selectedRequestUid = null;
 
     private String myCode = "...";
     private String status = "";
 
-    private final List<String> friendLines = new ArrayList<>();
-    private final List<String> requestLines = new ArrayList<>();
+    private final Set<String> knownRequestUids =
+            new HashSet<>();
+
+    private boolean requestSnapshotReady = false;
+
+    private String requestNotification = "";
+
+    private long requestNotificationUntil = 0L;
 
     public FriendsScreen(Screen parent) {
-        super(Text.translatable("worldgate.friends.title"));
+
+        super(
+                Text.translatable(
+                        "worldgate.friends.title"
+                )
+        );
+
         this.parent = parent;
     }
 
     @Override
     protected void init() {
-        int centerX = width / 2;
 
-        friendCodeBox = new TextFieldWidget(
-                textRenderer, centerX - 100, 58, 200, 20,
-                Text.literal("Friend Code"));
+        int centerX =
+                this.width / 2;
+
+        friendCodeBox =
+                new TextFieldWidget(
+                        this.textRenderer,
+                        centerX - 100,
+                        60,
+                        200,
+                        20,
+                        Text.literal(
+                                "Friend Code"
+                        )
+                );
+
         friendCodeBox.setMaxLength(12);
-        friendCodeBox.setPlaceholder(Text.literal("Enter Friend Code"));
-        addDrawableChild(friendCodeBox);
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.translatable("worldgate.friends.send"),
-                b -> sendRequest())
-                .dimensions(centerX - 100, 83, 200, 20).build());
+        friendCodeBox.setPlaceholder(
+                Text.literal(
+                        "Enter Friend Code"
+                )
+        );
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.translatable("worldgate.friends.accept"),
-                b -> acceptSelected())
-                .dimensions(centerX - 100, 108, 97, 20).build());
+        this.addDrawableChild(
+                friendCodeBox
+        );
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.literal("Reject"),
-                b -> rejectSelected())
-                .dimensions(centerX + 3, 108, 97, 20).build());
+        this.addDrawableChild(
+                ButtonWidget.builder(
+                        Text.literal(
+                                "Add Friend"
+                        ),
+                        btn -> sendRequest()
+                )
+                .dimensions(
+                        centerX - 100,
+                        85,
+                        200,
+                        20
+                )
+                .build()
+        );
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.translatable("worldgate.friends.refresh"),
-                b -> loadAll())
-                .dimensions(centerX - 100, 133, 200, 20).build());
+        this.addDrawableChild(
+                ButtonWidget.builder(
+                        Text.literal(
+                                "Accept"
+                        ),
+                        btn -> acceptSelectedRequest()
+                )
+                .dimensions(
+                        centerX - 100,
+                        110,
+                        97,
+                        20
+                )
+                .build()
+        );
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.translatable("worldgate.button.back"),
-                b -> close())
-                .dimensions(centerX - 100, height - 28, 200, 20).build());
+        this.addDrawableChild(
+                ButtonWidget.builder(
+                        Text.literal(
+                                "Reject"
+                        ),
+                        btn -> rejectSelectedRequest()
+                )
+                .dimensions(
+                        centerX + 3,
+                        110,
+                        97,
+                        20
+                )
+                .build()
+        );
+
+        this.addDrawableChild(
+                ButtonWidget.builder(
+                        Text.literal(
+                                "Back"
+                        ),
+                        btn -> closeScreen()
+                )
+                .dimensions(
+                        centerX - 100,
+                        this.height - 30,
+                        200,
+                        20
+                )
+                .build()
+        );
 
         loadProfile();
 
-        WorldGateModClient.FRIEND_MANAGER.setFriendListChangedListener(
-                ignored -> {
-                    if (client != null) client.execute(this::loadAll);
-                });
+        WorldGateModClient.FRIEND_MANAGER
+                .setFriendListChangedListener(
+                        ignored -> {
 
-        WorldGateModClient.FRIEND_MANAGER.startRealtime();
+                            if (this.client != null) {
+
+                                this.client.execute(
+                                        this::loadAll
+                                );
+                            }
+                        }
+                );
+
+        WorldGateModClient.FRIEND_MANAGER
+                .startRealtime();
+
         loadAll();
     }
 
     private void loadProfile() {
-        WorldGateModClient.EXECUTOR.submit(() -> {
-            String code = WorldGateModClient.FRIEND_MANAGER.myFriendCode();
-            if (client != null) {
-                client.execute(() -> myCode = code == null ? "..." : code);
-            }
-        });
+
+        WorldGateModClient.EXECUTOR.submit(
+                () -> {
+
+                    String code =
+                            WorldGateModClient
+                                    .FRIEND_MANAGER
+                                    .myFriendCode();
+
+                    String name =
+                            this.client
+                                    .getUser()
+                                    .getName();
+
+                    WorldGateModClient
+                            .FRIEND_MANAGER
+                            .setOnline(name);
+
+                    this.client.execute(
+                            () -> {
+
+                                myCode =
+                                        code == null
+                                                ? "..."
+                                                : code;
+
+                                status =
+                                        "Your Friend Code: "
+                                                + myCode;
+                            }
+                    );
+                }
+        );
     }
 
     private void sendRequest() {
-        String code = friendCodeBox.getText().trim().toUpperCase();
+
+        String code =
+                friendCodeBox
+                        .getText()
+                        .trim()
+                        .toUpperCase();
+
         if (code.isEmpty()) {
-            status = "Enter a Friend Code.";
+
+            status =
+                    "Enter a Friend Code.";
+
             return;
         }
 
-        status = "Sending request...";
+        status =
+                "Sending request...";
 
-        WorldGateModClient.EXECUTOR.submit(() -> {
-            boolean ok = WorldGateModClient.FRIEND_MANAGER.sendRequest(code);
-            if (client != null) {
-                client.execute(() -> {
-                    status = ok ? "Friend request sent." : "Could not send request.";
-                    loadAll();
-                });
-            }
-        });
-    }
+        WorldGateModClient.EXECUTOR.submit(
+                () -> {
 
-    private String selectedCode() {
-        String code = friendCodeBox.getText().trim().toUpperCase();
-        return code.isEmpty() ? null : code;
-    }
+                    boolean ok =
+                            WorldGateModClient
+                                    .FRIEND_MANAGER
+                                    .sendRequestByCode(
+                                            code
+                                    );
 
-    private void acceptSelected() {
-        String code = selectedCode();
-        if (code == null) {
-            status = "Enter the request sender's Friend Code.";
-            return;
-        }
+                    this.client.execute(
+                            () -> {
 
-        WorldGateModClient.EXECUTOR.submit(() -> {
-            boolean ok = WorldGateModClient.FRIEND_MANAGER.acceptRequest(code);
-            if (client != null) {
-                client.execute(() -> {
-                    status = ok ? "Friend request accepted." : "Could not accept request.";
-                    loadAll();
-                });
-            }
-        });
-    }
-
-    private void rejectSelected() {
-        String code = selectedCode();
-        if (code == null) {
-            status = "Enter the request sender's Friend Code.";
-            return;
-        }
-
-        WorldGateModClient.EXECUTOR.submit(() -> {
-            boolean ok = WorldGateModClient.FRIEND_MANAGER.rejectRequest(code);
-            if (client != null) {
-                client.execute(() -> {
-                    status = ok ? "Friend request rejected." : "Could not reject request.";
-                    loadAll();
-                });
-            }
-        });
+                                status =
+                                        ok
+                                                ? "Friend request sent."
+                                                : "Friend Code not found.";
+                            }
+                    );
+                }
+        );
     }
 
     private void loadAll() {
-        WorldGateModClient.EXECUTOR.submit(() -> {
-            String friends = WorldGateModClient.FRIEND_MANAGER.getFriends();
-            String requests = WorldGateModClient.FRIEND_MANAGER.getIncomingRequests();
 
-            if (client != null) {
-                client.execute(() -> {
-                    friendLines.clear();
-                    requestLines.clear();
+        loadFriends();
 
-                    parseFriends(friends);
-                    parseRequests(requests);
-                });
-            }
-        });
+        loadRequests();
     }
 
-    private void parseFriends(String json) {
-        if (json == null || json.isBlank() || "null".equals(json)) return;
+    private void loadFriends() {
 
-        try {
-            JsonObject friends = JsonParser.parseString(json).getAsJsonObject();
+        WorldGateModClient.EXECUTOR.submit(
+                () -> {
 
-            for (String uid : friends.keySet()) {
-                String name = "Player";
-                String code = "Unknown";
-                boolean online = false;
+                    String json =
+                            WorldGateModClient
+                                    .FRIEND_MANAGER
+                                    .getFriends();
 
-                String profile = WorldGateModClient.FRIEND_MANAGER.getProfile(uid);
+                    List<FriendEntry> result =
+                            new ArrayList<>();
 
-                try {
-                    if (profile != null && !profile.isBlank() && !"null".equals(profile)) {
-                        JsonObject p = JsonParser.parseString(profile).getAsJsonObject();
+                    if (json != null
+                            && !json.equals("null")) {
 
-                        if (p.has("displayName")) name = p.get("displayName").getAsString();
-                        if (p.has("friendCode")) code = p.get("friendCode").getAsString();
-                        if (p.has("online")) online = p.get("online").getAsBoolean();
+                        try {
+
+                            JsonObject object =
+                                    JsonParser
+                                            .parseString(json)
+                                            .getAsJsonObject();
+
+                            for (String uid :
+                                    object.keySet()) {
+
+                                String profile =
+                                        WorldGateModClient
+                                                .FRIEND_MANAGER
+                                                .getProfile(uid);
+
+                                if (profile == null
+                                        || profile.equals(
+                                                "null"
+                                        )) {
+
+                                    continue;
+                                }
+
+                                JsonObject p =
+                                        JsonParser
+                                                .parseString(
+                                                        profile
+                                                )
+                                                .getAsJsonObject();
+
+                                String name =
+                                        p.has(
+                                                "displayName"
+                                        )
+                                                ? p.get(
+                                                        "displayName"
+                                                ).getAsString()
+                                                : "Player";
+
+                                String code =
+                                        p.has(
+                                                "friendCode"
+                                        )
+                                                ? p.get(
+                                                        "friendCode"
+                                                ).getAsString()
+                                                : "--------";
+
+                                boolean online =
+                                        p.has("online")
+                                                && p.get(
+                                                        "online"
+                                                ).getAsBoolean();
+
+                                result.add(
+                                        new FriendEntry(
+                                                uid,
+                                                name,
+                                                code,
+                                                online
+                                        )
+                                );
+                            }
+
+                        } catch (Exception ignored) {
+                        }
                     }
-                } catch (Exception ignored) {
-                }
 
-                friendLines.add(
-                        name + "  [" + code + "]  " +
-                        (online ? "Online" : "Offline"));
-            }
-        } catch (Exception ignored) {
-        }
+                    this.client.execute(
+                            () -> {
+
+                                friends.clear();
+
+                                friends.addAll(
+                                        result
+                                );
+                            }
+                    );
+                }
+        );
     }
 
-    private void parseRequests(String json) {
-        if (json == null || json.isBlank() || "null".equals(json)) return;
+    private void loadRequests() {
 
-        try {
-            JsonObject requests = JsonParser.parseString(json).getAsJsonObject();
+        WorldGateModClient.EXECUTOR.submit(
+                () -> {
 
-            for (String uid : requests.keySet()) {
-                JsonObject request = requests.getAsJsonObject(uid);
+                    String json =
+                            WorldGateModClient
+                                    .FRIEND_MANAGER
+                                    .getIncomingRequests();
 
-                String name = request.has("fromName")
-                        ? request.get("fromName").getAsString()
-                        : "Player";
+                    List<RequestEntry> result =
+                            new ArrayList<>();
 
-                String code = request.has("fromFriendCode")
-                        ? request.get("fromFriendCode").getAsString()
-                        : "Unknown";
+                    if (json != null
+                            && !json.equals("null")) {
 
-                requestLines.add(name + "  [" + code + "]");
-            }
-        } catch (Exception ignored) {
+                        try {
+
+                            JsonObject object =
+                                    JsonParser
+                                            .parseString(json)
+                                            .getAsJsonObject();
+
+                            for (String uid :
+                                    object.keySet()) {
+
+                                JsonObject request =
+                                        object.get(uid)
+                                                .getAsJsonObject();
+
+                                String name =
+                                        request.has(
+                                                "fromName"
+                                        )
+                                                ? request.get(
+                                                        "fromName"
+                                                ).getAsString()
+                                                : "Player";
+
+                                String code =
+                                        request.has(
+                                                "fromFriendCode"
+                                        )
+                                                ? request.get(
+                                                        "fromFriendCode"
+                                                ).getAsString()
+                                                : "--------";
+
+                                result.add(
+                                        new RequestEntry(
+                                                uid,
+                                                name,
+                                                code
+                                        )
+                                );
+                            }
+
+                        } catch (Exception ignored) {
+                        }
+                    }
+
+                    this.client.execute(
+                            () -> {
+
+                                if (requestSnapshotReady) {
+
+                                    for (
+                                            RequestEntry request :
+                                            result
+                                    ) {
+
+                                        if (
+                                                !knownRequestUids
+                                                        .contains(
+                                                                request.uid()
+                                                        )
+                                        ) {
+
+                                            showRequestNotification(
+                                                    request
+                                            );
+                                        }
+                                    }
+                                }
+
+                                knownRequestUids.clear();
+
+                                for (
+                                        RequestEntry request :
+                                        result
+                                ) {
+
+                                    knownRequestUids.add(
+                                            request.uid()
+                                    );
+                                }
+
+                                requestSnapshotReady =
+                                        true;
+                                                                requests.clear();
+
+                                requests.addAll(
+                                        result
+                                );
+
+                                if (
+                                        selectedRequestUid
+                                                != null
+                                ) {
+
+                                    boolean stillExists =
+                                            requests.stream()
+                                                    .anyMatch(
+                                                            request ->
+                                                                    request.uid()
+                                                                            .equals(
+                                                                                    selectedRequestUid
+                                                                            )
+                                                    );
+
+                                    if (!stillExists) {
+
+                                        selectedRequestUid =
+                                                null;
+                                    }
+                                }
+                            }
+                    );
+                }
+        );
+    }
+
+    private void showRequestNotification(
+            RequestEntry request
+    ) {
+
+        requestNotification =
+                "Friend Request: "
+                        + request.name()
+                        + " ("
+                        + request.code()
+                        + ")";
+
+        requestNotificationUntil =
+                System.currentTimeMillis()
+                        + 5000L;
+    }
+
+    private void acceptSelectedRequest() {
+
+        if (selectedRequestUid == null) {
+
+            status =
+                    "Select a friend request first.";
+
+            return;
         }
+
+        String uid =
+                selectedRequestUid;
+
+        status =
+                "Accepting request...";
+
+        WorldGateModClient.EXECUTOR.submit(
+                () -> {
+
+                    boolean ok =
+                            WorldGateModClient
+                                    .FRIEND_MANAGER
+                                    .acceptRequest(uid);
+
+                    this.client.execute(
+                            () -> {
+
+                                status =
+                                        ok
+                                                ? "Friend added."
+                                                : "Could not accept request.";
+
+                                if (ok) {
+
+                                    selectedRequestUid =
+                                            null;
+
+                                    loadAll();
+                                }
+                            }
+                    );
+                }
+        );
+    }
+
+    private void rejectSelectedRequest() {
+
+        if (selectedRequestUid == null) {
+
+            status =
+                    "Select a friend request first.";
+
+            return;
+        }
+
+        String uid =
+                selectedRequestUid;
+
+        status =
+                "Rejecting request...";
+
+        WorldGateModClient.EXECUTOR.submit(
+                () -> {
+
+                    boolean ok =
+                            WorldGateModClient
+                                    .FRIEND_MANAGER
+                                    .rejectRequest(uid);
+
+                    this.client.execute(
+                            () -> {
+
+                                status =
+                                        ok
+                                                ? "Request rejected."
+                                                : "Could not reject request.";
+
+                                if (ok) {
+
+                                    selectedRequestUid =
+                                            null;
+
+                                    loadRequests();
+                                }
+                            }
+                    );
+                }
+        );
     }
 
     @Override
-    public void render(net.minecraft.client.gui.DrawContext context,
-                       int mouseX, int mouseY, float delta) {
-        renderBackground(context, mouseX, mouseY, delta);
+    public void render(
+            GuiGraphicsExtractor graphics,
+            int mouseX,
+            int mouseY,
+            float delta
+    ) {
 
-        int centerX = width / 2;
+        super.render(
+                graphics,
+                mouseX,
+                mouseY,
+                delta
+        );
+
+        int centerX =
+                this.width / 2;
 
         context.drawCenteredTextWithShadow(
-                textRenderer,
-                Text.translatable("worldgate.friends.title"),
-                centerX, 15, 0xFFFFFF);
+                this.textRenderer,
+                "WorldGate Friends",
+                centerX,
+                20,
+                0xFFFFFF
+        );
 
         context.drawCenteredTextWithShadow(
-                textRenderer,
-                Text.literal("Your Friend Code: " + myCode),
-                centerX, 32, 0x55FFFF);
+                this.textRenderer,
+                "Your Code: " + myCode,
+                centerX,
+                40,
+                0x55FFFF
+        );
 
         context.drawTextWithShadow(
-                textRenderer,
-                Text.literal("FRIENDS"),
-                25, 175, 0x55FF55);
+                this.textRenderer,
+                "Friend Requests",
+                centerX - 140,
+                145,
+                0xFFFF55
+        );
 
-        int y = 190;
-        for (String line : friendLines) {
-            if (y > height - 100) break;
+        int requestY =
+                160;
+
+        if (requests.isEmpty()) {
+
             context.drawTextWithShadow(
-                    textRenderer, Text.literal(line), 25, y, 0xFFFFFF);
-            y += 16;
+                    this.textRenderer,
+                    "No pending requests.",
+                    centerX - 140,
+                    requestY,
+                    0x888888
+            );
+
+        } else {
+
+            for (
+                    RequestEntry request :
+                    requests
+            ) {
+
+                boolean selected =
+                        request.uid()
+                                .equals(
+                                        selectedRequestUid
+                                );
+
+                int textColor =
+                        selected
+                                ? 0x55FFFF
+                                : 0xFFFFFF;
+
+                context.drawTextWithShadow(
+                        this.textRenderer,
+                        (selected
+                                ? "> "
+                                : "")
+                                + request.name(),
+                        centerX - 140,
+                        requestY,
+                        textColor
+                );
+
+                context.drawTextWithShadow(
+                        this.textRenderer,
+                        request.code(),
+                        centerX - 140,
+                        requestY + 12,
+                        0xAAAAAA
+                );
+
+                requestY += 32;
+            }
         }
 
-        context.drawTextWithShadow(
-                textRenderer,
-                Text.literal("INCOMING REQUESTS"),
-                width / 2 + 10, 175, 0xFFAA55);
+        int friendY =
+                Math.max(
+                        requestY + 15,
+                        225
+                );
 
-        y = 190;
-        for (String line : requestLines) {
-            if (y > height - 100) break;
+        context.drawTextWithShadow(
+                this.textRenderer,
+                "Friends",
+                centerX - 140,
+                friendY,
+                0x55FF55
+        );
+
+        friendY += 18;
+
+        if (friends.isEmpty()) {
+
             context.drawTextWithShadow(
-                    textRenderer, Text.literal(line), width / 2 + 10, y, 0xFFFFFF);
-            y += 16;
+                    this.textRenderer,
+                    "No friends yet.",
+                    centerX - 140,
+                    friendY,
+                    0x888888
+            );
+
+        } else {
+
+            for (
+                    FriendEntry friend :
+                    friends
+            ) {
+
+                context.drawTextWithShadow(
+                        this.textRenderer,
+                        friend.name(),
+                        centerX - 140,
+                        friendY,
+                        0xFFFFFF
+                );
+
+                context.drawTextWithShadow(
+                        this.textRenderer,
+                        friend.code(),
+                        centerX - 140,
+                        friendY + 12,
+                        0xAAAAAA
+                );
+
+                String state =
+                        friend.online()
+                                ? "● Online"
+                                : "○ Offline";
+
+                context.drawTextWithShadow(
+        this.textRenderer,
+        state,
+        centerX + 140 - this.textRenderer.width(state),
+        friendY + 5,
+        friend.online()
+                ? 0x55FF55
+                : 0x888888
+);
+
+                friendY += 32;
+            }
+        }
+
+        if (
+                requestNotificationUntil
+                        > System.currentTimeMillis()
+        ) {
+
+            int boxWidth =
+                    320;
+
+            int boxHeight =
+                    34;
+
+            int boxX =
+                    centerX
+                            - boxWidth / 2;
+
+            int boxY =
+                    5;
+
+            context.fill(
+                    boxX,
+                    boxY,
+                    boxX + boxWidth,
+                    boxY + boxHeight,
+                    0xDD111111
+            );
+
+            context.drawCenteredTextWithShadow(
+                    this.textRenderer,
+                    requestNotification,
+                    centerX,
+                    boxY + 12,
+                    0x55FFFF
+            );
         }
 
         if (!status.isEmpty()) {
-            context.drawCenteredTextWithShadow(
-                    textRenderer, Text.literal(status),
-                    centerX, height - 48, 0xFFFF55);
-        }
 
-        super.render(context, mouseX, mouseY, delta);
+            context.drawCenteredTextWithShadow(
+                    this.textRenderer,
+                    status,
+                    centerX,
+                    this.height - 50,
+                    0xAAAAAA
+            );
+        }
     }
 
     @Override
-    public void close() {
-        WorldGateModClient.FRIEND_MANAGER.stopRealtime();
-        client.setScreen(parent);
+public boolean mouseClicked(double mouseX, double mouseY, int button) {
+
+    int centerX =
+            this.width / 2;
+
+        int requestY =
+                160;
+
+        for (
+                RequestEntry request :
+                requests
+        ) {
+
+            if (
+                    mouseX >= centerX - 145
+                            && mouseX <= centerX + 145
+                            && mouseY >= requestY - 4
+                            && mouseY <= requestY + 27
+            ) {
+
+                selectedRequestUid =
+                        request.uid();
+
+                status =
+                        "Selected: "
+                                + request.name();
+
+                return true;
+            }
+
+            requestY += 32;
+        }
+
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private void closeScreen() {
+
+        WorldGateModClient.FRIEND_MANAGER
+                .setFriendListChangedListener(
+                        null
+                );
+
+        WorldGateModClient.FRIEND_MANAGER
+                .stopRealtime();
+
+        WorldGateModClient.FRIEND_MANAGER
+                .setOffline();
+
+        this.client.setScreen(
+                parent
+        );
+    }
+
+    @Override
+    public void onClose() {
+
+        closeScreen();
+    }
+
+    private record FriendEntry(
+            String uid,
+            String name,
+            String code,
+            boolean online
+    ) {
+    }
+
+    private record RequestEntry(
+            String uid,
+            String name,
+            String code
+    ) {
     }
 }
