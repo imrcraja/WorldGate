@@ -3,6 +3,7 @@ package com.rcraja.worldgate.client.gui;
 import com.rcraja.worldgate.Constants;
 import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.network.HostBridge;
+import com.rcraja.worldgate.network.RelayBridge;
 
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.world.level.GameType;
@@ -106,24 +107,49 @@ public class WorldGateScreen extends Screen {
                 Component.literal("WorldGate: Minecraft server published on port " + port));
 
         WorldGateModClient.EXECUTOR.submit(() -> {
-            String code = WorldGateModClient.ROOM_MANAGER.createRoom("0.0.0.0", port);
+            String hostAddress = HostBridge.getAdvertiseAddress();
 
-            this.minecraft.execute(() -> {
-                if (code == null) {
-                    HostBridge.stop();
-                    this.minecraft.player.sendSystemMessage(
-                            Component.translatable("worldgate.msg.create_failed"));
-                    return;
-                }
+            String code = WorldGateModClient.ROOM_MANAGER.createRoom(
+                    hostAddress,
+                    port
+            );
+
+            if (code != null) {
+                boolean relayStarted = HostBridge.startRelay(code);
 
                 WorldGateModClient.CURRENT_ROOM_CODE = code;
                 WorldGateModClient.startHeartbeat(true);
 
-                this.minecraft.player.sendSystemMessage(
-                        Component.translatable("worldgate.msg.room_code", code));
+                this.minecraft.execute(() -> {
+                    if (!relayStarted) {
+                        this.minecraft.player.sendSystemMessage(
+                                Component.literal(
+                                        "WorldGate: relay could not start; LAN fallback is available."
+                                )
+                        );
+                    }
 
-                startRoomListeners(code);
-            });
+                    this.minecraft.player.sendSystemMessage(
+                            Component.translatable(
+                                    "worldgate.msg.room_code",
+                                    code
+                            )
+                    );
+
+                    startRoomListeners(code);
+                });
+
+            } else {
+                HostBridge.stop();
+
+                this.minecraft.execute(() ->
+                        this.minecraft.player.sendSystemMessage(
+                                Component.translatable(
+                                        "worldgate.msg.create_failed"
+                                )
+                        )
+                );
+            }
         });
     }
 
@@ -156,17 +182,43 @@ public class WorldGateScreen extends Screen {
                 WorldGateModClient.ROOM_MANAGER.playerJoin(code, ign);
                 WorldGateModClient.startHeartbeat(false);
 
-                ServerAddress address = new ServerAddress(hostAddress, hostPort);
+                int relayPort = RelayBridge.startPlayer(code);
+
+                ServerAddress address;
+                boolean usingRelay = relayPort > 0;
+
+                if (usingRelay) {
+                    address = new ServerAddress(
+                            "127.0.0.1",
+                            relayPort
+                    );
+                } else {
+                    address = new ServerAddress(
+                            hostAddress,
+                            hostPort
+                    );
+                }
+
                 ServerData serverData = new ServerData(
                         "WorldGate " + code,
                         address.toString(),
                         ServerData.Type.OTHER
                 );
 
+                String connectionType = usingRelay
+                        ? "Internet relay"
+                        : "LAN fallback";
+
                 this.minecraft.player.sendSystemMessage(
                         Component.literal(
-                                "WorldGate: connecting to "
-                                        + address.getHost() + ":" + address.getPort()));
+                                "WorldGate: connecting via "
+                                        + connectionType
+                                        + " to "
+                                        + address.getHost()
+                                        + ":"
+                                        + address.getPort()
+                        )
+                );
 
                 ConnectScreen.startConnecting(
                         this,
