@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.rcraja.worldgate.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "GameMenuScreenMixin",
+    "PlayerListHudMixin",
+    "TitleScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
