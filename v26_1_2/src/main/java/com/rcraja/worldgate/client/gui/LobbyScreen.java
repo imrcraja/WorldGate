@@ -1,104 +1,287 @@
 package com.rcraja.worldgate.client.gui;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.rcraja.worldgate.client.WorldGateModClient;
+
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class LobbyScreen extends Screen {
 
     private final Screen parent;
-    private EditBox skinUrlBox;
+
+    private EditBox chatBox;
+
+    private final Map<String, String> friendNames =
+            new ConcurrentHashMap<>();
+
+    private volatile String friendsJson = null;
+    private volatile String roomJson = null;
+
+    private final List<String> chatMessages =
+            new ArrayList<>();
+
+    private volatile boolean loading = true;
 
     public LobbyScreen(Screen parent) {
-        super(Component.translatable("worldgate.lobby.title"));
+        super(Component.literal("WorldGate Lobby"));
         this.parent = parent;
     }
 
     @Override
     protected void init() {
-
         int centerX = this.width / 2;
-        int y = this.height / 2 - 55;
 
-        this.skinUrlBox = new EditBox(
+        chatBox = new EditBox(
                 this.font,
                 centerX - 100,
-                y,
-                200,
+                this.height - 55,
+                175,
                 20,
-                Component.translatable(
-                        "worldgate.lobby.skin_hint"
-                )
+                Component.literal("Chat")
         );
 
-        this.skinUrlBox.setMaxLength(256);
+        chatBox.setMaxLength(200);
+        chatBox.setHint(Component.literal("Type a message..."));
+        addRenderableWidget(chatBox);
 
-        this.skinUrlBox.setHint(
-                Component.translatable(
-                        "worldgate.lobby.skin_hint"
-                )
-        );
-
-        this.addRenderableWidget(
-                this.skinUrlBox
-        );
-
-        this.addRenderableWidget(
+        addRenderableWidget(
                 Button.builder(
-                        Component.translatable(
-                                "worldgate.lobby.set_skin"
-                        ),
-                        btn -> showMessage(
-                                Component.translatable(
-                                        "worldgate.lobby.skin_todo"
-                                )
-                        )
+                        Component.literal("Send"),
+                        btn -> sendChat()
                 )
                 .bounds(
-                        centerX - 100,
-                        y + 25,
-                        200,
+                        centerX + 80,
+                        this.height - 55,
+                        45,
                         20
                 )
                 .build()
         );
 
-        this.addRenderableWidget(
+        addRenderableWidget(
                 Button.builder(
-                        Component.translatable(
-                                "worldgate.button.back"
-                        ),
+                        Component.literal("Back"),
                         btn -> goBack()
                 )
                 .bounds(
                         centerX - 100,
-                        y + 65,
+                        this.height - 28,
                         200,
                         20
                 )
                 .build()
         );
+
+        startRealtime();
     }
 
-    private void showMessage(Component message) {
+    private void startRealtime() {
+        loading = true;
 
-        if (this.minecraft != null) {
-            this.minecraft.setScreen(
-                    new LobbyMessageScreen(
-                            this,
-                            message
-                    )
+        WorldGateModClient.FRIEND_MANAGER
+                .setFriendListChangedListener(json -> {
+                    friendsJson = json;
+                    refreshFriendNames();
+                });
+
+        WorldGateModClient.FRIEND_MANAGER.startRealtime();
+
+        WorldGateModClient.EXECUTOR.submit(() -> {
+            String json =
+                    WorldGateModClient.FRIEND_MANAGER.getFriends();
+
+            this.minecraft.execute(() -> {
+                friendsJson = json;
+                refreshFriendNames();
+            });
+        });
+
+        String room =
+                WorldGateModClient.CURRENT_ROOM_CODE;
+
+        if (room != null && !room.isBlank()) {
+            WorldGateModClient.ROOM_MANAGER
+                    .setRoomChangedListener(json -> {
+                        roomJson = json;
+                        this.minecraft.execute(
+                                this::refreshFriendNames
+                        );
+                    });
+
+            WorldGateModClient.ROOM_MANAGER
+                    .startRealtime(room);
+
+            WorldGateModClient.CHAT_MANAGER.listen(
+                    room,
+                    (uid, text) -> this.minecraft.execute(() -> {
+                        String name = displayName(uid);
+                        addChatMessage(
+                                "<" + name + "> " + text
+                        );
+                    })
             );
+
+            loading = false;
+        } else {
+            loading = false;
+        }
+    }
+
+    private void refreshFriendNames() {
+        String json = friendsJson;
+
+        if (json == null
+                || json.equals("null")) {
+            return;
+        }
+
+        try {
+            JsonObject friends =
+                    JsonParser.parseString(json)
+                            .getAsJsonObject();
+
+            for (String uid : friends.keySet()) {
+                if (friendNames.containsKey(uid)) {
+                    continue;
+                }
+
+                WorldGateModClient.EXECUTOR.submit(() -> {
+                    String profile =
+                            WorldGateModClient.FRIEND_MANAGER
+                                    .getProfile(uid);
+
+                    String name = uid;
+
+                    try {
+                        if (profile != null
+                                && !profile.equals("null")) {
+                            JsonObject object =
+                                    JsonParser.parseString(profile)
+                                            .getAsJsonObject();
+
+                            if (object.has("displayName")) {
+                                name = object
+                                        .get("displayName")
+                                        .getAsString();
+                            }
+                        }
+                    } catch (Exception ignored) {
+                    }
+
+                    final String finalName = name;
+
+                    this.minecraft.execute(() ->
+                            friendNames.put(uid, finalName)
+                    );
+                });
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private String displayName(String uid) {
+        if (uid == null) {
+            return "?";
+        }
+
+        String name = friendNames.get(uid);
+
+        if (name != null && !name.isBlank()) {
+            return name;
+        }
+
+        String currentUid =
+                WorldGateModClient.FRIEND_MANAGER.myUid();
+
+        if (uid.equals(currentUid)) {
+            return "You";
+        }
+
+        return shortUid(uid);
+    }
+
+    private static String shortUid(String uid) {
+        return uid.substring(
+                0,
+                Math.min(6, uid.length())
+        );
+    }
+
+    private void sendChat() {
+        String room =
+                WorldGateModClient.CURRENT_ROOM_CODE;
+
+        if (room == null || room.isBlank()) {
+            addChatMessage("Join or create a room to use chat.");
+            return;
+        }
+
+        String text =
+                chatBox.getValue().trim();
+
+        if (text.isEmpty()) {
+            return;
+        }
+
+        chatBox.setValue("");
+
+        WorldGateModClient.EXECUTOR.submit(() ->
+                WorldGateModClient.CHAT_MANAGER
+                        .sendMessage(room, text)
+        );
+    }
+
+    private void addChatMessage(String message) {
+        synchronized (chatMessages) {
+            chatMessages.add(message);
+
+            while (chatMessages.size() > 6) {
+                chatMessages.remove(0);
+            }
         }
     }
 
     private void goBack() {
+        stopRealtime();
 
-        if (this.minecraft != null) {
-            this.minecraft.setScreen(parent);
+        if (minecraft != null) {
+            minecraft.setScreen(parent);
         }
+    }
+
+    private void stopRealtime() {
+        WorldGateModClient.FRIEND_MANAGER
+                .stopRealtime();
+
+        WorldGateModClient.ROOM_MANAGER
+                .stopRealtime();
+
+        WorldGateModClient.CHAT_MANAGER
+                .stopListening();
+
+        WorldGateModClient.EMOTE_MANAGER
+                .stopListening();
+    }
+
+    @Override
+    public void onClose() {
+        goBack();
+    }
+
+    @Override
+    public void removed() {
+        stopRealtime();
+        super.removed();
     }
 
     @Override
@@ -108,8 +291,7 @@ public class LobbyScreen extends Screen {
             int mouseY,
             float delta
     ) {
-
-        this.renderBackground(
+        renderBackground(
                 graphics,
                 mouseX,
                 mouseY,
@@ -119,20 +301,74 @@ public class LobbyScreen extends Screen {
         int centerX = this.width / 2;
 
         graphics.drawCenteredString(
-                this.font,
+                font,
                 "WorldGate Lobby",
                 centerX,
-                25,
+                18,
                 0xFFFFFF
         );
 
-        graphics.drawCenteredString(
-                this.font,
-                "Character",
-                centerX,
-                55,
+        graphics.drawString(
+                font,
+                "Friends",
+                20,
+                42,
                 0x55FFFF
         );
+
+        graphics.drawString(
+                font,
+                "Players in Room",
+                this.width - 155,
+                42,
+                0x55FFFF
+        );
+
+        drawFriends(
+                graphics,
+                20,
+                58
+        );
+
+        drawRoomPlayers(
+                graphics,
+                this.width - 155,
+                58
+        );
+
+        graphics.drawString(
+                font,
+                "Realtime Chat",
+                20,
+                this.height - 78,
+                0x55FFFF
+        );
+
+        synchronized (chatMessages) {
+            int y = this.height - 68;
+
+            for (String message : chatMessages) {
+                graphics.drawString(
+                        font,
+                        message,
+                        20,
+                        y,
+                        0xFFFFFF
+                );
+
+                y += 10;
+            }
+        }
+
+        if (loading) {
+            graphics.drawCenteredString(
+                    font,
+                    "Loading...",
+                    centerX,
+                    35,
+                    0xAAAAAA
+            );
+        }
 
         super.render(
                 graphics,
@@ -142,79 +378,151 @@ public class LobbyScreen extends Screen {
         );
     }
 
-    @Override
-    public void onClose() {
-        goBack();
+    private void drawFriends(
+            GuiGraphics graphics,
+            int x,
+            int y
+    ) {
+        if (friendsJson == null
+                || friendsJson.equals("null")) {
+            graphics.drawString(
+                    font,
+                    "No friends yet.",
+                    x,
+                    y,
+                    0xAAAAAA
+            );
+            return;
+        }
+
+        try {
+            JsonObject friends =
+                    JsonParser.parseString(friendsJson)
+                            .getAsJsonObject();
+
+            int row = 0;
+
+            for (String uid : friends.keySet()) {
+                if (row >= 9) break;
+
+                String name = displayName(uid);
+
+                graphics.drawString(
+                        font,
+                        name,
+                        x,
+                        y + row * 12,
+                        0xFFFFFF
+                );
+
+                graphics.drawString(
+                        font,
+                        shortUid(uid),
+                        x + 95,
+                        y + row * 12,
+                        0xAAAAAA
+                );
+
+                row++;
+            }
+        } catch (Exception ignored) {
+            graphics.drawString(
+                    font,
+                    "Friends unavailable.",
+                    x,
+                    y,
+                    0xAAAAAA
+            );
+        }
     }
 
-    private static class LobbyMessageScreen
-            extends Screen {
+    private void drawRoomPlayers(
+            GuiGraphics graphics,
+            int x,
+            int y
+    ) {
+        String json = roomJson;
 
-        private final Screen parent;
-        private final Component message;
-
-        protected LobbyMessageScreen(
-                Screen parent,
-                Component message
-        ) {
-            super(
-                    Component.literal("WorldGate")
+        if (json == null
+                || json.equals("null")) {
+            graphics.drawString(
+                    font,
+                    "No active room.",
+                    x,
+                    y,
+                    0xAAAAAA
             );
-
-            this.parent = parent;
-            this.message = message;
+            return;
         }
 
-        @Override
-        protected void init() {
+        try {
+            JsonObject room =
+                    JsonParser.parseString(json)
+                            .getAsJsonObject();
 
-            int centerX = this.width / 2;
+            if (!room.has("players")
+                    || !room.get("players").isJsonObject()) {
+                graphics.drawString(
+                        font,
+                        "No players.",
+                        x,
+                        y,
+                        0xAAAAAA
+                );
+                return;
+            }
 
-            this.addRenderableWidget(
-                    Button.builder(
-                            Component.literal("Back"),
-                            btn -> this.minecraft.setScreen(
-                                    parent
-                            )
-                    )
-                    .bounds(
-                            centerX - 100,
-                            this.height / 2 + 25,
-                            200,
-                            20
-                    )
-                    .build()
-            );
-        }
+            JsonObject players =
+                    room.getAsJsonObject("players");
 
-        @Override
-        public void render(
-                GuiGraphics graphics,
-                int mouseX,
-                int mouseY,
-                float delta
-        ) {
+            int row = 0;
 
-            this.renderBackground(
-                    graphics,
-                    mouseX,
-                    mouseY,
-                    delta
-            );
+            for (String uid : players.keySet()) {
+                if (row >= 9) break;
 
-            graphics.drawCenteredString(
-                    this.font,
-                    message,
-                    this.width / 2,
-                    this.height / 2,
-                    0xFFFFFF
-            );
+                JsonObject player =
+                        players.getAsJsonObject(uid);
 
-            super.render(
-                    graphics,
-                    mouseX,
-                    mouseY,
-                    delta
+                String name =
+                        player.has("ign")
+                                ? player.get("ign").getAsString()
+                                : shortUid(uid);
+
+                boolean online =
+                        player.has("online")
+                                && player.get("online")
+                                        .getAsBoolean();
+
+                String status =
+                        online ? "● Online" : "○ Offline";
+
+                graphics.drawString(
+                        font,
+                        name,
+                        x,
+                        y + row * 12,
+                        0xFFFFFF
+                );
+
+                graphics.drawString(
+                        font,
+                        status,
+                        x + 70,
+                        y + row * 12,
+                        online
+                                ? 0x55FF55
+                                : 0xAAAAAA
+                );
+
+                row++;
+            }
+        } catch (Exception ignored) {
+            graphics.drawString(
+                    font,
+                    "Players unavailable.",
+                    x,
+                    y,
+                    0xAAAAAA
             );
         }
     }
