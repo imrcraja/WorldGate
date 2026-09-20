@@ -18,6 +18,9 @@ import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import java.io.IOException;
+import java.net.ServerSocket;
+
 /**
  * Main WorldGate menu, opened from the Escape (Pause) screen.
  * Minecraft 26.1.2 (Mojang mappings) build.
@@ -125,7 +128,8 @@ public class WorldGateScreen extends Screen {
                 Component.translatable("worldgate.msg.creating")
         );
 
-        IntegratedServer server = this.minecraft.getSingleplayerServer();
+        IntegratedServer server =
+                this.minecraft.getSingleplayerServer();
 
         if (server == null) {
             this.minecraft.player.sendSystemMessage(
@@ -136,72 +140,83 @@ public class WorldGateScreen extends Screen {
             return;
         }
 
-        if (!server.isPublished()) {
-            boolean published = server.publishServer(
-                    GameType.DEFAULT_MODE,
-                    true,
-                    0
-            );
+        if (server.isPublished()) {
+            int existingPort = server.getPort();
 
-            if (!published) {
+            if (existingPort <= 0 || existingPort > 65535) {
                 this.minecraft.player.sendSystemMessage(
                         Component.literal(
-                                "WorldGate: failed to publish the world."
+                                "WorldGate: existing published server has an invalid port."
                         )
                 );
                 return;
             }
-        }
 
-        /*
-         * Minecraft 26.1.2 may not have the published port ready
-         * immediately after publishServer() returns.
-         *
-         * Wait for the actual port before starting HostBridge.
-         */
-        waitForHostPort(server, 0);
-    }
-
-    private void waitForHostPort(IntegratedServer server, int attempt) {
-        if (server == null) {
+            startWorldGateHost(server, existingPort);
             return;
         }
 
-        int port = server.getPort();
+        int port = findFreePort();
 
-        if (server.isPublished()
-                && port > 0
-                && port <= 65535) {
-
-            startWorldGateHost(server, port);
-            return;
-        }
-
-        /*
-         * Try for up to approximately 10 seconds.
-         * 100 attempts x 100 ms = 10 seconds.
-         */
-        if (attempt >= 100) {
+        if (port <= 0) {
             this.minecraft.player.sendSystemMessage(
                     Component.literal(
-                            "WorldGate: Minecraft server port was not ready."
+                            "WorldGate: could not find a free network port."
                     )
             );
             return;
         }
 
-        WorldGateModClient.EXECUTOR.submit(() -> {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
+        this.minecraft.player.sendSystemMessage(
+                Component.literal(
+                        "WorldGate: using port " + port
+                )
+        );
 
-            this.minecraft.execute(() ->
-                    waitForHostPort(server, attempt + 1)
+        boolean published = server.publishServer(
+                GameType.DEFAULT_MODE,
+                true,
+                port
+        );
+
+        if (!published) {
+            this.minecraft.player.sendSystemMessage(
+                    Component.literal(
+                            "WorldGate: failed to publish the world on port "
+                                    + port
+                    )
             );
-        });
+            return;
+        }
+
+        int publishedPort = server.getPort();
+
+        if (publishedPort <= 0 || publishedPort > 65535) {
+            this.minecraft.player.sendSystemMessage(
+                    Component.literal(
+                            "WorldGate: Minecraft returned an invalid published port."
+                    )
+            );
+            return;
+        }
+
+        startWorldGateHost(server, publishedPort);
+    }
+
+    /**
+     * Finds an available TCP port.
+     *
+     * Port 0 is used only for the temporary ServerSocket so the operating
+     * system selects a free port. The socket is then closed and the selected
+     * port is passed explicitly to Minecraft's publishServer().
+     */
+    private static int findFreePort() {
+        try (ServerSocket socket = new ServerSocket(0)) {
+            socket.setReuseAddress(true);
+            return socket.getLocalPort();
+        } catch (IOException e) {
+            return -1;
+        }
     }
 
     private void startWorldGateHost(
