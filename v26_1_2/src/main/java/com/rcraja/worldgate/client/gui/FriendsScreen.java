@@ -739,15 +739,15 @@ public class FriendsScreen extends Screen {
                                 ? "● Online"
                                 : "○ Offline";
 
-                graphics.rightAlignedText(
-                        this.font,
-                        state,
-                        centerX + 140,
-                        friendY + 5,
-                        friend.online()
-                                ? 0x55FF55
-                                : 0x888888
-                );
+                graphics.text(
+        this.font,
+        state,
+        centerX + 140 - this.font.width(state),
+        friendY + 5,
+        friend.online()
+                ? 0x55FF55
+                : 0x888888
+);
 
                 friendY += 32;
             }
