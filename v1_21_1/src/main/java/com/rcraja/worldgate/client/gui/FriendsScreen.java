@@ -220,7 +220,7 @@ public class FriendsScreen extends Screen {
     @Override
     public void render(net.minecraft.client.gui.DrawContext context,
                        int mouseX, int mouseY, float delta) {
-        renderBackground(context);
+        renderBackground(context, mouseX, mouseY, delta);
 
         int centerX = width / 2;
 
