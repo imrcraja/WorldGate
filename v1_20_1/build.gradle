@@ -5,7 +5,6 @@ version = rootProject.mod_version
 group = rootProject.maven_group
 base { archivesName = project.archives_base_name }
 repositories { maven { url = 'https://maven.fabricmc.net/' } }
-sourceSets { main { java { srcDir '../common/src/main/java' } } }
 java { withSourcesJar(); sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
