@@ -1036,14 +1036,7 @@ public class WorldGateScreen extends Screen {
         }
     }
 
-    private void openLink(String url) {
-    if (minecraft == null) {
-        return;
-    }
-
-    Util.getPlatform()
-            .openUri(url);
-    }
+        private void openLink(String url) {
 
         if (minecraft == null) {
             return;
@@ -1073,6 +1066,8 @@ public class WorldGateScreen extends Screen {
                 )
         );
     }
+
+    private void stopWorldGateRealtime() {
 
     private void stopWorldGateRealtime() {
 
