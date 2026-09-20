@@ -178,4 +178,4 @@ public class WorldGateModClient implements ClientModInitializer {
             }
         });
     }
-    }
+}
