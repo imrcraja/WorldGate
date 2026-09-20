@@ -649,7 +649,7 @@ public class WorldGateScreen extends Screen {
 
         @Override
         public void render(
-                net.minecraft.client.gui.GuiGraphics graphics,
+                net.minecraft.client.gui.DrawContext graphics,
                 int mouseX,
                 int mouseY,
                 float delta
