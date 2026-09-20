@@ -7,6 +7,7 @@ import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.network.HostBridge;
 import com.rcraja.worldgate.network.RelayBridge;
 
+import net.minecraft.util.Util;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -1035,9 +1036,14 @@ public class WorldGateScreen extends Screen {
         }
     }
 
-    private void openLink(
-            String url
-    ) {
+    private void openLink(String url) {
+    if (minecraft == null) {
+        return;
+    }
+
+    Util.getPlatform()
+            .openUri(url);
+    }
 
         if (minecraft == null) {
             return;
