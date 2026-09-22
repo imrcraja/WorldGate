@@ -3,6 +3,8 @@ package com.rcraja.worldgate.client.gui;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
+import com.rcraja.worldgate.client.elite.EliteBadgeRenderer;
+import com.rcraja.worldgate.client.elite.EliteManager;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -21,6 +23,9 @@ public class LobbyScreen extends Screen {
     private EditBox chatBox;
 
     private final Map<String, FriendProfile> friendProfiles =
+            new ConcurrentHashMap<>();
+
+    private final Map<String, Integer> eliteLevels =
             new ConcurrentHashMap<>();
 
     private volatile String friendsJson = null;
@@ -286,6 +291,11 @@ public class LobbyScreen extends Screen {
 
                             final boolean finalOnline =
                                     online;
+
+                            eliteLevels.put(
+                                    uid,
+                                    EliteManager.loadProfile(uid).level()
+                            );
 
                             if (this.minecraft != null) {
 
@@ -724,10 +734,35 @@ public class LobbyScreen extends Screen {
                 int rowY =
                         y + row * 25;
 
+                int eliteLevel =
+                        eliteLevels.getOrDefault(uid, 0);
+
+                if (eliteLevel == 0
+                        && !eliteLevels.containsKey(uid)) {
+                    eliteLevels.putIfAbsent(uid, -1);
+                    WorldGateModClient.EXECUTOR.submit(
+                            () -> eliteLevels.put(
+                                    uid,
+                                    EliteManager.loadProfile(uid).level()
+                            )
+                    );
+                }
+
+                if (eliteLevel > 0) {
+                    EliteBadgeRenderer.draw(
+                            graphics,
+                            font,
+                            x + 10,
+                            rowY - 4,
+                            22,
+                            eliteLevel
+                    );
+                }
+
                 graphics.text(
                         font,
                         name,
-                        x,
+                        x + 27,
                         rowY,
                         0xFFFFFF
                 );
@@ -872,10 +907,35 @@ public class LobbyScreen extends Screen {
                 int rowY =
                         y + row * 25;
 
+                int eliteLevel =
+                        eliteLevels.getOrDefault(uid, 0);
+
+                if (eliteLevel == 0
+                        && !eliteLevels.containsKey(uid)) {
+                    eliteLevels.putIfAbsent(uid, -1);
+                    WorldGateModClient.EXECUTOR.submit(
+                            () -> eliteLevels.put(
+                                    uid,
+                                    EliteManager.loadProfile(uid).level()
+                            )
+                    );
+                }
+
+                if (eliteLevel > 0) {
+                    EliteBadgeRenderer.draw(
+                            graphics,
+                            font,
+                            x + 10,
+                            rowY - 4,
+                            22,
+                            eliteLevel
+                    );
+                }
+
                 graphics.text(
                         font,
                         name,
-                        x,
+                        x + 27,
                         rowY,
                         0xFFFFFF
                 );
