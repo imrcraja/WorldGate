@@ -3,6 +3,8 @@ package com.rcraja.worldgate.client.gui;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
+import com.rcraja.worldgate.client.elite.EliteBadgeRenderer;
+import com.rcraja.worldgate.client.elite.EliteManager;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -319,16 +321,18 @@ public class FriendsScreen extends Screen {
 
                                 boolean online =
                                         p.has("online")
-                                                && p.get(
-                                                        "online"
-                                                ).getAsBoolean();
+                                                && p.get("online").getAsBoolean();
+
+                                int eliteLevel =
+                                        EliteManager.loadProfile(uid).level();
 
                                 result.add(
                                         new FriendEntry(
                                                 uid,
                                                 name,
                                                 code,
-                                                online
+                                                online,
+                                                eliteLevel
                                         )
                                 );
                             }
@@ -718,10 +722,21 @@ public class FriendsScreen extends Screen {
                     friends
             ) {
 
+                if (friend.eliteLevel() > 0) {
+                    EliteBadgeRenderer.draw(
+                            graphics,
+                            this.font,
+                            centerX - 152,
+                            friendY - 4,
+                            24,
+                            friend.eliteLevel()
+                    );
+                }
+
                 graphics.text(
                         this.font,
                         friend.name(),
-                        centerX - 140,
+                        centerX - 124,
                         friendY,
                         0xFFFFFF
                 );
@@ -729,7 +744,7 @@ public class FriendsScreen extends Screen {
                 graphics.text(
                         this.font,
                         friend.code(),
-                        centerX - 140,
+                        centerX - 124,
                         friendY + 12,
                         0xAAAAAA
                 );
@@ -877,7 +892,8 @@ public boolean mouseClicked(
             String uid,
             String name,
             String code,
-            boolean online
+            boolean online,
+            int eliteLevel
     ) {
     }
 
