@@ -164,6 +164,23 @@ public class WorldGateScreen extends Screen {
 
         addRenderableWidget(
                 Button.builder(
+                        Component.literal("Elite Profile"),
+                        btn ->
+                                this.minecraft.setScreen(
+                                        new EliteProfileScreen(this)
+                                )
+                )
+                .bounds(
+                        centerX - 100,
+                        y + 100,
+                        200,
+                        20
+                )
+                .build()
+        );
+
+        addRenderableWidget(
+                Button.builder(
                         Component.translatable(
                                 "worldgate.button.report"
                         ),
@@ -174,7 +191,7 @@ public class WorldGateScreen extends Screen {
                 )
                 .bounds(
                         centerX - 100,
-                        y + 110,
+                        y + 125,
                         97,
                         20
                 )
@@ -193,7 +210,7 @@ public class WorldGateScreen extends Screen {
                 )
                 .bounds(
                         centerX + 3,
-                        y + 110,
+                        y + 125,
                         97,
                         20
                 )
@@ -209,7 +226,7 @@ public class WorldGateScreen extends Screen {
                 )
                 .bounds(
                         centerX - 100,
-                        y + 140,
+                        y + 155,
                         200,
                         20
                 )
