@@ -164,7 +164,7 @@ public class WorldGateScreen extends Screen {
 
         addRenderableWidget(
                 Button.builder(
-                        Component.literal("Elite Profile"),
+                        Component.translatable("worldgate.elite.profile"),
                         btn ->
                                 this.minecraft.setScreen(
                                         new EliteProfileScreen(this)
@@ -1172,9 +1172,7 @@ public class WorldGateScreen extends Screen {
         ) {
 
             super(
-                    Component.literal(
-                            "WorldGate"
-                    )
+                    Component.translatable("worldgate.screen.title")
             );
 
             this.parent =
@@ -1189,9 +1187,7 @@ public class WorldGateScreen extends Screen {
 
             addRenderableWidget(
                     Button.builder(
-                            Component.literal(
-                                    "Back"
-                            ),
+                            Component.translatable("worldgate.button.back"),
                             btn ->
                                     this.minecraft
                                             .setScreen(
@@ -1225,9 +1221,7 @@ public class WorldGateScreen extends Screen {
 
             graphics.centeredText(
                     this.font,
-                    Component.literal(
-                            "WorldGate"
-                    ),
+                    Component.translatable("worldgate.screen.title"),
                     this.width / 2,
                     this.height / 2 - 25,
                     0xFFFFFF
