@@ -80,9 +80,7 @@ public class LobbyScreen extends Screen {
         chatBox.setMaxLength(200);
 
         chatBox.setHint(
-                Component.literal(
-                        "Type a message..."
-                )
+                Component.translatable("worldgate.chat.hint")
         );
 
         addRenderableWidget(chatBox);
