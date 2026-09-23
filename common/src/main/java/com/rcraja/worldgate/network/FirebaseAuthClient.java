@@ -64,7 +64,7 @@ public class FirebaseAuthClient {
                     && tokenMatcher.find()
                     && uidMatcher.find()
                     && refreshMatcher.find()) {
-                this.idToken = tokenMatcher.group(1);
+                this.idToken = firstGroup(tokenMatcher);
                 this.uid = uidMatcher.group(1);
                 this.refreshToken = refreshMatcher.group(1);
                 persistSession();
@@ -123,7 +123,7 @@ public class FirebaseAuthClient {
                 this.refreshToken = refreshMatcher.find()
                         ? refreshMatcher.group(1)
                         : savedRefresh;
-                this.uid = uidMatcher.find() ? uidMatcher.group(1) : savedUid;
+                this.uid = uidMatcher.find() ? firstGroup(uidMatcher) : savedUid;
                 persistSession();
                 WorldGateMod.LOGGER.info(
                         "WorldGate restored Firebase identity {}",
@@ -142,7 +142,7 @@ public class FirebaseAuthClient {
         return false;
     }
 
-    private void persistSession() {
+    private static String firstGroup(Matcher matcher) {\n        for (int i = 1; i <= matcher.groupCount(); i++) {\n            String value = matcher.group(i);\n            if (value != null) return value;\n        }\n        return null;\n    }\n\n    private void persistSession() {
         if (uid == null || refreshToken == null) {
             return;
         }
