@@ -533,70 +533,72 @@ public class WorldGateScreen extends Screen {
                                                         ign
                                                 );
 
-                                if (!joined) {
-
-                                    sendMessage(
-                                            "WorldGate: could not register you in the room."
-                                    );
-
-                                    return;
-                                }
-
-                                hostingRoom = false;
-
-                                WorldGateModClient
-                                        .CURRENT_ROOM_CODE =
-                                        code;
-
-                                WorldGateModClient
-                                        .startHeartbeat(false);
-
-                                int relayPort =
-                                        RelayBridge
-                                                .startPlayer(
-                                                        code
+                                minecraft.execute(
+                                        () -> {
+                                            if (!joined) {
+                                                sendMessage(
+                                                        "WorldGate: could not register you in the room."
                                                 );
+                                                return;
+                                            }
 
-                                ServerAddress address =
-                                        relayPort > 0
-                                                ? new ServerAddress(
-                                                        "127.0.0.1",
-                                                        relayPort
-                                                )
-                                                : new ServerAddress(
-                                                        hostAddress,
-                                                        hostPort
-                                                );
+                                            hostingRoom = false;
 
-                                ServerData serverData =
-                                        new ServerData(
-                                                "WorldGate "
-                                                        + code,
-                                                address.toString(),
-                                                ServerData.Type.OTHER
-                                        );
+                                            WorldGateModClient
+                                                    .CURRENT_ROOM_CODE =
+                                                    code;
 
-                                String connectionType =
-                                        relayPort > 0
-                                                ? "Internet relay"
-                                                : "LAN fallback";
+                                            WorldGateModClient
+                                                    .startHeartbeat(false);
 
-                                sendMessage(
-                                        "WorldGate: connecting via "
-                                                + connectionType
-                                                + " to "
-                                                + address.getHost()
-                                                + ":"
-                                                + address.getPort()
-                                );
+                                            int relayPort =
+                                                    RelayBridge
+                                                            .startPlayer(
+                                                                    code
+                                                            );
 
-                                ConnectScreen.startConnecting(
-                                        this,
-                                        minecraft,
-                                        address,
-                                        serverData,
-                                        false,
-                                        null
+                                            ServerAddress address =
+                                                    relayPort > 0
+                                                            ? new ServerAddress(
+                                                                    "127.0.0.1",
+                                                                    relayPort
+                                                            )
+                                                            : new ServerAddress(
+                                                                    hostAddress,
+                                                                    hostPort
+                                                            );
+
+                                            ServerData serverData =
+                                                    new ServerData(
+                                                            "WorldGate "
+                                                                    + code,
+                                                            address.toString(),
+                                                            ServerData.Type.OTHER
+                                                    );
+
+                                            String connectionType =
+                                                    relayPort > 0
+                                                            ? "Internet relay"
+                                                            : "LAN fallback";
+
+                                            sendMessage(
+                                                    "WorldGate: connecting via "
+                                                            + connectionType
+                                                            + " to "
+                                                            + address.getHost()
+                                                            + ":"
+                                                            + address.getPort()
+                                            );
+
+                                            ConnectScreen.startConnecting(
+                                                    this,
+                                                    minecraft,
+                                                    address,
+                                                    serverData,
+                                                    false,
+                                                    null
+                                            );
+                                        }
                                 );
                             }
                     );
