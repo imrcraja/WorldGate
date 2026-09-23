@@ -39,6 +39,8 @@ public class WorldGateScreen extends Screen {
     private volatile String roomJson =
             null;
 
+    private boolean hostingRoom = false;
+
     public WorldGateScreen(Screen parent) {
 
         super(
@@ -420,6 +422,8 @@ public class WorldGateScreen extends Screen {
                             HostBridge
                                     .startRelay(code);
 
+                    hostingRoom = true;
+
                     WorldGateModClient
                             .CURRENT_ROOM_CODE =
                             code;
@@ -537,6 +541,8 @@ public class WorldGateScreen extends Screen {
 
                                     return;
                                 }
+
+                                hostingRoom = false;
 
                                 WorldGateModClient
                                         .CURRENT_ROOM_CODE =
@@ -1121,18 +1127,28 @@ public class WorldGateScreen extends Screen {
                         && !currentRoom.isBlank()
         ) {
 
+            final boolean wasHost = hostingRoom;
+
             WorldGateModClient.EXECUTOR.submit(
                     () -> {
 
                         try {
-
-                            WorldGateModClient
-                                    .ROOM_MANAGER
-                                    .playerLeave(
-                                            currentRoom
-                                    );
-
+                            if (wasHost) {
+                                WorldGateModClient
+                                        .ROOM_MANAGER
+                                        .hostLeave(currentRoom);
+                                HostBridge.stop();
+                            } else {
+                                WorldGateModClient
+                                        .ROOM_MANAGER
+                                        .playerLeave(currentRoom);
+                                RelayBridge.stop();
+                            }
                         } catch (Exception ignored) {
+                            RelayBridge.stop();
+                            if (wasHost) {
+                                HostBridge.stop();
+                            }
                         }
 
                         WorldGateModClient
@@ -1142,10 +1158,17 @@ public class WorldGateScreen extends Screen {
             );
         } else {
 
+            RelayBridge.stop();
+            if (hostingRoom) {
+                HostBridge.stop();
+            }
+
             WorldGateModClient
                     .CURRENT_ROOM_CODE =
                     null;
         }
+
+        hostingRoom = false;
 
         if (minecraft != null) {
 
