@@ -2,6 +2,7 @@ package com.rcraja.worldgate.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.rcraja.worldgate.client.gui.PingColor;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
@@ -9,20 +10,34 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 /**
- * Colors each player's Tab-list ping: white -> yellow -> orange -> red.
- *
- * Minecraft 26.1.2 uses "getNameForDisplay" for the player name component.
+ * Adds the small white WorldGate mark to the local player's Tab-list name
+ * without changing Minecraft's existing Tab-list background or avatar layout,
+ * and keeps the existing latency color indicator.
  */
 @Mixin(PlayerTabOverlay.class)
 public class PlayerTabOverlayMixin {
 
+    private static final int WORLDGATE_WHITE = 0xFFFFFFFF;
+    private static final String WORLDGATE_MARK = "◈ ";
+
     @ModifyReturnValue(method = "getNameForDisplay", at = @At("RETURN"))
-    private Component worldgate$colorPingName(Component original, PlayerInfo info) {
+    private Component worldgate$decorateName(Component original, PlayerInfo info) {
         int ping = info.getLatency();
         PingColor color = PingColor.forPing(ping);
-        return Component.literal("")
+
+        Component decorated = Component.literal("")
                 .append(original)
                 .append(Component.literal(" " + ping + "ms")
                         .withStyle(style -> style.withColor(color.color)));
+
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player != null
+                && minecraft.player.getUUID().equals(info.getProfile().getId())) {
+            return Component.literal(WORLDGATE_MARK)
+                    .withStyle(style -> style.withColor(WORLDGATE_WHITE))
+                    .append(decorated);
+        }
+
+        return decorated;
     }
 }
