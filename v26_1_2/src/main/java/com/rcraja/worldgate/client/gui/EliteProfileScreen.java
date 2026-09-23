@@ -84,7 +84,7 @@ public final class EliteProfileScreen extends Screen {
 
         graphics.centeredText(
                 this.font,
-                Component.translatable(profile.available() ? "worldgate.elite.level" : "worldgate.elite.profile", profile.available() ? profile.displayLevel() : ""),
+                Component.translatable(profile.available() ? "worldgate.elite.level" : "worldgate.elite.profile", profile.available() ? Integer.toString(profile.level()) : ""),
                 cx,
                 31,
                 0xFFD8C7FF
