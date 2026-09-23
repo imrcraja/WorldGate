@@ -5,7 +5,7 @@ const { WebSocketServer } = require('ws');
 
 const PORT = Number(process.env.PORT || 10000);
 const MAX_PAIRS = Number(process.env.MAX_PAIRS || 25);
-const HANDSHAKE_TIMEOUT = 10000;
+const HANDSHAKE_TIMEOUT = 10000;\nconst ROOM_TTL_MS = Number(process.env.ROOM_TTL_MS || 30 * 60 * 1000);\nconst MAX_PAYLOAD = Number(process.env.MAX_PAYLOAD || 4 * 1024 * 1024);
 
 const rooms = new Map();
 
@@ -81,12 +81,12 @@ function startPair(roomCode, room) {
 }
 
 function register(ws, message) {
-  const role = message && message.role;
+  const role = message && message.role;\n  const protocol = Number(message && message.protocol || 1);\n  const uid = String(message && message.uid || '').trim();
   const roomCode = String(
     message && message.room || ''
   ).trim().toUpperCase();
 
-  if (role !== 'host' && role !== 'player') {
+  if (protocol !== 1 && protocol !== 2) { sendJson(ws, { type: 'error', code: 'UNSUPPORTED_PROTOCOL' }); ws.close(); return; }\n\n  if (role !== 'host' && role !== 'player') {
     sendJson(ws, {
       type: 'error',
       code: 'INVALID_ROLE'
@@ -137,7 +137,7 @@ function register(ws, message) {
 
     room.host = ws;
     ws.roomCode = roomCode;
-    ws.role = 'host';
+    ws.role = 'host';\n    ws.uid = uid || null;
 
     sendJson(ws, {
       type: 'waiting',
@@ -176,7 +176,7 @@ function register(ws, message) {
 
   room.player = ws;
   ws.roomCode = roomCode;
-  ws.role = 'player';
+  ws.role = 'player';\n  ws.uid = uid || null;
 
   console.log(`Player joined: ${roomCode}`);
 

@@ -17,7 +17,7 @@ public final class EliteCoinScreen extends Screen {
     @Override protected void init(){
         for(int i=0;i<8;i++){final int index=i;Button b=Button.builder(Component.translatable("worldgate.coin.buy_item"),x->buyIndex(index)).bounds(width-115,94+i*28,95,20).build();b.active=false;itemButtons.add(b);addRenderableWidget(b);}
         addRenderableWidget(Button.builder(Component.translatable("worldgate.button.refresh"),b->refresh()).bounds(width/2-155,height-55,97,20).build());
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.coin.buy"),b->requestPackage()).bounds(width/2-52,height-55,104,20).build());
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.coin.coming_soon"),b->requestPackage()).bounds(width/2-52,height-55,104,20).build());
         addRenderableWidget(Button.builder(Component.translatable("worldgate.button.back"),b->onClose()).bounds(width/2+56,height-55,99,20).build());
         refresh();
     }

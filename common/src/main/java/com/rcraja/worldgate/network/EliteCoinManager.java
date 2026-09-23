@@ -1,29 +1,44 @@
-package com.rcraja.worldgate.client.gui;
+package com.rcraja.worldgate.network;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
-import com.rcraja.worldgate.network.EliteCoinManager;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
-public final class EliteCoinScreen extends Screen {
-    private final Screen parent;
-    private final List<Button> itemButtons=new ArrayList<>();
-    private String status="";
-    public EliteCoinScreen(Screen parent){super(Component.translatable("worldgate.coin.title"));this.parent=parent;}
-    @Override protected void init(){
-        for(int i=0;i<8;i++){final int index=i;Button b=Button.builder(Component.translatable("worldgate.coin.buy_item"),x->buyIndex(index)).bounds(width-115,94+i*28,95,20).build();b.active=false;itemButtons.add(b);addRenderableWidget(b);}
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.refresh"),b->refresh()).bounds(width/2-155,height-55,97,20).build());
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.coin.buy"),b->requestPackage()).bounds(width/2-52,height-55,104,20).build());
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.back"),b->onClose()).bounds(width/2+56,height-55,99,20).build());
-        refresh();
-    }
-    private void refresh(){status="Loading...";for(Button b:itemButtons)b.active=false;EliteCoinManager.refresh(()->{if(minecraft==null)return;minecraft.execute(()->{var items=EliteCoinManager.catalog().items();for(int i=0;i<itemButtons.size();i++)itemButtons.get(i).active=i<items.size();status=EliteCoinManager.wallet().available()?"Server synced":"Coin data unavailable";});});}
-    private void requestPackage(){String r=EliteCoinManager.requestPackage("starter");status=r==null?"Payment gateway is not configured. No payment was charged.":(r.contains("GATEWAY_REQUIRED")?"Payment gateway is not configured. No payment was charged.":"Purchase response received.");}
-    private void buyIndex(int index){var items=EliteCoinManager.catalog().items();if(index<0||index>=items.size())return;String id=items.get(index).id();status="Buying...";WorldGateModClient.EXECUTOR.submit(()->{String r=EliteCoinManager.purchaseItem(id);if(minecraft!=null)minecraft.execute(()->{if(r!=null&&r.contains("\"ok\":true")){status="Purchased successfully.";EliteCoinManager.refresh();}else if(r!=null&&r.contains("insufficient_balance"))status="Not enough Elite Coins.";else status=r==null?"Purchase failed.":"Purchase could not be completed.";});});}
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){super.extractRenderState(g,mx,my,delta);int cx=width/2;g.centeredText(font,Component.translatable("worldgate.coin.title"),cx,18,0xFFFFFFFF);g.centeredText(font,Component.translatable("worldgate.coin.balance",Long.toString(EliteCoinManager.wallet().balance())),cx,40,0xFFFFD45A);var c=EliteCoinManager.catalog();g.centeredText(font,Component.translatable("worldgate.coin.catalog",c.name()),cx,70,0xFFD8C7FF);int row=0;for(var item:c.items()){if(row>=8)break;int yy=94+row*28;g.text(font,item.name()+" — "+item.priceCoins()+" "+c.symbol(),30,yy,0xFFFFFFFF);g.text(font,item.description(),30,yy+11,0xFF999999);row++;}if(c.items().isEmpty())g.centeredText(font,Component.translatable("worldgate.coin.no_items"),cx,100,0xFF888888);g.centeredText(font,Component.translatable("worldgate.status.raw",status),cx,height-75,0xFF888888);}
-    @Override public void onClose(){minecraft.setScreen(parent);}
+public final class EliteCoinManager {
+    private static volatile Wallet wallet=Wallet.unavailable();
+    private static volatile Catalog catalog=Catalog.empty();
+    private static volatile List<Mail> mailbox=List.of();
+    private static volatile RewardStatus rewardStatus=RewardStatus.empty();
+    private EliteCoinManager(){}
+    public static void refresh(){refresh(null);}
+    public static void refresh(Runnable done){FirebaseSession s=WorldGateModClient.SESSION;WorldGateModClient.EXECUTOR.submit(()->{try{wallet=parseWallet(BackendClient.coinWallet(s));catalog=parseCatalog(BackendClient.coinCatalog(s));mailbox=parseMailbox(BackendClient.coinMailbox(s));rewardStatus=parseRewardStatus(BackendClient.coinRewardStatus(s));}finally{if(done!=null)done.run();}});}
+    public static Wallet wallet(){return wallet;}
+    public static Catalog catalog(){return catalog;}
+    public static List<Mail> mailbox(){return mailbox;}
+    public static RewardStatus rewardStatus(){return rewardStatus;}
+    public static boolean hasNotification(){String today=LocalDate.now(ZoneOffset.UTC).toString();boolean daily=!today.equals(rewardStatus.lastClaimDate())&&rewardStatus.cycleCoins()<rewardStatus.maxCycleCoins();boolean activity=rewardStatus.activityEnabled()&&rewardStatus.activityUsedToday()<rewardStatus.activityDailyCap();boolean unread=mailbox.stream().anyMatch(m->"UNREAD".equalsIgnoreCase(m.status()));return daily||activity||unread;}
+    public static String claimDaily(){return BackendClient.claimDaily(WorldGateModClient.SESSION);}
+    public static String startActivity(){return BackendClient.startActivityReward(WorldGateModClient.SESSION);}
+    public static String completeActivity(String id){return BackendClient.completeActivityReward(WorldGateModClient.SESSION,id);}
+    public static String gift(String uid,long coins,String message){return BackendClient.giftCoins(WorldGateModClient.SESSION,uid,coins,message);}
+    public static String markRead(String id){return BackendClient.markMailboxRead(WorldGateModClient.SESSION,id);}
+    public static String purchaseItem(String id){return BackendClient.purchaseItem(WorldGateModClient.SESSION,id,UUID.randomUUID().toString());}
+    public static String requestPackage(String id){return BackendClient.purchaseCoinPackage(WorldGateModClient.SESSION,id);}
+    private static Wallet parseWallet(String r){try{JsonObject o=JsonParser.parseString(r==null?"{}":r).getAsJsonObject();return new Wallet(true,o.has("balance")?o.get("balance").getAsLong():0);}catch(Exception e){return Wallet.unavailable();}}
+    private static Catalog parseCatalog(String r){try{JsonObject o=JsonParser.parseString(r==null?"{}":r).getAsJsonObject();JsonObject c=o.has("coin")?o.getAsJsonObject("coin"):new JsonObject();List<Item> items=new ArrayList<>();JsonArray a=o.has("items")?o.getAsJsonArray("items"):new JsonArray();a.forEach(v->{JsonObject i=v.getAsJsonObject();items.add(new Item(str(i,"id"),str(i,"name"),str(i,"description"),i.has("priceCoins")?i.get("priceCoins").getAsLong():0));});return new Catalog(str(c,"name"),str(c,"symbol"),str(c,"iconPath"),items);}catch(Exception e){return Catalog.empty();}}
+    private static List<Mail> parseMailbox(String r){try{JsonObject root=JsonParser.parseString(r==null?"{}":r).getAsJsonObject();JsonArray a=root.has("messages")?root.getAsJsonArray("messages"):new JsonArray();List<Mail> out=new ArrayList<>();a.forEach(v->{JsonObject m=v.getAsJsonObject();out.add(new Mail(str(m,"id"),str(m,"fromUid"),str(m,"fromName"),m.has("coins")?m.get("coins").getAsLong():0,m.has("message")?str(m,"message"):"",str(m,"status"),m.has("createdAt")?m.get("createdAt").getAsLong():0));});return Collections.unmodifiableList(out);}catch(Exception e){return List.of();}}
+    private static RewardStatus parseRewardStatus(String r){try{JsonObject o=JsonParser.parseString(r==null?"{}":r).getAsJsonObject();JsonObject d=o.has("daily")?o.getAsJsonObject("daily"):new JsonObject(),a=o.has("activity")?o.getAsJsonObject("activity"):new JsonObject();return new RewardStatus(d.has("lastClaimDate")&&!d.get("lastClaimDate").isJsonNull()?d.get("lastClaimDate").getAsString():null,d.has("cycleCoins")?d.get("cycleCoins").getAsInt():0,d.has("maxCycleCoins")?d.get("maxCycleCoins").getAsInt():5,a.has("enabled")&&a.get("enabled").getAsBoolean(),a.has("usedToday")?a.get("usedToday").getAsInt():0,a.has("dailyCap")?a.get("dailyCap").getAsInt():5);}catch(Exception e){return RewardStatus.empty();}}
+    private static String str(JsonObject o,String k){return o.has(k)&&!o.get(k).isJsonNull()?o.get(k).getAsString():"";}
+    public record Wallet(boolean available,long balance){static Wallet unavailable(){return new Wallet(false,0);}}
+    public record Item(String id,String name,String description,long priceCoins){}
+    public record Catalog(String name,String symbol,String iconPath,List<Item> items){static Catalog empty(){return new Catalog("Elite Coin","EC","/assets/worldgate/elite/elite-coin.png",List.of());}}
+    public record Mail(String id,String fromUid,String fromName,long coins,String message,String status,long createdAt){}
+    public record RewardStatus(String lastClaimDate,int cycleCoins,int maxCycleCoins,boolean activityEnabled,int activityUsedToday,int activityDailyCap){static RewardStatus empty(){return new RewardStatus(null,0,5,false,0,5);}}
 }
