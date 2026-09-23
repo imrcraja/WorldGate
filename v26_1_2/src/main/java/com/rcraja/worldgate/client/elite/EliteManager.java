@@ -3,7 +3,7 @@ package com.rcraja.worldgate.client.elite;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
-import com.rcraja.worldgate.network.FirebaseDatabaseClient;
+import com.rcraja.worldgate.network.BackendClient;
 import com.rcraja.worldgate.network.FirebaseSession;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,8 +33,7 @@ public final class EliteManager {
             return cached;
         }
 
-        FirebaseDatabaseClient db = session.db();
-        String raw = db.get("/elite/users/" + uid);
+        String raw = BackendClient.eliteProfile(session, uid);
         EliteProfile profile = parse(uid, raw);
         CACHE.put(uid, profile);
         return profile;
@@ -47,7 +46,7 @@ public final class EliteManager {
         }
 
         String uid = session.uid();
-        String raw = session.db().get("/elite/users/" + uid);
+        String raw = BackendClient.eliteProfile(session, uid);
         CACHE.put(uid, parse(uid, raw));
     }
 
@@ -66,10 +65,38 @@ public final class EliteManager {
             return EliteProfile.unavailable();
         }
 
-        String raw = session.db().get("/elite/users/" + uid);
-        EliteProfile profile = parse(uid, raw);
+        String raw;
+        if (uid.equals(session.uid())) {
+            raw = BackendClient.eliteProfile(session, uid);
+        } else {
+            raw = BackendClient.publicEliteProfile(session, uid);
+        }
+        EliteProfile profile = parsePublicOrProfile(uid, raw);
         CACHE.put(uid, profile);
         return profile;
+    }
+
+    private static EliteProfile parsePublicOrProfile(String uid, String raw) {
+        if (raw == null || raw.isBlank()) {
+            return EliteProfile.unavailable(uid);
+        }
+        try {
+            JsonObject root = JsonParser.parseString(raw).getAsJsonObject();
+            if (root.has("profiles") && root.get("profiles").isJsonArray()) {
+                for (var element : root.getAsJsonArray("profiles")) {
+                    if (!element.isJsonObject()) continue;
+                    JsonObject profile = element.getAsJsonObject();
+                    if (uid.equals(profile.has("uid") ? profile.get("uid").getAsString() : null)) {
+                        int level = profile.has("level") ? Math.max(0, profile.get("level").getAsInt()) : 0;
+                        return new EliteProfile(uid, level, 0L, 0L, 0L, true);
+                    }
+                }
+                return EliteProfile.unavailable(uid);
+            }
+        } catch (Exception ignored) {
+            return EliteProfile.unavailable(uid);
+        }
+        return parse(uid, raw);
     }
 
     private static EliteProfile parse(String uid, String raw) {
