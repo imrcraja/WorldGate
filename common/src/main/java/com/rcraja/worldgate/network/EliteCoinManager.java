@@ -1,25 +1,29 @@
-package com.rcraja.worldgate.network;
+package com.rcraja.worldgate.client.gui;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
+import com.rcraja.worldgate.network.EliteCoinManager;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
-public final class EliteCoinManager {
-    private static volatile Wallet wallet=new Wallet(0,false);
-    private static volatile Catalog catalog=Catalog.empty();
-    private EliteCoinManager(){}
-    public static void refresh(){FirebaseSession s=WorldGateModClient.SESSION;WorldGateModClient.EXECUTOR.submit(()->{wallet=parseWallet(BackendClient.coinWallet(s));catalog=parseCatalog(BackendClient.coinCatalog(s));});}
-    public static Wallet wallet(){return wallet;}
-    public static Catalog catalog(){return catalog;}
-    public static String purchaseItem(String id){String key=UUID.randomUUID().toString().replace("-","");return BackendClient.purchaseItem(WorldGateModClient.SESSION,id,key);}
-    public static String requestPackage(String id){return BackendClient.purchaseCoinPackage(WorldGateModClient.SESSION,id);}
-    private static Wallet parseWallet(String raw){if(raw==null)return new Wallet(0,false);try{JsonObject o=JsonParser.parseString(raw).getAsJsonObject();return new Wallet(Math.max(0,o.get("balance").getAsLong()),true);}catch(Exception e){return new Wallet(0,false);}}
-    private static Catalog parseCatalog(String raw){if(raw==null)return Catalog.empty();try{JsonObject o=JsonParser.parseString(raw).getAsJsonObject(),coin=o.getAsJsonObject("coin");List<Item> items=new ArrayList<>();JsonArray a=o.getAsJsonArray("items");if(a!=null)for(var e:a){JsonObject i=e.getAsJsonObject();items.add(new Item(i.get("id").getAsString(),i.get("name").getAsString(),i.has("description")?i.get("description").getAsString():"",i.get("priceCoins").getAsLong()));}return new Catalog(coin.get("name").getAsString(),coin.get("symbol").getAsString(),coin.get("currency").getAsString(),coin.has("priceMinorUnitsPerCoin")?coin.get("priceMinorUnitsPerCoin").getAsLong():0,items);}catch(Exception e){return Catalog.empty();}}
-    public record Wallet(long balance,boolean available){}
-    public record Item(String id,String name,String description,long priceCoins){}
-    public record Catalog(String name,String symbol,String currency,long priceMinorUnitsPerCoin,List<Item> items){static Catalog empty(){return new Catalog("Elite Coin","EC","INR",0,List.of());}}
+public final class EliteCoinScreen extends Screen {
+    private final Screen parent;
+    private final List<Button> itemButtons=new ArrayList<>();
+    private String status="";
+    public EliteCoinScreen(Screen parent){super(Component.translatable("worldgate.coin.title"));this.parent=parent;}
+    @Override protected void init(){
+        for(int i=0;i<8;i++){final int index=i;Button b=Button.builder(Component.translatable("worldgate.coin.buy_item"),x->buyIndex(index)).bounds(width-115,94+i*28,95,20).build();b.active=false;itemButtons.add(b);addRenderableWidget(b);}
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.refresh"),b->refresh()).bounds(width/2-155,height-55,97,20).build());
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.coin.buy"),b->requestPackage()).bounds(width/2-52,height-55,104,20).build());
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.back"),b->onClose()).bounds(width/2+56,height-55,99,20).build());
+        refresh();
+    }
+    private void refresh(){status="Loading...";for(Button b:itemButtons)b.active=false;EliteCoinManager.refresh(()->{if(minecraft==null)return;minecraft.execute(()->{var items=EliteCoinManager.catalog().items();for(int i=0;i<itemButtons.size();i++)itemButtons.get(i).active=i<items.size();status=EliteCoinManager.wallet().available()?"Server synced":"Coin data unavailable";});});}
+    private void requestPackage(){String r=EliteCoinManager.requestPackage("starter");status=r==null?"Payment gateway is not configured. No payment was charged.":(r.contains("GATEWAY_REQUIRED")?"Payment gateway is not configured. No payment was charged.":"Purchase response received.");}
+    private void buyIndex(int index){var items=EliteCoinManager.catalog().items();if(index<0||index>=items.size())return;String id=items.get(index).id();status="Buying...";WorldGateModClient.EXECUTOR.submit(()->{String r=EliteCoinManager.purchaseItem(id);if(minecraft!=null)minecraft.execute(()->{if(r!=null&&r.contains("\"ok\":true")){status="Purchased successfully.";EliteCoinManager.refresh();}else if(r!=null&&r.contains("insufficient_balance"))status="Not enough Elite Coins.";else status=r==null?"Purchase failed.":"Purchase could not be completed.";});});}
+    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){super.extractRenderState(g,mx,my,delta);int cx=width/2;g.centeredText(font,Component.translatable("worldgate.coin.title"),cx,18,0xFFFFFFFF);g.centeredText(font,Component.translatable("worldgate.coin.balance",Long.toString(EliteCoinManager.wallet().balance())),cx,40,0xFFFFD45A);var c=EliteCoinManager.catalog();g.centeredText(font,Component.translatable("worldgate.coin.catalog",c.name()),cx,70,0xFFD8C7FF);int row=0;for(var item:c.items()){if(row>=8)break;int yy=94+row*28;g.text(font,item.name()+" — "+item.priceCoins()+" "+c.symbol(),30,yy,0xFFFFFFFF);g.text(font,item.description(),30,yy+11,0xFF999999);row++;}if(c.items().isEmpty())g.centeredText(font,Component.translatable("worldgate.coin.no_items"),cx,100,0xFF888888);g.centeredText(font,Component.translatable("worldgate.status.raw",status),cx,height-75,0xFF888888);}
+    @Override public void onClose(){minecraft.setScreen(parent);}
 }
