@@ -92,3 +92,8 @@ gradle build
 
 - **Author:** RC RAJA GAMER 2.0
 - License: MIT (see `LICENSE`)
+
+
+## Elite Coin (Minecraft 26.1.2)
+
+WorldGate 26.1.2 now includes the Elite Coin client read model and shop screen. Coin balances, catalog data and item purchases are server-authoritative through the WorldGate backend. The included Elite Coin artwork is stored at `assets/worldgate/elite/elite-coin.png`. Real-money coin top-ups remain provider-neutral until a legitimate payment gateway is configured; the client never treats a payment intent as a completed purchase.
