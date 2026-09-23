@@ -2,6 +2,7 @@ package com.rcraja.worldgate.network;
 
 import com.rcraja.worldgate.Constants;
 import com.rcraja.worldgate.WorldGateMod;
+import com.rcraja.worldgate.client.WorldGateModClient;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -33,6 +34,10 @@ public final class RelayBridge {
         synchronized (LOCK) {
             if (running) {
                 return connected;
+            }
+
+            if (!IntegrityGuard.verifyLocalRelease()) {
+                return false;
             }
 
             if (roomCode == null || roomCode.isBlank()) {
@@ -91,6 +96,10 @@ public final class RelayBridge {
         synchronized (LOCK) {
             if (running) {
                 return playerServer != null ? playerServer.getLocalPort() : -1;
+            }
+
+            if (!IntegrityGuard.verifyLocalRelease()) {
+                return -1;
             }
 
             if (roomCode == null || roomCode.isBlank()) {
@@ -179,9 +188,13 @@ public final class RelayBridge {
                     )
                     .join();
 
+            String uid = WorldGateModClient.SESSION.uid();
+            String modSha256 = IntegrityGuard.currentArtifactSha256();
             String handshake =
-                    "{\"role\":\"" + role +
-                    "\",\"room\":\"" + escape(roomCode) + "\"}";
+                    "{\"protocol\":2,\"role\":\"" + role +
+                    "\",\"room\":\"" + escape(roomCode) +
+                    "\",\"uid\":\"" + escape(uid == null ? "" : uid) +
+                    "\",\"modSha256\":\"" + escape(modSha256) + "\"}";
 
             ws.sendText(handshake, true);
 
