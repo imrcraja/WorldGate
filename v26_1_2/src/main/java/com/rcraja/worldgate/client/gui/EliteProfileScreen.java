@@ -139,11 +139,7 @@ public final class EliteProfileScreen extends Screen {
         } else {
             graphics.centeredText(
                     this.font,
-                    Component.literal(
-                            loading
-                                    ? "Loading..."
-                                    : "Your Elite entitlement has not been published yet."
-                    ),
+                    Component.translatable(loading ? "worldgate.loading" : "worldgate.elite.not_published"),
                     cx,
                     92,
                     0xFFAAAAAA
