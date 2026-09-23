@@ -8,6 +8,7 @@ import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.FontDescription;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -37,7 +38,7 @@ public class PlayerTabOverlayMixin {
         if (minecraft.player != null
                 && minecraft.player.getUUID().equals(info.getProfile().id())) {
             return Component.literal(WORLDGATE_MARK)
-                    .withStyle(style -> style.withColor(WORLDGATE_WHITE).withFont(Style.DEFAULT_FONT))
+                    .withStyle(style -> style.withColor(WORLDGATE_WHITE).withFont(new FontDescription.Resource(WORLDGATE_FONT)))
                     .append(decorated);
         }
 
