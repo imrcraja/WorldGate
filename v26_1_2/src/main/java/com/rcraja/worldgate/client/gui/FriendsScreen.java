@@ -68,17 +68,13 @@ public class FriendsScreen extends Screen {
                         60,
                         200,
                         20,
-                        Component.literal(
-                                "Friend Code"
-                        )
+                        Component.translatable("worldgate.friends.uid_hint")
                 );
 
         friendCodeBox.setMaxLength(12);
 
         friendCodeBox.setHint(
-                Component.literal(
-                        "Enter Friend Code"
-                )
+                Component.translatable("worldgate.friends.enter_code")
         );
 
         this.addRenderableWidget(
@@ -87,9 +83,7 @@ public class FriendsScreen extends Screen {
 
         this.addRenderableWidget(
                 Button.builder(
-                        Component.literal(
-                                "Add Friend"
-                        ),
+                        Component.translatable("worldgate.friends.add"),
                         btn -> sendRequest()
                 )
                 .bounds(
@@ -103,9 +97,7 @@ public class FriendsScreen extends Screen {
 
         this.addRenderableWidget(
                 Button.builder(
-                        Component.literal(
-                                "Accept"
-                        ),
+                        Component.translatable("worldgate.friends.accept"),
                         btn -> acceptSelectedRequest()
                 )
                 .bounds(
@@ -119,9 +111,7 @@ public class FriendsScreen extends Screen {
 
         this.addRenderableWidget(
                 Button.builder(
-                        Component.literal(
-                                "Reject"
-                        ),
+                        Component.translatable("worldgate.friends.reject"),
                         btn -> rejectSelectedRequest()
                 )
                 .bounds(
@@ -135,9 +125,7 @@ public class FriendsScreen extends Screen {
 
         this.addRenderableWidget(
                 Button.builder(
-                        Component.literal(
-                                "Back"
-                        ),
+                        Component.translatable("worldgate.button.back"),
                         btn -> closeScreen()
                 )
                 .bounds(
