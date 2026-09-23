@@ -52,21 +52,26 @@ The pattern is always the same:
 
 Tell me which version to add next and I'll build that module the same way.
 
-## Status: work in progress
+## Status: WorldGate 26.1.2 integration
 
 | Feature | Status |
 |---|---|
-| Mod skeleton, Escape-menu button | Done (both versions) |
-| Firebase anonymous auth + Realtime Database client | Done (shared) |
-| Room create/join (Firebase bookkeeping: room codes, lookup) | Done (shared) |
-| Real-time chat (Firebase-backed, appears in your normal chat) | Done (shared logic + wired into both versions) |
-| Friends (send/accept/reject by pasting a WorldGate ID, list) | Done (shared logic + a simple screen in both versions) |
-| Emotes (broadcast + received by everyone in the room) | Plumbing done; only a placeholder emote list (wave/dance/sit/cheer) with no animation yet — RC RAJA is adding the real emote set |
-| Tab list with color-coded real-time ping | Best-effort — verify mixin target against each version's actual mappings |
-| Actually connecting a joining player into the host's world (UPnP/relay/socket) | **TODO** — this is the one core piece still missing. Right now "Join" only fetches the room's info from Firebase; it does not yet open the game connection |
-| Real-time skins, capes, animations | TODO — UI field exists in the Lobby screen, applying it is not wired up |
-| Chat clickable links, delete/reply, sound effects | TODO — needs version-specific Style/ClickEvent handling |
+| Mod skeleton and Escape-menu WorldGate button | Integrated |
+| Firebase anonymous auth + Realtime Database | Integrated |
+| Room creation/join bookkeeping | Integrated |
+| Host-to-player relay bridge | Integrated |
+| WebSocket relay service under `relay/` | Integrated and hardened |
+| Friends, presence and realtime room state | Integrated |
+| Realtime chat and emote state | Integrated |
+| Elite profile and server-authoritative Elite badges | Integrated |
+| Elite Coin wallet, catalog and shop | Integrated |
+| Claim Center, daily/activity rewards and mailbox | Integrated |
+| Elite Coin gifting by UID or friend-row selection | Integrated |
+| Red-dot claim/mail notification refresh | Integrated |
+| Real-money Elite Coin checkout | Coming Soon; no gateway is treated as a completed payment |
+| Live skin/cape replacement and full body emote animation | Separate version-specific work remains |
 
+The current ecosystem integration is intentionally scoped to Minecraft 26.1.2. The 1.21.1 module remains present and is not part of this integration pass.
 
 ## Building
 
