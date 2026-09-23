@@ -6,6 +6,7 @@ import com.rcraja.worldgate.Constants;
 import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.network.HostBridge;
 import com.rcraja.worldgate.network.RelayBridge;
+import com.rcraja.worldgate.client.WorldGateSounds;
 
 import net.minecraft.util.Util;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -51,6 +52,7 @@ public class WorldGateScreen extends Screen {
 
         this.parent =
                 parent;
+        WorldGateSounds.play(WorldGateSounds.WORLDGATE_OPEN, 0.85F);
     }
 
     @Override
@@ -462,6 +464,7 @@ public class WorldGateScreen extends Screen {
                                     );
                                 }
 
+                                WorldGateSounds.play(WorldGateSounds.WORLD_CONNECT, 0.9F);
                                 sendMessage(
                                         "WorldGate: Room Code = "
                                                 + code
@@ -1130,6 +1133,7 @@ public class WorldGateScreen extends Screen {
 
     private void goBack() {
 
+        WorldGateSounds.play(WorldGateSounds.WORLDGATE_CLOSE, 0.8F);
         stopWorldGateRealtime();
 
         String currentRoom =
@@ -1183,6 +1187,7 @@ public class WorldGateScreen extends Screen {
                     null;
         }
 
+        WorldGateSounds.play(WorldGateSounds.WORLD_DISCONNECT, 0.75F);
         hostingRoom = false;
 
         if (minecraft != null) {
