@@ -8,7 +8,6 @@
   "worldgate.button.report": "Report an Issue",
   "worldgate.button.youtube": "YouTube Channel",
   "worldgate.button.back": "Back",
-
   "worldgate.roomcode.hint": "Room code",
   "worldgate.msg.creating": "Creating room...",
   "worldgate.msg.create_failed": "Could not create room -- check your internet connection.",
@@ -16,7 +15,6 @@
   "worldgate.msg.joining": "Looking up room...",
   "worldgate.msg.room_not_found": "No room found with that code.",
   "worldgate.msg.emote": "%s used emote: %s",
-
   "worldgate.friends.title": "Friends",
   "worldgate.friends.your_uid": "Your Friend Code: %s",
   "worldgate.friends.uid_hint": "Friend Code",
@@ -28,13 +26,28 @@
   "worldgate.friends.refresh": "Refresh",
   "worldgate.friends.requests": "Incoming requests: %s",
   "worldgate.friends.list": "Your friends: %s",
-
   "worldgate.lobby.title": "WorldGate Lobby",
   "worldgate.lobby.skin_hint": "Skin URL",
   "worldgate.lobby.set_skin": "Set Skin (coming soon)",
   "worldgate.lobby.skin_todo": "Skin URL saved for later -- live skin swapping isn't wired up yet.",
   "worldgate.lobby.no_room": "Join or create a room first.",
-
   "key.worldgate.emote": "WorldGate",
-  "key.category.worldgate.worldgate": "WorldGate"
+  "key.category.worldgate.worldgate": "WorldGate",
+  "worldgate.chat.input": "Chat",
+  "worldgate.chat.hint": "Type a message...",
+  "worldgate.chat.send": "Send",
+  "worldgate.friends.enter_code": "Enter Friend Code",
+  "worldgate.friends.add": "Add Friend",
+  "worldgate.friends.reject": "Reject",
+  "worldgate.button.refresh": "Refresh",
+  "worldgate.elite.title": "WorldGate Elite",
+  "worldgate.elite.level": "Elite Level %s",
+  "worldgate.elite.profile": "Elite Profile",
+  "worldgate.elite.eligible_spending": "Eligible spending: %s",
+  "worldgate.elite.remaining_next": "Remaining to next level: %s",
+  "worldgate.elite.remaining_max": "Remaining to max level: %s",
+  "worldgate.elite.badge_note": "Badge identity is fixed; the background evolves by level.",
+  "worldgate.elite.not_published": "Your Elite entitlement has not been published yet.",
+  "worldgate.loading": "Loading...",
+  "worldgate.status.raw": "%s"
 }
