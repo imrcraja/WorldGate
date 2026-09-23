@@ -28,6 +28,8 @@ public final class RelayBridge {
     private static volatile ServerSocket playerServer;
     private static volatile boolean running;
     private static volatile boolean connected;
+    private static volatile boolean handshakeAccepted;
+    private static volatile boolean handshakeRejected;
 
 
     public static boolean startHost(String roomCode, int minecraftPort) {
@@ -180,6 +182,8 @@ public final class RelayBridge {
             HttpClient client = HttpClient.newHttpClient();
 
             RelayListener listener = new RelayListener();
+            handshakeAccepted = false;
+            handshakeRejected = false;
 
             WebSocket ws = client.newWebSocketBuilder()
                     .buildAsync(
@@ -198,8 +202,23 @@ public final class RelayBridge {
 
             ws.sendText(handshake, true);
 
-            webSocket = ws;
+            long deadline = System.currentTimeMillis() + 5000L;
+            while (running
+                    && !handshakeAccepted
+                    && !handshakeRejected
+                    && System.currentTimeMillis() < deadline) {
+                Thread.sleep(25);
+            }
 
+            if (!running || handshakeRejected || !handshakeAccepted) {
+                try {
+                    ws.sendClose(WebSocket.NORMAL_CLOSURE, "handshake timeout");
+                } catch (Exception ignored) {
+                }
+                return null;
+            }
+
+            webSocket = ws;
             return ws;
 
         } catch (Exception e) {
@@ -313,6 +332,8 @@ public final class RelayBridge {
         synchronized (LOCK) {
             running = false;
             connected = false;
+            handshakeAccepted = false;
+            handshakeRejected = false;
         }
 
         try {
