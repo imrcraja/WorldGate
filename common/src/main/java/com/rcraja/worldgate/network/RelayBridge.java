@@ -67,9 +67,20 @@ public final class RelayBridge {
                         roomCode
                 );
 
-                if (!waitForConnection(15)) {
+                if (!waitForHandshake(15)) {
                     WorldGateMod.LOGGER.error(
-                            "WorldGate relay host connection timed out."
+                            "WorldGate relay host handshake timed out."
+                    );
+                    stop();
+                    return;
+                }
+
+                // The relay may acknowledge the host with "waiting" before the
+                // player arrives. Keep the host bridge alive while waiting for
+                // the actual pair; only then does Minecraft traffic flow.
+                if (!waitForConnection(30 * 60)) {
+                    WorldGateMod.LOGGER.error(
+                            "WorldGate relay host pairing timed out."
                     );
                     stop();
                     return;
@@ -300,6 +311,25 @@ public final class RelayBridge {
 
             stop();
         }
+    }
+
+    private static boolean waitForHandshake(int seconds) {
+        long deadline = System.currentTimeMillis()
+                + (seconds * 1000L);
+
+        while (running
+                && !handshakeAccepted
+                && !handshakeRejected
+                && System.currentTimeMillis() < deadline) {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+
+        return running && handshakeAccepted && !handshakeRejected;
     }
 
     private static boolean waitForConnection(int seconds) {
