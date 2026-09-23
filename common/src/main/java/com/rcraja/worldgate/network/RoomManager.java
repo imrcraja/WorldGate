@@ -135,6 +135,11 @@ public class RoomManager {
             return false;
         }
 
+        String roomJson = session.db().get("/rooms/" + roomCode);
+        if (roomJson == null || roomJson.isBlank() || "null".equals(roomJson)) {
+            return false;
+        }
+
         String safeIgn =
                 ign == null || ign.isBlank()
                         ? "Unknown"
@@ -251,11 +256,22 @@ public class RoomManager {
             return false;
         }
 
-        session.db().delete(
-                "/rooms/" + roomCode
-        );
+        String roomJson = session.db().get("/rooms/" + roomCode);
+        if (roomJson == null || roomJson.isBlank() || "null".equals(roomJson)) {
+            return false;
+        }
 
-        return true;
+        String expectedHost = "\"hostUid\":\"" + escape(session.uid()) + "\"";
+        if (!roomJson.contains(expectedHost)) {
+            WorldGateMod.LOGGER.warn(
+                    "WorldGate rejected non-host room deletion for {}",
+                    roomCode
+            );
+            return false;
+        }
+
+        String deleted = session.db().delete("/rooms/" + roomCode);
+        return deleted != null;
     }
 
     public void setRoomChangedListener(
