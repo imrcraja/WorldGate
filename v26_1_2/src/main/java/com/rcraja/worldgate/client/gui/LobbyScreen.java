@@ -37,7 +37,7 @@ public class LobbyScreen extends Screen {
     private volatile boolean loading = true;
 
     public LobbyScreen(Screen parent) {
-        super(Component.literal("WorldGate Lobby"));
+        super(Component.translatable("worldgate.lobby.title"));
         this.parent = parent;
     }
 
@@ -74,7 +74,7 @@ public class LobbyScreen extends Screen {
                         chatY,
                         this.width - 110,
                         20,
-                        Component.literal("Chat")
+                        Component.translatable("worldgate.chat.input")
                 );
 
         chatBox.setMaxLength(200);
@@ -89,7 +89,7 @@ public class LobbyScreen extends Screen {
 
         addRenderableWidget(
                 Button.builder(
-                        Component.literal("Send"),
+                        Component.translatable("worldgate.chat.send"),
                         btn -> sendChat()
                 )
                 .bounds(
@@ -103,7 +103,7 @@ public class LobbyScreen extends Screen {
 
         addRenderableWidget(
                 Button.builder(
-                        Component.literal("Back"),
+                        Component.translatable("worldgate.button.back"),
                         btn -> goBack()
                 )
                 .bounds(
