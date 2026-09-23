@@ -1,0 +1,38 @@
+{
+  "worldgate_open": {
+    "sounds": ["worldgate:worldgate_open"]
+  },
+  "worldgate_close": {
+    "sounds": ["worldgate:worldgate_close"]
+  },
+  "world_connect": {
+    "sounds": ["worldgate:world_connect"]
+  },
+  "world_disconnect": {
+    "sounds": ["worldgate:world_disconnect"]
+  },
+  "login": {
+    "sounds": ["worldgate:login"]
+  },
+  "logout": {
+    "sounds": ["worldgate:logout"]
+  },
+  "auth_success": {
+    "sounds": ["worldgate:auth_success"]
+  },
+  "auth_fail": {
+    "sounds": ["worldgate:auth_fail"]
+  },
+  "call_incoming": {
+    "sounds": ["worldgate:call_incoming"]
+  },
+  "call_outgoing": {
+    "sounds": ["worldgate:call_outgoing"]
+  },
+  "call_accept": {
+    "sounds": ["worldgate:call_accept"]
+  },
+  "call_end": {
+    "sounds": ["worldgate:call_end"]
+  }
+}
