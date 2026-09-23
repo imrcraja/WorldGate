@@ -20,7 +20,7 @@ public final class EliteProfileScreen extends Screen {
     private String status = "Loading Elite profile...";
 
     public EliteProfileScreen(Screen parent) {
-        super(Component.literal("WorldGate Elite"));
+        super(Component.translatable("worldgate.elite.title"));
         this.parent = parent;
     }
 
@@ -28,14 +28,14 @@ public final class EliteProfileScreen extends Screen {
     protected void init() {
         addRenderableWidget(
                 Button.builder(
-                        Component.literal("Refresh"),
+                        Component.translatable("worldgate.button.refresh"),
                         btn -> load()
                 ).bounds(this.width / 2 - 102, this.height - 55, 97, 20).build()
         );
 
         addRenderableWidget(
                 Button.builder(
-                        Component.literal("Back"),
+                        Component.translatable("worldgate.button.back"),
                         btn -> this.minecraft.setScreen(parent)
                 ).bounds(this.width / 2 + 3, this.height - 55, 97, 20).build()
         );
@@ -76,7 +76,7 @@ public final class EliteProfileScreen extends Screen {
 
         graphics.centeredText(
                 this.font,
-                Component.literal("WorldGate Elite"),
+                Component.translatable("worldgate.elite.title"),
                 cx,
                 18,
                 0xFFFFFFFF
@@ -84,11 +84,7 @@ public final class EliteProfileScreen extends Screen {
 
         graphics.centeredText(
                 this.font,
-                Component.literal(
-                        profile.available()
-                                ? profile.displayLevel()
-                                : "Elite profile"
-                ),
+                Component.translatable(profile.available() ? "worldgate.elite.level" : "worldgate.elite.profile", profile.available() ? profile.displayLevel() : ""),
                 cx,
                 31,
                 0xFFD8C7FF
@@ -107,7 +103,7 @@ public final class EliteProfileScreen extends Screen {
             int infoY = 178;
             graphics.centeredText(
                     this.font,
-                    Component.literal("Eligible spending: " + money(profile.eligibleSpentMinorUnits())),
+                    Component.translatable("worldgate.elite.eligible_spending", money(profile.eligibleSpentMinorUnits())),
                     cx,
                     infoY,
                     0xFFFFFFFF
@@ -116,7 +112,7 @@ public final class EliteProfileScreen extends Screen {
             if (profile.nextLevelThresholdMinorUnits() > 0) {
                 graphics.centeredText(
                         this.font,
-                        Component.literal("Remaining to next level: " + money(profile.remainingToNext())),
+                        Component.translatable("worldgate.elite.remaining_next", money(profile.remainingToNext())),
                         cx,
                         infoY + 16,
                         0xFFBDBDBD
@@ -126,7 +122,7 @@ public final class EliteProfileScreen extends Screen {
             if (profile.maxLevelThresholdMinorUnits() > 0) {
                 graphics.centeredText(
                         this.font,
-                        Component.literal("Remaining to max level: " + money(profile.remainingToMax())),
+                        Component.translatable("worldgate.elite.remaining_max", money(profile.remainingToMax())),
                         cx,
                         infoY + 32,
                         0xFFBDBDBD
@@ -135,7 +131,7 @@ public final class EliteProfileScreen extends Screen {
 
             graphics.centeredText(
                     this.font,
-                    Component.literal("Badge identity is fixed; the background evolves by level."),
+                    Component.translatable("worldgate.elite.badge_note"),
                     cx,
                     infoY + 55,
                     0xFF8F8F8F
@@ -156,7 +152,7 @@ public final class EliteProfileScreen extends Screen {
 
         graphics.centeredText(
                 this.font,
-                Component.literal(status),
+                Component.translatable("worldgate.status.raw", status),
                 cx,
                 this.height - 76,
                 0xFF888888
