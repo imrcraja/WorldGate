@@ -7,6 +7,7 @@ import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.network.chat.Style;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -20,7 +21,7 @@ public class PlayerTabOverlayMixin {
 
     private static final int WORLDGATE_WHITE = 0xFFFFFFFF;
     private static final String WORLDGATE_MARK = "\uE000 ";
-    private static final Identifier WORLDGATE_FONT = ResourceLocation.fromNamespaceAndPath("worldgate", "worldgate_tab");
+    private static final Identifier WORLDGATE_FONT = Identifier.of("worldgate", "worldgate_tab");
 
     @ModifyReturnValue(method = "getNameForDisplay", at = @At("RETURN"))
     private Component worldgate$decorateName(Component original, PlayerInfo info) {
@@ -34,9 +35,9 @@ public class PlayerTabOverlayMixin {
 
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player != null
-                && minecraft.player.getUUID().equals(info.getProfile().getId())) {
+                && minecraft.player.getUUID().equals(info.getProfile().id())) {
             return Component.literal(WORLDGATE_MARK)
-                    .withStyle(style -> style.withColor(WORLDGATE_WHITE).withFont(WORLDGATE_FONT))
+                    .withStyle(style -> style.withColor(WORLDGATE_WHITE).withFont(Style.DEFAULT_FONT))
                     .append(decorated);
         }
 
