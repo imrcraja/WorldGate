@@ -36,9 +36,7 @@ WorldGate/
                        across servers/YouTubers right now, ~21% share)
 ```
 
-`gradle build` at the repo root builds **both** jars in one pass; the GitHub
-Actions workflow does the same and uploads each as a separate artifact
-(`WorldGate-26.1.2`, `WorldGate-1.21.1`).
+`gradle build` at the repo root builds the active 26.1.2 jar. GitHub Actions uploads the `WorldGate-26.1.2` artifact.
 
 ### Adding another version (e.g. 1.20.1, 1.21.4)
 
@@ -71,12 +69,11 @@ Tell me which version to add next and I'll build that module the same way.
 | Real-money Elite Coin checkout | Coming Soon; no gateway is treated as a completed payment |
 | Live skin/cape replacement and full body emote animation | Separate version-specific work remains |
 
-The current ecosystem integration is intentionally scoped to Minecraft 26.1.2. The 1.21.1 module remains present and is not part of this integration pass.
+The current ecosystem integration is intentionally scoped to Minecraft 26.1.2. Other Minecraft-version modules are intentionally removed for now and can be added later.
 
 ## Building
 
-Requires JDK 25 (for the 26.1.2 module) and JDK 21 (for the 1.21.1 module) —
-the included GitHub Actions workflow installs both automatically, so pushing
+Requires JDK 25 for Minecraft 26.1.2 — the included GitHub Actions workflow installs it automatically, so pushing
 to `main` or opening a PR is enough; no local dev environment needed.
 
 ```bash
