@@ -60,7 +60,7 @@ Tell me which version to add next and I'll build that module the same way.
 | Firebase anonymous auth + Realtime Database | Integrated |
 | Room creation/join bookkeeping | Integrated |
 | Host-to-player relay bridge | Integrated |
-| WebSocket relay service under `relay/` | Integrated and hardened |
+| WebSocket relay service under `relay/` | Integrated and hardened with protocol/integrity/rate-limit checks |
 | Friends, presence and realtime room state | Integrated |
 | Realtime chat and emote state | Integrated |
 | Elite profile and server-authoritative Elite badges | Integrated |
@@ -102,3 +102,12 @@ gradle build
 ## Elite Coin (Minecraft 26.1.2)
 
 WorldGate 26.1.2 now includes the Elite Coin client read model and shop screen. Coin balances, catalog data and item purchases are server-authoritative through the WorldGate backend. The included Elite Coin artwork is stored at `assets/worldgate/elite/elite-coin.png`. Real-money coin top-ups remain provider-neutral until a legitimate payment gateway is configured; the client never treats a payment intent as a completed purchase.
+
+
+## Security hardening
+
+The 26.1.2 release now includes a relay-side integrity gate, protocol versioning, payload limits, room expiry, per-IP connection throttling and automatic temporary blocking for repeated invalid handshakes. The client also locks WorldGate multiplayer features when the relay rejects the official artifact hash. This is defense in depth, not an unbreakable guarantee: a modified client can always alter local code, so the relay/backend remain the enforcement boundary.
+
+The backend adds rate limiting, temporary IP bans, security-event logging, hardened response headers and a continuous watchdog. A scheduled GitHub Actions security workflow also runs dependency auditing, regression tests and credential-pattern checks.
+
+For production integrity enforcement, configure the relay with `WORLDGATE_ALLOWED_MOD_SHA256` set to the SHA-256 of the exact official 26.1.2 jar. Never put a secret signing key in the mod.
