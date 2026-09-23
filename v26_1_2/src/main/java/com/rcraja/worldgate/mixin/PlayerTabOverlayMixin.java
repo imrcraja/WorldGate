@@ -22,7 +22,7 @@ public class PlayerTabOverlayMixin {
 
     private static final int WORLDGATE_WHITE = 0xFFFFFFFF;
     private static final String WORLDGATE_MARK = "\uE000 ";
-    private static final Identifier WORLDGATE_FONT = Identifier.of("worldgate", "worldgate_tab");
+    private static final Identifier WORLDGATE_FONT = Identifier.tryParse("worldgate:worldgate_tab");
 
     @ModifyReturnValue(method = "getNameForDisplay", at = @At("RETURN"))
     private Component worldgate$decorateName(Component original, PlayerInfo info) {
