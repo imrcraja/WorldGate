@@ -270,8 +270,8 @@ public class RoomManager {
             return false;
         }
 
-        String deleted = session.db().delete("/rooms/" + roomCode);
-        return deleted != null;
+        session.db().delete("/rooms/" + roomCode);
+        return true;
     }
 
     public void setRoomChangedListener(
