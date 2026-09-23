@@ -8,6 +8,7 @@ import com.rcraja.worldgate.network.FriendManager;
 import com.rcraja.worldgate.network.RoomManager;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.minecraft.client.Minecraft;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,27 +17,15 @@ import java.util.concurrent.TimeUnit;
 
 public class WorldGateModClient implements ClientModInitializer {
 
-    public static final FirebaseSession SESSION =
-            new FirebaseSession();
-
-    public static final RoomManager ROOM_MANAGER =
-            new RoomManager(SESSION);
-
-    public static final FriendManager FRIEND_MANAGER =
-            new FriendManager(SESSION);
-
-    public static final ChatManager CHAT_MANAGER =
-            new ChatManager(SESSION);
-
-    public static final EmoteManager EMOTE_MANAGER =
-            new EmoteManager(SESSION);
+    public static final FirebaseSession SESSION = new FirebaseSession();
+    public static final RoomManager ROOM_MANAGER = new RoomManager(SESSION);
+    public static final FriendManager FRIEND_MANAGER = new FriendManager(SESSION);
+    public static final ChatManager CHAT_MANAGER = new ChatManager(SESSION);
+    public static final EmoteManager EMOTE_MANAGER = new EmoteManager(SESSION);
 
     public static final ExecutorService EXECUTOR =
             Executors.newCachedThreadPool(r -> {
-                Thread t = new Thread(
-                        r,
-                        "WorldGate-Worker"
-                );
+                Thread t = new Thread(r, "WorldGate-Worker");
                 t.setDaemon(true);
                 return t;
             });
@@ -45,10 +34,7 @@ public class WorldGateModClient implements ClientModInitializer {
 
     private static final ScheduledExecutorService HEARTBEAT =
             Executors.newSingleThreadScheduledExecutor(r -> {
-                Thread t = new Thread(
-                        r,
-                        "WorldGate-Heartbeat"
-                );
+                Thread t = new Thread(r, "WorldGate-Heartbeat");
                 t.setDaemon(true);
                 return t;
             });
@@ -56,7 +42,6 @@ public class WorldGateModClient implements ClientModInitializer {
     private static volatile boolean heartbeatRunning = false;
 
     public static synchronized void startHeartbeat(boolean host) {
-
         if (heartbeatRunning) {
             return;
         }
@@ -65,9 +50,7 @@ public class WorldGateModClient implements ClientModInitializer {
 
         HEARTBEAT.scheduleAtFixedRate(
                 () -> {
-
                     String room = CURRENT_ROOM_CODE;
-
                     if (room == null || room.isBlank()) {
                         return;
                     }
@@ -90,61 +73,48 @@ public class WorldGateModClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        WorldGateMod.LOGGER.info("WorldGate client initialized.");
 
-        WorldGateMod.LOGGER.info(
-                "WorldGate client initialized."
-        );
-
+        WorldGateSounds.initialize();
         registerVersionKeybinds();
 
         EXECUTOR.submit(() -> {
+            boolean connected = SESSION.connect();
 
-            boolean connected =
-                    SESSION.connect();
+            Minecraft.getInstance().execute(() ->
+                    WorldGateSounds.play(
+                            connected ? WorldGateSounds.AUTH_SUCCESS : WorldGateSounds.AUTH_FAIL,
+                            0.9F
+                    )
+            );
 
             if (connected) {
-
                 WorldGateMod.LOGGER.info(
                         "WorldGate Firebase session ready (uid={})",
                         SESSION.uid()
                 );
-
             } else {
-
                 WorldGateMod.LOGGER.error(
-                        "WorldGate could not sign in to Firebase -- "
-                                + "check internet/API key."
+                        "WorldGate could not sign in to Firebase -- check internet/API key."
                 );
             }
         });
     }
 
     private static void registerVersionKeybinds() {
-
         try {
-
             Class<?> keybindClass =
-                    Class.forName(
-                            "com.rcraja.worldgate.client.WorldGateKeybinds"
-                    );
+                    Class.forName("com.rcraja.worldgate.client.WorldGateKeybinds");
 
-            keybindClass
-                    .getMethod("register")
-                    .invoke(null);
+            keybindClass.getMethod("register").invoke(null);
 
-            WorldGateMod.LOGGER.info(
-                    "WorldGate keybinds registered."
-            );
-
+            WorldGateMod.LOGGER.info("WorldGate keybinds registered.");
         } catch (ClassNotFoundException ignored) {
-
             /*
              * A version module without the optional
              * keybind implementation simply continues.
              */
-
         } catch (Exception e) {
-
             WorldGateMod.LOGGER.error(
                     "WorldGate keybind registration failed.",
                     e
