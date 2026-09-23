@@ -361,6 +361,13 @@ public final class RelayBridge {
         ) {
             String message = data.toString();
 
+            if (message.contains("\"code\":\"MOD_INTEGRITY_REJECTED\"")) {
+                IntegrityGuard.disable("official mod integrity hash was rejected by the relay");
+                stop();
+                webSocket.request(1);
+                return CompletableFuture.completedFuture(null);
+            }
+
             if (message.contains("\"type\":\"connected\"")) {
                 connected = true;
 
