@@ -3,6 +3,8 @@ package com.rcraja.worldgate.network;
 import com.google.gson.JsonObject;
 
 import java.util.function.BiConsumer;
+import java.util.Set;
+import java.util.Locale;
 
 /**
  * Broadcasts a named emote to everyone in the room via /rooms/<code>/emotes.
@@ -12,6 +14,7 @@ import java.util.function.BiConsumer;
  */
 public class EmoteManager {
     public static final String[] DEFAULT_EMOTES = { "wave", "dance", "sit", "cheer" };
+    private static final Set<String> ALLOWED_EMOTES = Set.of(DEFAULT_EMOTES);
 
     private final RoomChannel channel;
     private final FirebaseSession session;
@@ -22,8 +25,10 @@ public class EmoteManager {
     }
 
     public void sendEmote(String roomCode, String emoteName) {
+        String clean = emoteName == null ? "" : emoteName.trim().toLowerCase(Locale.ROOT);
+        if (!ALLOWED_EMOTES.contains(clean)) return;
         JsonObject payload = new JsonObject();
-        payload.addProperty("emote", emoteName);
+        payload.addProperty("emote", clean);
         channel.send(roomCode, payload);
         try { EmoteAnimationState.play(java.util.UUID.fromString(session.uid()), emoteName); } catch (Exception ignored) {}
     }
