@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="WorldGate Elite rank">
-<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffd75a"/><stop offset=".5" stop-color="#a64cff"/><stop offset="1" stop-color="#3c0a72"/></linearGradient><radialGradient id="r"><stop stop-color="#fff"/><stop offset=".25" stop-color="#db6cff"/><stop offset="1" stop-color="#5b00b8"/></radialGradient></defs>
-<path d="M128 12 154 38 190 34 198 70 232 86 212 116 224 150 190 162 180 198 144 192 128 224 112 192 76 198 66 162 32 150 44 116 24 86 58 70 66 34 102 38Z" fill="#111020" stroke="url(#g)" stroke-width="8"/>
-<circle cx="128" cy="116" r="58" fill="url(#r)" stroke="#ffe16a" stroke-width="7"/>
-<path d="m128 70 14 31 34 3-26 22 8 33-30-18-30 18 8-33-26-22 34-3Z" fill="#fff" opacity=".9"/>
-<text x="128" y="166" text-anchor="middle" font-family="Arial,sans-serif" font-size="38" font-weight="900" fill="#fff">01</text>
-</svg>
