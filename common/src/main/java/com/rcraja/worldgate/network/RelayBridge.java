@@ -114,8 +114,14 @@ public final class RelayBridge {
                 running = true;
                 connected = false;
 
+                WebSocket ws = connectWebSocket("player", roomCode);
+                if (ws == null) {
+                    stop();
+                    return -1;
+                }
+
                 Thread thread = new Thread(
-                        () -> playerThread(roomCode, server),
+                        () -> playerThread(roomCode, server, ws),
                         "WorldGate-Relay-Player"
                 );
 
@@ -136,16 +142,10 @@ public final class RelayBridge {
 
     private static void playerThread(
             String roomCode,
-            ServerSocket server
+            ServerSocket server,
+            WebSocket ws
     ) {
         try {
-            WebSocket ws = connectWebSocket("player", roomCode);
-
-            if (ws == null) {
-                stop();
-                return;
-            }
-
             WorldGateMod.LOGGER.info(
                     "WorldGate relay player connected for room {}",
                     roomCode
@@ -186,7 +186,7 @@ public final class RelayBridge {
                             URI.create(Constants.RELAY_WS_URL),
                             listener
                     )
-                    .join();
+                    .get(5, TimeUnit.SECONDS);
 
             String uid = WorldGateModClient.SESSION.uid();
             String modSha256 = IntegrityGuard.currentArtifactSha256();
