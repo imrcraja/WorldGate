@@ -40,9 +40,3 @@ jobs:
         with:
           name: WorldGate-26.1.2
           path: v26_1_2/build/libs/*.jar
-
-      - name: Upload 1.21.1 jar
-        uses: actions/upload-artifact@v4
-        with:
-          name: WorldGate-1.21.1
-          path: v1_21_1/build/libs/*.jar
