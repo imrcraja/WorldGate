@@ -49,5 +49,9 @@
   "worldgate.elite.badge_note": "Badge identity is fixed; the background evolves by level.",
   "worldgate.elite.not_published": "Your Elite entitlement has not been published yet.",
   "worldgate.loading": "Loading...",
-  "worldgate.status.raw": "%s"
+  "worldgate.status.raw": "%s",
+  "worldgate.emote.wave": "Wave",
+  "worldgate.emote.dance": "Dance",
+  "worldgate.emote.sit": "Sit",
+  "worldgate.emote.cheer": "Cheer"
 }
