@@ -533,15 +533,28 @@ public class WorldGateScreen extends Screen {
                                                         ign
                                                 );
 
+                                if (!joined) {
+                                    minecraft.execute(
+                                            () -> sendMessage(
+                                                    "WorldGate: could not register you in the room."
+                                            )
+                                    );
+                                    return;
+                                }
+
+                                /*
+                                 * Probe the relay off the render thread. startPlayer()
+                                 * performs the short WebSocket connection attempt so a
+                                 * failed relay can immediately fall back to the host.
+                                 */
+                                int relayPort =
+                                        RelayBridge
+                                                .startPlayer(
+                                                        code
+                                                );
+
                                 minecraft.execute(
                                         () -> {
-                                            if (!joined) {
-                                                sendMessage(
-                                                        "WorldGate: could not register you in the room."
-                                                );
-                                                return;
-                                            }
-
                                             hostingRoom = false;
 
                                             WorldGateModClient
@@ -550,12 +563,6 @@ public class WorldGateScreen extends Screen {
 
                                             WorldGateModClient
                                                     .startHeartbeat(false);
-
-                                            int relayPort =
-                                                    RelayBridge
-                                                            .startPlayer(
-                                                                    code
-                                                            );
 
                                             ServerAddress address =
                                                     relayPort > 0
