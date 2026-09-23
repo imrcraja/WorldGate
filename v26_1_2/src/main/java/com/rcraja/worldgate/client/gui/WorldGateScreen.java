@@ -174,6 +174,27 @@ public class WorldGateScreen extends Screen {
                 )
                 .bounds(
                         centerX - 100,
+                        y + 125,
+                        200,
+                        20
+                )
+                .build()
+        );
+
+        addRenderableWidget(
+                Button.builder(
+                        Component.literal("Chat"),
+                        btn -> {
+                            String room = WorldGateModClient.CURRENT_ROOM_CODE;
+                            if (room != null && !room.isBlank()) {
+                                this.minecraft.setScreen(new ChatScreen(this, room));
+                            } else {
+                                sendMessage("WorldGate: join or create a room first.");
+                            }
+                        }
+                )
+                .bounds(
+                        centerX - 100,
                         y + 100,
                         200,
                         20
@@ -193,7 +214,7 @@ public class WorldGateScreen extends Screen {
                 )
                 .bounds(
                         centerX - 100,
-                        y + 125,
+                        y + 150,
                         97,
                         20
                 )
@@ -212,7 +233,7 @@ public class WorldGateScreen extends Screen {
                 )
                 .bounds(
                         centerX + 3,
-                        y + 125,
+                        y + 150,
                         97,
                         20
                 )
@@ -228,7 +249,7 @@ public class WorldGateScreen extends Screen {
                 )
                 .bounds(
                         centerX - 100,
-                        y + 155,
+                        y + 180,
                         200,
                         20
                 )
@@ -640,21 +661,6 @@ public class WorldGateScreen extends Screen {
 
         WorldGateModClient.ROOM_MANAGER
                 .startRealtime(code);
-
-        WorldGateModClient.CHAT_MANAGER
-                .listen(
-                        code,
-                        (uid, text) ->
-                                minecraft.execute(
-                                        () ->
-                                                sendMessage(
-                                                        "<"
-                                                                + playerName(uid)
-                                                                + "> "
-                                                                + text
-                                                )
-                                )
-                );
 
         WorldGateModClient.EMOTE_MANAGER
                 .listen(
