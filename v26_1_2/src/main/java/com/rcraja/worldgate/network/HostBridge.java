@@ -45,6 +45,7 @@ public final class HostBridge {
         }
 
         RelayBridge.stop();
+        LanDiscovery.stopHost();
 
         running = false;
         minecraftPort = -1;
@@ -60,6 +61,13 @@ public final class HostBridge {
 
     public static int getMinecraftPort() {
         return minecraftPort;
+    }
+
+    public static void startLanDiscovery(String roomCode, String hostName) {
+        if (!running || minecraftPort <= 0) {
+            return;
+        }
+        LanDiscovery.startHost(roomCode, minecraftPort, hostName);
     }
 
     public static boolean startRelay(String roomCode) {

@@ -6,8 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.FontDescription;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,28 +18,21 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(PlayerTabOverlay.class)
 public class PlayerTabOverlayMixin {
 
-    private static final int WORLDGATE_WHITE = 0xFFFFFFFF;
-    private static final String WORLDGATE_MARK = "\uE000 ";
-    private static final Identifier WORLDGATE_FONT = Identifier.tryParse("worldgate:worldgate_tab");
-
     @ModifyReturnValue(method = "getNameForDisplay", at = @At("RETURN"))
     private Component worldgate$decorateName(Component original, PlayerInfo info) {
-        int ping = info.getLatency();
+        int ping = Math.max(0, info.getLatency());
         PingColor color = PingColor.forPing(ping);
 
-        Component decorated = Component.literal("")
+        /*
+         * Keep the vanilla player name untouched. The previous custom-font
+         * marker produced [][][] when the font atlas did not contain U+E000,
+         * and it also made the local player's entry look different from the
+         * rest of the tab list.
+         */
+        return Component.literal("")
                 .append(original)
-                .append(Component.literal(" " + ping + "ms")
+                .append(Component.literal("  " + ping + " ms")
                         .withStyle(style -> style.withColor(color.color)));
-
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player != null
-                && minecraft.player.getUUID().equals(info.getProfile().id())) {
-            return Component.literal(WORLDGATE_MARK)
-                    .withStyle(style -> style.withColor(WORLDGATE_WHITE).withFont(new FontDescription.Resource(WORLDGATE_FONT)))
-                    .append(decorated);
-        }
-
-        return decorated;
     }
+
 }

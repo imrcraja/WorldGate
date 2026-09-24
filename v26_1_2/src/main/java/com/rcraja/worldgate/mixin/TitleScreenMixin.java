@@ -3,6 +3,8 @@ package com.rcraja.worldgate.mixin;
 import com.rcraja.worldgate.client.gui.WorldGateScreen;
 
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.PlayerSkinWidget;
+import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 
@@ -44,6 +46,29 @@ public abstract class TitleScreenMixin extends Screen {
             y = Math.max(8, modsButton.getY() - 48);
         } else {
             y = Math.max(8, this.height / 2 + 12);
+        }
+
+        if (this.minecraft != null) {
+            int previewSize = this.width >= 760 ? 150 : 110;
+            int previewX = this.width / 2 + 125;
+            if (previewX + previewSize > this.width - 12) {
+                previewX = this.width / 2 - 125 - previewSize;
+            }
+            if (previewX >= 8) {
+                PlayerSkinWidget playerWidget = new PlayerSkinWidget(
+                        previewSize,
+                        previewSize + 34,
+                        this.minecraft.getEntityModels(),
+                        () -> this.minecraft.playerSkinRenderCache()
+                                .getOrDefault(ResolvableProfile.createUnresolved(this.minecraft.getUser().getProfileId()))
+                                .playerSkin()
+                );
+                playerWidget.setPosition(
+                        previewX,
+                        Math.max(18, this.height / 2 - previewSize / 2 - 10)
+                );
+                this.addRenderableWidget(playerWidget);
+            }
         }
 
         this.addRenderableWidget(
