@@ -62,15 +62,13 @@ public class WorldGateScreen extends Screen {
         int top = 62;
         int gap = 10;
         int cardWidth = Math.max(180, (width - margin * 2 - gap * 2) / 3);
+        int cardHeight = 150;
+        int infoTop = top + cardHeight + 14;
+        int infoHeight = Math.max(90, height - infoTop - 48);
 
         roomCodeBox = new EditBox(
-                font,
-                margin + 10,
-                top + 46,
-                cardWidth - 95,
-                20,
-                Component.translatable("worldgate.roomcode.hint")
-        );
+                font, margin + 10, top + 46, cardWidth - 95,
+                20, Component.translatable("worldgate.roomcode.hint"));
         roomCodeBox.setMaxLength(6);
         roomCodeBox.setHint(Component.literal("Room Code"));
         addRenderableWidget(roomCodeBox);
@@ -84,10 +82,9 @@ public class WorldGateScreen extends Screen {
                 Component.translatable("worldgate.button.create"),
                 btn -> onCreate()
         ).bounds(margin + 10, top + 76, cardWidth - 20, 20).build();
-        createButton.active =
-                minecraft != null
-                        && minecraft.player != null
-                        && minecraft.getSingleplayerServer() != null;
+        createButton.active = minecraft != null
+                && minecraft.player != null
+                && minecraft.getSingleplayerServer() != null;
         addRenderableWidget(createButton);
 
         int socialX = margin + cardWidth + gap;
@@ -110,25 +107,30 @@ public class WorldGateScreen extends Screen {
 
         int profileX = socialX + cardWidth + gap;
         addRenderableWidget(Button.builder(
+                Component.translatable("worldgate.coin.store"),
+                btn -> minecraft.setScreen(new EliteCoinScreen(this))
+        ).bounds(profileX + 10, top + 46, cardWidth - 20, 20).build());
+
+        addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.elite.profile"),
                 btn -> minecraft.setScreen(new EliteProfileScreen(this))
-        ).bounds(profileX + 10, top + 46, cardWidth - 20, 20).build());
+        ).bounds(profileX + 10, top + 76, cardWidth - 20, 20).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.lobby"),
                 btn -> minecraft.setScreen(new LobbyScreen(this))
-        ).bounds(profileX + 10, top + 76, cardWidth - 20, 20).build());
+        ).bounds(profileX + 10, top + 106, cardWidth - 20, 20).build());
 
+        int half = (cardWidth - 25) / 2;
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.report"),
                 btn -> openLink(Constants.GITHUB_ISSUES)
-        ).bounds(profileX + 10, top + 106, (cardWidth - 25) / 2, 20).build());
+        ).bounds(margin + 10, infoTop + infoHeight - 28, half, 20).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.youtube"),
                 btn -> openLink(Constants.YOUTUBE_CHANNEL)
-        ).bounds(profileX + 15 + (cardWidth - 25) / 2, top + 106,
-                (cardWidth - 25) / 2, 20).build());
+        ).bounds(margin + 15 + half, infoTop + infoHeight - 28, half, 20).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.back"),
@@ -529,7 +531,7 @@ public class WorldGateScreen extends Screen {
         int top = 62;
         int gap = 10;
         int cardWidth = Math.max(180, (width - margin * 2 - gap * 2) / 3);
-        int cardHeight = 124;
+        int cardHeight = 150;
 
         graphics.centeredText(font, "WorldGate", width / 2, 18, 0xFFFFFFFF);
         graphics.centeredText(
@@ -554,8 +556,8 @@ public class WorldGateScreen extends Screen {
         graphics.text(font, "SOCIAL", socialX + 10, top + 12, 0xFF70E090);
         graphics.text(font, "Friends, requests and chat", socialX + 10, top + 28, 0xFF8E9AA6);
 
-        graphics.text(font, "PROFILE & ELITE", profileX + 10, top + 12, 0xFFFFD166);
-        graphics.text(font, "Identity, Elite and lobby", profileX + 10, top + 28, 0xFF8E9AA6);
+        graphics.text(font, "ELITE", profileX + 10, top + 12, 0xFFFFD166);
+        graphics.text(font, "Store, profile and lobby", profileX + 10, top + 28, 0xFF8E9AA6);
 
         int infoTop = top + cardHeight + 14;
         int infoHeight = Math.max(90, height - infoTop - 48);

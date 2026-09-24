@@ -15,7 +15,7 @@ public final class EliteProfileScreen extends Screen {
     private String status="Loading Elite profile...";
     public EliteProfileScreen(Screen parent){super(Component.translatable("worldgate.elite.title"));this.parent=parent;}
     @Override protected void init(){
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.coin.shop"),b->minecraft.setScreen(new EliteCoinScreen(this))).bounds(width/2-155,height-55,97,20).build());
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.coin.store"),b->minecraft.setScreen(new EliteCoinScreen(this))).bounds(width/2-155,height-55,97,20).build());
         addRenderableWidget(Button.builder(Component.translatable("worldgate.button.refresh"),b->load()).bounds(width/2-52,height-55,104,20).build());
         addRenderableWidget(Button.builder(Component.translatable("worldgate.button.back"),b->minecraft.setScreen(parent)).bounds(width/2+56,height-55,99,20).build());
         load();
