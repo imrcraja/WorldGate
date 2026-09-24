@@ -58,17 +58,14 @@ public class WorldGateScreen extends Screen {
 
     @Override
     protected void init() {
-        int margin = Math.max(14, width / 18);
-        int top = 62;
-        int gap = 10;
-        int cardWidth = Math.max(180, (width - margin * 2 - gap * 2) / 3);
+        int left = 22;
+        int top = 72;
+        int gap = 8;
+        int buttonW = Math.min(190, Math.max(150, (width - 120) / 4));
+        int rowH = 29;
 
         roomCodeBox = new EditBox(
-                font,
-                margin + 10,
-                top + 46,
-                cardWidth - 95,
-                20,
+                font, left, top, buttonW - 68, 20,
                 Component.translatable("worldgate.roomcode.hint")
         );
         roomCodeBox.setMaxLength(6);
@@ -76,64 +73,64 @@ public class WorldGateScreen extends Screen {
         addRenderableWidget(roomCodeBox);
 
         addRenderableWidget(Button.builder(
-                Component.translatable("worldgate.button.join"),
-                btn -> onJoin()
-        ).bounds(margin + cardWidth - 75, top + 46, 65, 20).build());
-
-        Button createButton = Button.builder(
-                Component.translatable("worldgate.button.create"),
-                btn -> onCreate()
-        ).bounds(margin + 10, top + 76, cardWidth - 20, 20).build();
-        createButton.active =
-                minecraft != null
-                        && minecraft.player != null
-                        && minecraft.getSingleplayerServer() != null;
-        addRenderableWidget(createButton);
-
-        int socialX = margin + cardWidth + gap;
-        addRenderableWidget(Button.builder(
-                Component.translatable("worldgate.button.friends"),
-                btn -> minecraft.setScreen(new FriendsScreen(this))
-        ).bounds(socialX + 10, top + 46, cardWidth - 20, 20).build());
+                Component.translatable("worldgate.button.join"), b -> onJoin()
+        ).bounds(left + buttonW - 62, top, 62, 20).build());
 
         addRenderableWidget(Button.builder(
-                Component.literal("Chat"),
-                btn -> {
+                Component.translatable("worldgate.button.create"), b -> onCreate()
+        ).bounds(left, top + rowH, buttonW, 20).build());
+
+        int c2 = left + buttonW + gap;
+        int c3 = c2 + buttonW + gap;
+        int c4 = c3 + buttonW + gap;
+
+        addRenderableWidget(Button.builder(Component.literal("Profile"),
+                b -> minecraft.setScreen(new EliteProfileScreen(this)))
+                .bounds(c2, top, buttonW, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.friends"),
+                b -> minecraft.setScreen(new FriendsScreen(this)))
+                .bounds(c2, top + rowH, buttonW, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Chat"),
+                b -> {
                     String room = WorldGateModClient.CURRENT_ROOM_CODE;
-                    if (room != null && !room.isBlank()) {
-                        minecraft.setScreen(new ChatScreen(this, room));
-                    } else {
-                        sendMessage("Join or create a room first.");
-                    }
-                }
-        ).bounds(socialX + 10, top + 76, cardWidth - 20, 20).build());
+                    if (room != null && !room.isBlank()) minecraft.setScreen(new ChatScreen(this, room));
+                    else sendMessage("Join or create a room first.");
+                }).bounds(c2, top + rowH * 2, buttonW, 20).build());
 
-        int profileX = socialX + cardWidth + gap;
-        addRenderableWidget(Button.builder(
-                Component.translatable("worldgate.elite.profile"),
-                btn -> minecraft.setScreen(new EliteProfileScreen(this))
-        ).bounds(profileX + 10, top + 46, cardWidth - 20, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Elite Store"),
+                b -> minecraft.setScreen(new EliteCoinScreen(this)))
+                .bounds(c3, top, buttonW, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Cosmetics"),
+                b -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)))
+                .bounds(c3, top + rowH, buttonW, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Emotes"),
+                b -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.EMOTES)))
+                .bounds(c3, top + rowH * 2, buttonW, 20).build());
 
-        addRenderableWidget(Button.builder(
-                Component.translatable("worldgate.button.lobby"),
-                btn -> minecraft.setScreen(new LobbyScreen(this))
-        ).bounds(profileX + 10, top + 76, cardWidth - 20, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.lobby"),
+                b -> minecraft.setScreen(new LobbyScreen(this)))
+                .bounds(c4, top, buttonW, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.claim_center"),
+                b -> minecraft.setScreen(new ClaimCenterScreen(this)))
+                .bounds(c4, top + rowH, buttonW, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Settings"),
+                b -> sendMessage("WorldGate settings are being prepared for the 26.1.2 UI."))
+                .bounds(c4, top + rowH * 2, buttonW, 20).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.report"),
-                btn -> openLink(Constants.GITHUB_ISSUES)
-        ).bounds(profileX + 10, top + 106, (cardWidth - 25) / 2, 20).build());
+                b -> openLink(Constants.GITHUB_ISSUES)
+        ).bounds(width / 2 - 105, height - 58, 100, 20).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.youtube"),
-                btn -> openLink(Constants.YOUTUBE_CHANNEL)
-        ).bounds(profileX + 15 + (cardWidth - 25) / 2, top + 106,
-                (cardWidth - 25) / 2, 20).build());
+                b -> openLink(Constants.YOUTUBE_CHANNEL)
+        ).bounds(width / 2 + 5, height - 58, 100, 20).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.back"),
-                btn -> goBack()
-        ).bounds(width / 2 - 100, height - 34, 200, 20).build());
+                b -> goBack()
+        ).bounds(width / 2 - 100, height - 30, 200, 20).build());
     }
 
     private void onCreate() {
@@ -525,97 +522,56 @@ public class WorldGateScreen extends Screen {
     ) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
 
-        int margin = Math.max(14, width / 18);
-        int top = 62;
-        int gap = 10;
-        int cardWidth = Math.max(180, (width - margin * 2 - gap * 2) / 3);
-        int cardHeight = 124;
+        graphics.centeredText(font, "WorldGate", width / 2, 20, 0xFFFFFFFF);
+        graphics.centeredText(font, "Play together. Stay social. Express yourself.", width / 2, 38, 0xFF9AA7B4);
 
-        graphics.centeredText(font, "WorldGate", width / 2, 18, 0xFFFFFFFF);
-        graphics.centeredText(
-                font,
-                "Play together • Social • Elite",
-                width / 2,
-                35,
-                0xFF8E9AA6
-        );
+        int left = 22;
+        int top = 60;
+        int gap = 8;
+        int buttonW = Math.min(190, Math.max(150, (width - 120) / 4));
+        int panelH = 112;
 
-        int playX = margin;
-        int socialX = playX + cardWidth + gap;
-        int profileX = socialX + cardWidth + gap;
+        int[] xs = {left, left + buttonW + gap, left + (buttonW + gap) * 2, left + (buttonW + gap) * 3};
+        String[] titles = {"PLAY TOGETHER", "SOCIAL", "ELITE", "MORE"};
+        int[] colors = {0xFF7DE2FF, 0xFF70E090, 0xFFFFD166, 0xFFB8A7FF};
 
-        drawCard(graphics, playX, top, cardWidth, cardHeight);
-        drawCard(graphics, socialX, top, cardWidth, cardHeight);
-        drawCard(graphics, profileX, top, cardWidth, cardHeight);
-
-        graphics.text(font, "PLAY TOGETHER", playX + 10, top + 12, 0xFF7DE2FF);
-        graphics.text(font, "Room code", playX + 10, top + 34, 0xFF66727E);
-
-        graphics.text(font, "SOCIAL", socialX + 10, top + 12, 0xFF70E090);
-        graphics.text(font, "Friends, requests and chat", socialX + 10, top + 28, 0xFF8E9AA6);
-
-        graphics.text(font, "PROFILE & ELITE", profileX + 10, top + 12, 0xFFFFD166);
-        graphics.text(font, "Identity, Elite and lobby", profileX + 10, top + 28, 0xFF8E9AA6);
-
-        int infoTop = top + cardHeight + 14;
-        int infoHeight = Math.max(90, height - infoTop - 48);
-        drawCard(graphics, margin, infoTop, width - margin * 2, infoHeight);
-
-        String room = WorldGateModClient.CURRENT_ROOM_CODE;
-        if (room == null || room.isBlank()) {
-            graphics.text(font, "READY", margin + 14, infoTop + 14, 0xFF70E090);
-            graphics.text(
-                    font,
-                    "LAN discovery works over the same Wi-Fi/hotspot without internet.",
-                    margin + 14,
-                    infoTop + 34,
-                    0xFFFFFFFF
-            );
-            graphics.text(
-                    font,
-                    "Remote rooms use the WorldGate relay when internet is available.",
-                    margin + 14,
-                    infoTop + 51,
-                    0xFF8E9AA6
-            );
-        } else {
-            graphics.text(font, "ACTIVE ROOM", margin + 14, infoTop + 14, 0xFF7DE2FF);
-            graphics.text(font, room, margin + 14, infoTop + 32, 0xFFFFFFFF);
-            graphics.text(
-                    font,
-                    "Realtime presence is active when the cloud session is available.",
-                    margin + 14,
-                    infoTop + 51,
-                    0xFF8E9AA6
-            );
+        for (int i = 0; i < 4; i++) {
+            graphics.fill(xs[i], top, xs[i] + buttonW, top + panelH, 0xCC10161D);
+            graphics.outline(xs[i], top, buttonW, panelH, 0xFF2B3742);
+            graphics.text(font, titles[i], xs[i] + 10, top + 10, colors[i]);
         }
 
+        graphics.text(font, "Join with a code or host your world.", xs[0] + 10, top + 91, 0xFF8E9AA6);
+        graphics.text(font, "Friends, chat and live presence.", xs[1] + 10, top + 91, 0xFF8E9AA6);
+        graphics.text(font, "Store, cosmetics and emotes.", xs[2] + 10, top + 91, 0xFF8E9AA6);
+        graphics.text(font, "Lobby, claims and settings.", xs[3] + 10, top + 91, 0xFF8E9AA6);
+
+        int infoY = top + panelH + 14;
+        int infoH = Math.max(88, height - infoY - 72);
+        graphics.fill(left, infoY, width - left, infoY + infoH, 0xCC0D1218);
+        graphics.outline(left, infoY, width - left * 2, infoH, 0xFF26323D);
+
+        String room = WorldGateModClient.CURRENT_ROOM_CODE;
+        graphics.text(font, room == null || room.isBlank() ? "READY" : "ACTIVE ROOM",
+                left + 14, infoY + 14, room == null || room.isBlank() ? 0xFF70E090 : 0xFF7DE2FF);
+        graphics.text(font,
+                room == null || room.isBlank()
+                        ? "LAN discovery is available on the same Wi-Fi/hotspot."
+                        : "Room " + room + " • realtime presence is active when connected.",
+                left + 14, infoY + 34, 0xFFFFFFFF);
+        graphics.text(font,
+                "WorldGate keeps each feature on its own direct screen — no nested option overload.",
+                left + 14, infoY + 51, 0xFF8E9AA6);
+
         if (minecraft != null && minecraft.player != null) {
-            int previewX0 = width - margin - 105;
-            int previewY0 = infoTop + 8;
-            int previewX1 = width - margin - 12;
-            int previewY1 = Math.min(height - 48, infoTop + infoHeight - 8);
-
+            int x0 = width - left - 112;
+            int y0 = infoY + 8;
+            int x1 = width - left - 12;
+            int y1 = Math.min(height - 72, infoY + infoH - 8);
             InventoryScreen.extractEntityInInventoryFollowsMouse(
-                    graphics,
-                    previewX0,
-                    previewY0,
-                    previewX1,
-                    previewY1,
-                    62,
-                    0.0F,
-                    mouseX,
-                    mouseY,
-                    minecraft.player
+                    graphics, x0, y0, x1, y1, 62, 0.0F, mouseX, mouseY, minecraft.player
             );
-
-            graphics.text(
-                    font,
-                    minecraft.player.getName().getString(),
-                    previewX0,
-                    previewY1 - 2,
-                    0xFFFFFFFF
-            );
+            graphics.text(font, minecraft.player.getName().getString(), x0, y1 - 2, 0xFFFFFFFF);
         }
     }
 
