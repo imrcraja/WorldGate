@@ -7,10 +7,8 @@ import java.util.Set;
 import java.util.Locale;
 
 /**
- * Broadcasts a named emote to everyone in the room via /rooms/<code>/emotes.
- * Placeholder emote list for now -- RC RAJA is adding the real emote set
- * and animations later. This just wires up send/receive so that work
- * drops in without touching the networking layer again.
+ * Broadcasts validated named emotes to everyone in the room and updates the
+ * client animation state for local and remote players.
  */
 public class EmoteManager {
     public static final String[] DEFAULT_EMOTES = { "wave", "dance", "sit", "cheer" };

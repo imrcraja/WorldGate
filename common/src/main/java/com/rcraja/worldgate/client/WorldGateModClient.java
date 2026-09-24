@@ -40,6 +40,7 @@ public class WorldGateModClient implements ClientModInitializer {
             });
 
     private static volatile boolean heartbeatRunning = false;
+    private static java.util.concurrent.ScheduledFuture<?> heartbeatTask;
 
     public static synchronized void startHeartbeat(boolean host) {
         if (heartbeatRunning) {
@@ -48,7 +49,7 @@ public class WorldGateModClient implements ClientModInitializer {
 
         heartbeatRunning = true;
 
-        HEARTBEAT.scheduleAtFixedRate(
+        heartbeatTask = HEARTBEAT.scheduleAtFixedRate(
                 () -> {
                     String room = CURRENT_ROOM_CODE;
                     if (room == null || room.isBlank()) {
@@ -69,6 +70,11 @@ public class WorldGateModClient implements ClientModInitializer {
 
     public static synchronized void stopHeartbeat() {
         heartbeatRunning = false;
+        java.util.concurrent.ScheduledFuture<?> task = heartbeatTask;
+        heartbeatTask = null;
+        if (task != null) {
+            task.cancel(false);
+        }
     }
 
     @Override
