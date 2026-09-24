@@ -24,7 +24,7 @@ public abstract class PlayerModelMixin extends HumanoidModel<AvatarRenderState> 
 
     @Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V", at = @At("TAIL"))
     private void worldgate$applyEmote(AvatarRenderState state, CallbackInfo ci) {
-        java.util.UUID playerId = state.getRenderData(WorldGateEmoteRenderState.PLAYER_ID);
+        java.util.UUID playerId = WorldGateEmoteRenderState.getPlayerId(state);
         if (playerId == null) {
             return;
         }
