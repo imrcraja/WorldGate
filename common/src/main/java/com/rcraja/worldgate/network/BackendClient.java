@@ -11,7 +11,7 @@ import java.time.Duration;
 public final class BackendClient {
     private static final HttpClient CLIENT=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private BackendClient(){}
-    public static String eliteProfile(FirebaseSession s,String uid){return post(Constants.BACKEND_BASE_URL+"/v1/elite/profile",s,"{\"uid\":\""+escape(uid)+"\"}");}
+    public static String eliteProfile(FirebaseSession s,String uid){return get(Constants.BACKEND_BASE_URL+"/v1/elite/profile",s);}
     public static String publicEliteProfile(FirebaseSession s,String uid){return post(Constants.BACKEND_BASE_URL+"/v1/elite/public-profiles",s,"{\"uids\":[\""+escape(uid)+"\"]}");}
     public static String coinWallet(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/coins/wallet",s);}
     public static String coinCatalog(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/coins/catalog",s);}

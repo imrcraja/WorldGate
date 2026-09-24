@@ -282,23 +282,14 @@ public class FriendManager {
         return result != null;
     }
 
-    /** Send a friend request directly to a Firebase UID. */
-    public boolean sendRequestByUid(String targetUid) {
+    /**
+     * Compatibility method for old code.
+     */
+    public boolean sendRequest(String targetUid) {
+
         if (!session.isReady()
                 || targetUid == null
                 || targetUid.isBlank()) {
-            return false;
-        }
-
-        String target = targetUid.trim();
-        if (target.equals(session.uid())) {
-            return false;
-        }
-
-        String targetProfile = getProfile(target);
-        if (targetProfile == null
-                || targetProfile.isBlank()
-                || targetProfile.equals("null")) {
             return false;
         }
 
@@ -306,31 +297,27 @@ public class FriendManager {
                 "{"
                         + "\"fromUid\":\""
                         + escapeJson(session.uid())
-                        + "\",\"fromFriendCode\":\""
+                        + "\","
+                        + "\"fromFriendCode\":\""
                         + escapeJson(myFriendCode())
-                        + "\",\"fromName\":\""
+                        + "\","
+                        + "\"fromName\":\""
                         + escapeJson(getMyDisplayName())
-                        + "\",\"sentAt\":"
+                        + "\","
+                        + "\"sentAt\":"
                         + System.currentTimeMillis()
                         + "}";
 
-        return session.db().put(
-                "/friend_requests/" + target + "/" + session.uid(),
-                json
-        ) != null;
-    }
+        String result =
+                session.db().put(
+                        "/friend_requests/"
+                                + targetUid.trim()
+                                + "/"
+                                + session.uid(),
+                        json
+                );
 
-    /** Accept either a Friend Code or a direct Firebase UID. */
-    public boolean sendRequest(String target) {
-        if (target == null || target.isBlank()) {
-            return false;
-        }
-
-        String value = target.trim();
-        if (sendRequestByCode(value)) {
-            return true;
-        }
-        return sendRequestByUid(value);
+        return result != null;
     }
 
     public String getIncomingRequests() {
