@@ -10,10 +10,10 @@ public class RoomManager {
 
     private final FirebaseSession session;
 
-    private final FirebaseStreamClient roomStream =
-            new FirebaseStreamClient();
-
+    private final FirebaseStreamClient roomStream = new FirebaseStreamClient();
+    private final FirebaseStreamClient inviteStream = new FirebaseStreamClient();
     private volatile Consumer<String> roomChanged;
+    private volatile Consumer<String> inviteChanged;
 
     public RoomManager(FirebaseSession session) {
         this.session = session;
@@ -76,6 +76,39 @@ public class RoomManager {
         );
 
         return roomCode;
+    }
+
+    public boolean inviteFriend(String roomCode, String friendUid, String hostName) {
+        if (!session.isReady() || roomCode == null || roomCode.isBlank()
+                || friendUid == null || friendUid.isBlank() || friendUid.equals(session.uid())) return false;
+        String safeName = hostName == null || hostName.isBlank() ? "Player" : escape(hostName.trim());
+        String json = "{"
+                + "\"roomCode\":\"" + escape(roomCode.trim().toUpperCase()) + "\","
+                + "\"fromUid\":\"" + escape(session.uid()) + "\","
+                + "\"fromName\":\"" + safeName + "\","
+                + "\"sentAt\":" + System.currentTimeMillis() + "}";
+        return session.db().put("/room_invites/" + friendUid.trim() + "/" + session.uid(), json) != null;
+    }
+
+    public String getIncomingInvites() {
+        return session.isReady() ? session.db().get("/room_invites/" + session.uid()) : null;
+    }
+
+    public boolean removeInvite(String fromUid) {
+        if (!session.isReady() || fromUid == null || fromUid.isBlank()) return false;
+        session.db().delete("/room_invites/" + session.uid() + "/" + fromUid.trim());
+        return true;
+    }
+
+    public void setInviteChangedListener(Consumer<String> listener) { inviteChanged = listener; }
+
+    public void startInviteRealtime() {
+        if (!session.isReady()) return;
+        inviteStream.stop();
+        inviteStream.listen(Constants.FIREBASE_DATABASE_URL, "/room_invites/" + session.uid(), session.idToken(), data -> {
+            Consumer<String> listener = inviteChanged;
+            if (listener != null) listener.accept(data);
+        });
     }
 
     public String getRoom(
@@ -309,6 +342,7 @@ public class RoomManager {
 
     public void stopRealtime() {
         roomStream.stop();
+        inviteStream.stop();
     }
 
     private static String escape(

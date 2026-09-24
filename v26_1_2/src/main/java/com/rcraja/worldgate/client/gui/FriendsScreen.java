@@ -31,6 +31,7 @@ public class FriendsScreen extends Screen {
             new ArrayList<>();
 
     private String selectedRequestUid = null;
+    private String selectedFriendUid = null;
 
     private String myCode = "...";
     private String status = "";
@@ -125,6 +126,15 @@ public class FriendsScreen extends Screen {
 
         this.addRenderableWidget(
                 Button.builder(
+                        Component.literal("Invite Selected Friend"),
+                        btn -> inviteSelectedFriend()
+                )
+                .bounds(centerX - 100, 135, 200, 20)
+                .build()
+        );
+
+        this.addRenderableWidget(
+                Button.builder(
                         Component.translatable("worldgate.button.back"),
                         btn -> closeScreen()
                 )
@@ -152,9 +162,11 @@ public class FriendsScreen extends Screen {
                         }
                 );
 
-        WorldGateModClient.FRIEND_MANAGER
-                .startRealtime();
-
+        WorldGateModClient.FRIEND_MANAGER.startRealtime();
+        WorldGateModClient.ROOM_MANAGER.setInviteChangedListener(ignored -> {
+            if (this.minecraft != null) this.minecraft.execute(this::loadInvites);
+        });
+        WorldGateModClient.ROOM_MANAGER.startInviteRealtime();
         loadAll();
     }
 
@@ -237,11 +249,43 @@ public class FriendsScreen extends Screen {
     }
 
     private void loadAll() {
-
         loadFriends();
-
         loadRequests();
+        loadInvites();
     }
+
+    private void loadInvites() {
+        WorldGateModClient.EXECUTOR.submit(() -> {
+            String json = WorldGateModClient.ROOM_MANAGER.getIncomingInvites();
+            if (json == null || json.equals("null") || json.isBlank()) return;
+            try {
+                JsonObject invites = JsonParser.parseString(json).getAsJsonObject();
+                if (invites.entrySet().isEmpty()) return;
+                String fromUid = invites.keySet().iterator().next();
+                JsonObject invite = invites.getAsJsonObject(fromUid);
+                String name = invite.has("fromName") ? invite.get("fromName").getAsString() : "Player";
+                String room = invite.has("roomCode") ? invite.get("roomCode").getAsString() : "";
+                this.minecraft.execute(() -> {
+                    requestNotification = "Room Invite: " + name + " [" + room + "]";
+                    requestNotificationUntil = System.currentTimeMillis() + 7000L;
+                    status = "Room invite received: " + room;
+                });
+            } catch (Exception ignored) { }
+        });
+    }
+
+    private void inviteSelectedFriend() {
+        if (selectedFriendUid == null) { status = "Select a friend first."; return; }
+        String room = WorldGateModClient.CURRENT_ROOM_CODE;
+        if (room == null || room.isBlank()) { status = "Create or join a room first."; return; }
+        String uid = selectedFriendUid;
+        status = "Sending room invite...";
+        WorldGateModClient.EXECUTOR.submit(() -> {
+            boolean ok = WorldGateModClient.ROOM_MANAGER.inviteFriend(room, uid, this.minecraft.getUser().getName());
+            this.minecraft.execute(() -> status = ok ? "Room invite sent." : "Could not send room invite.");
+        });
+    }
+
 
     private void loadFriends() {
 
@@ -721,9 +765,10 @@ public class FriendsScreen extends Screen {
                     );
                 }
 
+                boolean selectedFriend = friend.uid().equals(selectedFriendUid);
                 graphics.text(
                         this.font,
-                        friend.name(),
+                        (selectedFriend ? "> " : "") + friend.name(),
                         centerX - 124,
                         friendY,
                         0xFFFFFF
@@ -846,6 +891,17 @@ public boolean mouseClicked(
             requestY += 32;
         }
 
+        int friendClickY = Math.max(requestY + 15, 225) + 18;
+        for (FriendEntry friend : friends) {
+            if (mouseX >= centerX - 145 && mouseX <= centerX + 145
+                    && mouseY >= friendClickY - 4 && mouseY <= friendClickY + 27) {
+                selectedFriendUid = friend.uid();
+                status = "Selected: " + friend.name();
+                return true;
+            }
+            friendClickY += 32;
+        }
+
         return super.mouseClicked(
         event,
         doubleClick
@@ -859,11 +915,10 @@ public boolean mouseClicked(
                         null
                 );
 
-        WorldGateModClient.FRIEND_MANAGER
-                .stopRealtime();
-
-        WorldGateModClient.FRIEND_MANAGER
-                .setOffline();
+        WorldGateModClient.FRIEND_MANAGER.stopRealtime();
+        WorldGateModClient.ROOM_MANAGER.setInviteChangedListener(null);
+        WorldGateModClient.ROOM_MANAGER.stopRealtime();
+        WorldGateModClient.FRIEND_MANAGER.setOffline();
 
         this.minecraft.setScreen(
                 parent
