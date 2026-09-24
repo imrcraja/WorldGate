@@ -95,6 +95,9 @@ public class WorldGateModClient implements ClientModInitializer {
             );
 
             if (connected) {
+                String displayName = Minecraft.getInstance().getUser().getName();
+                FRIEND_MANAGER.setOnline(displayName);
+
                 WorldGateMod.LOGGER.info(
                         "WorldGate Firebase session ready (uid={})",
                         SESSION.uid()
