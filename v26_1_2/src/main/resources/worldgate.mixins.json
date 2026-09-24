@@ -4,7 +4,9 @@
   "package": "com.rcraja.worldgate.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
+    "AvatarRendererMixin",
     "PauseScreenMixin",
+    "PlayerModelMixin",
     "PlayerTabOverlayMixin",
     "TitleScreenMixin"
   ],
