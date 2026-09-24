@@ -21,12 +21,12 @@ public abstract class PauseScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void worldgate$addButton(CallbackInfo ci) {
-        Button bottomButton = null;
+        Button topButton = null;
 
         for (var child : this.children()) {
             if (child instanceof Button button) {
-                if (bottomButton == null || button.getY() > bottomButton.getY()) {
-                    bottomButton = button;
+                if (topButton == null || button.getY() < topButton.getY()) {
+                    topButton = button;
                 }
             }
         }
@@ -34,17 +34,11 @@ public abstract class PauseScreenMixin extends Screen {
         int x = this.width / 2 - 100;
         int y;
 
-        if (bottomButton != null) {
-            int below = bottomButton.getY() + bottomButton.getHeight() + 4;
-            int above = bottomButton.getY() - 24;
-
-            if (below + 20 <= this.height - 8) {
-                y = below;
-            } else {
-                y = Math.max(8, above);
-            }
+        if (topButton != null) {
+            x = topButton.getX();
+            y = Math.max(8, topButton.getY() - 24);
         } else {
-            y = this.height / 2 + 70;
+            y = Math.max(8, this.height / 2 - 70);
         }
 
         this.addRenderableWidget(

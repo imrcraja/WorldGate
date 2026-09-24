@@ -35,15 +35,15 @@ public abstract class TitleScreenMixin extends Screen {
             }
         }
 
-        int x;
+        int x = this.width / 2 - 100;
         int y;
 
         if (modsButton != null) {
             x = modsButton.getX();
-            y = Math.max(8, modsButton.getY() - 24);
+            // Keep WorldGate clearly above the Mods/Mod Menu row.
+            y = Math.max(8, modsButton.getY() - 48);
         } else {
-            x = this.width / 2 - 100;
-            y = this.height - 28;
+            y = Math.max(8, this.height / 2 + 12);
         }
 
         this.addRenderableWidget(
