@@ -4,6 +4,7 @@ import com.rcraja.worldgate.client.gui.WorldGateScreen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.PlayerSkinWidget;
+import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -53,8 +54,9 @@ public abstract class PauseScreenMixin extends Screen {
                         previewSize,
                         previewSize + 34,
                         this.minecraft.getEntityModels(),
-                        () -> this.minecraft.getSkinManager()
-                                .getInsecureSkin(this.minecraft.getGameProfile())
+                        () -> this.minecraft.playerSkinRenderCache()
+                                .getOrDefault(ResolvableProfile.createUnresolved(this.minecraft.getGameProfile()))
+                                .playerSkin()
                 );
                 playerWidget.setPosition(
                         previewX,
