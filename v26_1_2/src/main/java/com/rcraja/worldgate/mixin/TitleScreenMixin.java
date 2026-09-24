@@ -60,7 +60,7 @@ public abstract class TitleScreenMixin extends Screen {
                         previewSize + 34,
                         this.minecraft.getEntityModels(),
                         () -> this.minecraft.playerSkinRenderCache()
-                                .getOrDefault(ResolvableProfile.createUnresolved(this.minecraft.getGameProfile()))
+                                .getOrDefault(ResolvableProfile.createUnresolved(this.minecraft.getUser().getProfileId()))
                                 .playerSkin()
                 );
                 playerWidget.setPosition(
