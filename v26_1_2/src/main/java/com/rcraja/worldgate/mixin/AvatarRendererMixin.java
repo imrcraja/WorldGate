@@ -25,7 +25,7 @@ public abstract class AvatarRendererMixin {
             CallbackInfo ci
     ) {
         if (player != null) {
-            state.setRenderData(WorldGateEmoteRenderState.PLAYER_ID, player.getUUID());
+            WorldGateEmoteRenderState.setPlayerId(state, player.getUUID());
         }
     }
 }
