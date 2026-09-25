@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.Constants;
 import com.rcraja.worldgate.client.WorldGateModClient;
+import com.rcraja.worldgate.client.WorldGateSkinCache;
 import com.rcraja.worldgate.network.HostBridge;
 import com.rcraja.worldgate.network.RelayBridge;
 import com.rcraja.worldgate.client.WorldGateSounds;
@@ -329,6 +330,9 @@ public class WorldGateScreen extends Screen {
 
                     WorldGateModClient
                             .startHeartbeat(true);
+                    WorldGateSkinCache.refreshRoomPlayers(
+                            WorldGateModClient.ROOM_MANAGER.getRoom(code)
+                    );
 
                     minecraft.execute(
                             () -> {
@@ -471,6 +475,7 @@ public class WorldGateScreen extends Screen {
 
                                             WorldGateModClient
                                                     .startHeartbeat(false);
+                                            WorldGateSkinCache.refreshRoomPlayers(roomJson);
 
                                             ServerAddress address;
                                             if (relayPort > 0) {
