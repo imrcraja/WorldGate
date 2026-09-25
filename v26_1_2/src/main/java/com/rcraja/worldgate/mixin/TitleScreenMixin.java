@@ -42,8 +42,10 @@ public abstract class TitleScreenMixin extends Screen {
 
         if (modsButton != null) {
             x = modsButton.getX();
-            // Keep WorldGate clearly above the Mods/Mod Menu row.
-            y = Math.max(8, modsButton.getY() - 48);
+            // Put WorldGate in the dedicated gap directly above the Mods/Mod Menu row.
+            // The 26.1.2 title menu uses a 28px vertical row step; using 48px
+            // caused WorldGate to collide with the vanilla rows on some layouts.
+            y = Math.max(8, modsButton.getY() - 28);
         } else {
             y = Math.max(8, this.height / 2 + 12);
         }
