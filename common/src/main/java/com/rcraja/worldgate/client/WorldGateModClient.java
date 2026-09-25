@@ -5,6 +5,8 @@ import com.rcraja.worldgate.network.ChatManager;
 import com.rcraja.worldgate.network.EmoteManager;
 import com.rcraja.worldgate.network.FirebaseSession;
 import com.rcraja.worldgate.network.FriendManager;
+import com.rcraja.worldgate.network.HostBridge;
+import com.rcraja.worldgate.network.RelayBridge;
 import com.rcraja.worldgate.network.RoomManager;
 
 import net.fabricmc.api.ClientModInitializer;
