@@ -1,36 +1,22 @@
 package com.rcraja.worldgate.client.gui;
 
+import com.rcraja.worldgate.client.WorldGateModClient;
+import com.rcraja.worldgate.network.EliteCoinManager;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import com.rcraja.worldgate.client.LocalWorldGateData;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * WorldGate wardrobe hub. The screen owns lightweight local selection state so
- * the UI is immediately interactive while server-backed ownership/catalog data
- * can be wired in later without changing navigation.
- */
 public final class WardrobeScreen extends Screen {
     public enum Tab { COSMETICS, EMOTES }
 
-    private static final Map<String, Boolean> OWNED = new LinkedHashMap<>();
-    private static String equippedCosmetic = "WorldGate";
-    private static String equippedEmote = "Wave";
-
-    static {
-        try {
-            equippedCosmetic = LocalWorldGateData.get("equippedCosmetic", "WorldGate");
-            equippedEmote = LocalWorldGateData.get("equippedEmote", "Wave");
-        } catch (Exception ignored) {}
-    }
-
     private final Screen parent;
     private final Tab tab;
-    private String status = "";
+    private final List<Button> itemButtons = new ArrayList<>();
+    private String status = "Syncing wardrobe...";
 
     public WardrobeScreen(Screen parent, Tab tab) {
         super(Component.literal(tab == Tab.EMOTES ? "Emotes" : "Cosmetics"));
@@ -43,20 +29,14 @@ public final class WardrobeScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Cosmetics"),
                 b -> open(Tab.COSMETICS))
                 .bounds(width / 2 - 156, 58, 100, 20).build());
-
         addRenderableWidget(Button.builder(Component.literal("Emotes"),
                 b -> open(Tab.EMOTES))
                 .bounds(width / 2 - 52, 58, 100, 20).build());
-
         addRenderableWidget(Button.builder(Component.literal("Elite Store"),
                 b -> minecraft.setScreen(new EliteCoinScreen(this)))
                 .bounds(width / 2 + 52, 58, 100, 20).build());
 
-        addRenderableWidget(Button.builder(Component.literal("Back"),
-                b -> onClose())
-                .bounds(width / 2 - 100, height - 30, 200, 20).build());
-
-        int left = Math.max(24, width / 2 - 310);
+        int left = Math.max(20, width / 2 - 310);
         int top = 92;
         int gap = 10;
         int cardW = 148;
@@ -68,13 +48,114 @@ public final class WardrobeScreen extends Screen {
             int row = i / 4;
             int x = left + col * (cardW + gap);
             int y = top + row * (cardH + gap);
-
-            addRenderableWidget(Button.builder(
-                    Component.literal(i == 0 ? "Equipped" : "Select"),
-                    b -> select(index))
-                    .bounds(x + 14, y + 66, cardW - 28, 20)
-                    .build());
+            Button button = Button.builder(Component.literal("Loading..."),
+                    b -> action(index))
+                    .bounds(x + 10, y + 66, cardW - 20, 20).build();
+            itemButtons.add(button);
+            addRenderableWidget(button);
         }
+
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.refresh"),
+                b -> refresh())
+                .bounds(width / 2 - 155, height - 30, 97, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.back"),
+                b -> onClose())
+                .bounds(width / 2 - 52, height - 30, 207, 20).build());
+
+        refresh();
+    }
+
+    private List<EliteCoinManager.Item> items() {
+        List<EliteCoinManager.Item> result = new ArrayList<>();
+        for (EliteCoinManager.Item item : EliteCoinManager.catalog().items()) {
+            boolean match = tab == Tab.EMOTES
+                    ? "emote".equalsIgnoreCase(item.type())
+                    : "cosmetic".equalsIgnoreCase(item.type());
+            if (match) result.add(item);
+        }
+        return result;
+    }
+
+    private void refresh() {
+        status = "Syncing wardrobe...";
+        EliteCoinManager.refresh(() -> {
+            if (minecraft != null) minecraft.execute(() -> {
+                status = EliteCoinManager.wallet().available()
+                        ? "Server synced • " + EliteCoinManager.wallet().balance() + " EC"
+                        : "Wardrobe data unavailable.";
+                updateButtons();
+            });
+        });
+        updateButtons();
+    }
+
+    private void updateButtons() {
+        List<EliteCoinManager.Item> items = items();
+        EliteCoinManager.Inventory inv = EliteCoinManager.inventory();
+        for (int i = 0; i < itemButtons.size(); i++) {
+            Button button = itemButtons.get(i);
+            if (i >= items.size()) {
+                button.setMessage(Component.literal("Unavailable"));
+                button.active = false;
+                continue;
+            }
+            EliteCoinManager.Item item = items.get(i);
+            button.active = true;
+            if (!inv.owns(item.id())) {
+                button.setMessage(Component.literal(item.priceCoins() == 0
+                        ? "Unlock"
+                        : "Buy " + item.priceCoins() + " EC"));
+            } else if (inv.equipped(item.type(), item.id())) {
+                button.setMessage(Component.literal("Equipped"));
+            } else {
+                button.setMessage(Component.literal(item.type().equals("emote") ? "Equip & Use" : "Equip"));
+            }
+        }
+    }
+
+    private void action(int index) {
+        List<EliteCoinManager.Item> items = items();
+        if (index < 0 || index >= items.size()) return;
+        EliteCoinManager.Item item = items.get(index);
+        EliteCoinManager.Inventory inv = EliteCoinManager.inventory();
+
+        if (!inv.owns(item.id())) {
+            status = "Purchasing " + item.name() + "...";
+            WorldGateModClient.EXECUTOR.submit(() -> {
+                String response = EliteCoinManager.purchaseItem(item.id());
+                if (minecraft != null) minecraft.execute(() -> {
+                    if (response != null && response.contains("\"ok\":true")) {
+                        status = "Purchased " + item.name() + ".";
+                    } else if (response != null && response.contains("insufficient_balance")) {
+                        status = "Not enough Elite Coins.";
+                    } else {
+                        status = response == null ? "Purchase failed." : "Purchase could not be completed.";
+                    }
+                    refresh();
+                });
+            });
+            return;
+        }
+
+        status = "Equipping " + item.name() + "...";
+        WorldGateModClient.EXECUTOR.submit(() -> {
+            String response = EliteCoinManager.equipItem(item.id());
+            if (minecraft != null) minecraft.execute(() -> {
+                if (response != null && response.contains("\"ok\":true")) {
+                    status = "Equipped " + item.name() + ".";
+                    if ("emote".equalsIgnoreCase(item.type())) {
+                        String room = WorldGateModClient.CURRENT_ROOM_CODE;
+                        if (room != null && !room.isBlank()) {
+                            WorldGateModClient.EMOTE_MANAGER.sendEmote(room, item.id().substring("emote:".length()));
+                            status = "Used " + item.name() + ".";
+                        }
+                    }
+                } else {
+                    status = response == null ? "Equip failed." : "Item is not owned.";
+                }
+                refresh();
+            });
+        });
     }
 
     private void open(Tab next) {
@@ -83,81 +164,57 @@ public final class WardrobeScreen extends Screen {
         }
     }
 
-    private void select(int index) {
-        if (index != 0) {
-            status = "This WorldGate slot is ready for future catalog content.";
-            return;
-        }
-
-        if (tab == Tab.EMOTES) {
-            equippedEmote = "Wave";
-            LocalWorldGateData.set("equippedEmote", equippedEmote);
-            OWNED.put("emote:wave", true);
-            status = "Equipped emote: Wave";
-        } else {
-            equippedCosmetic = "WorldGate";
-            LocalWorldGateData.set("equippedCosmetic", equippedCosmetic);
-            OWNED.put("cosmetic:worldgate", true);
-            status = "Equipped cosmetic: WorldGate";
-        }
-    }
-
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
         super.extractRenderState(g, mx, my, delta);
 
-        String title = tab == Tab.EMOTES ? "EMOTES" : "COSMETICS";
-        String subtitle = tab == Tab.EMOTES
-                ? "Choose an emote to use in WorldGate."
-                : "Choose your active WorldGate cosmetic.";
+        g.centeredText(font, tab == Tab.EMOTES ? "EMOTES" : "COSMETICS",
+                width / 2, 20, 0xFFFFFFFF);
+        g.centeredText(font,
+                tab == Tab.EMOTES
+                        ? "Equip and use your server-owned emote collection."
+                        : "Equip your server-owned cosmetics.",
+                width / 2, 38, 0xFF9AA7B4);
 
-        g.centeredText(font, title, width / 2, 20, 0xFFFFFFFF);
-        g.centeredText(font, subtitle, width / 2, 38, 0xFF9AA7B4);
-
-        int left = Math.max(24, width / 2 - 310);
+        int left = Math.max(20, width / 2 - 310);
         int top = 92;
         int gap = 10;
         int cardW = 148;
         int cardH = 92;
+        List<EliteCoinManager.Item> items = items();
+        EliteCoinManager.Inventory inv = EliteCoinManager.inventory();
 
         for (int i = 0; i < 8; i++) {
             int col = i % 4;
             int row = i / 4;
             int x = left + col * (cardW + gap);
             int y = top + row * (cardH + gap);
+            boolean available = i < items.size();
+            g.fill(x, y, x + cardW, y + cardH, available ? 0xCC10161D : 0x8810161D);
+            g.outline(x, y, cardW, cardH,
+                    available && inv.equipped(items.get(i).type(), items.get(i).id())
+                            ? 0xFF7DE2FF : 0xFF2B3742);
 
-            boolean active = i == 0;
-            boolean equipped = active;
-            g.fill(x, y, x + cardW, y + cardH, active ? 0xCC15212A : 0xCC10161D);
-            g.outline(x, y, cardW, cardH, active ? 0xFF4B90A8 : 0xFF2B3742);
-
-            String name;
-            String detail;
-            if (active && tab == Tab.EMOTES) {
-                name = "Wave";
-                detail = equippedEmote.equals("Wave") ? "Equipped" : "Owned";
-            } else if (active) {
-                name = "WorldGate";
-                detail = equippedCosmetic.equals("WorldGate") ? "Equipped" : "Owned";
-            } else {
-                name = "Coming Soon";
-                detail = "New content";
+            if (!available) {
+                g.centeredText(font, "No item", x + cardW / 2, y + 34, 0xFF59636D);
+                continue;
             }
 
-            g.centeredText(font, Component.literal(name),
-                    x + cardW / 2, y + 24,
-                    active ? 0xFF7DE2FF : 0xFF7D8792);
-            g.centeredText(font, Component.literal(detail),
-                    x + cardW / 2, y + 44, 0xFF8E9AA6);
+            EliteCoinManager.Item item = items.get(i);
+            boolean owned = inv.owns(item.id());
+            boolean equipped = inv.equipped(item.type(), item.id());
+            g.centeredText(font, Component.literal(item.name()),
+                    x + cardW / 2, y + 18, 0xFFFFFFFF);
+            g.centeredText(font, Component.literal(item.description()),
+                    x + cardW / 2, y + 35, 0xFF8E9AA6);
+            String state = equipped ? "EQUIPPED" : owned ? "OWNED" : item.priceCoins() + " EC";
+            g.centeredText(font, Component.literal(state),
+                    x + cardW / 2, y + 51,
+                    equipped ? 0xFF7DE2FF : owned ? 0xFF70E090 : 0xFFFFD45A);
         }
 
-        if (status.isBlank()) {
-            status = tab == Tab.EMOTES
-                    ? "Equipped: " + equippedEmote
-                    : "Equipped: " + equippedCosmetic;
-        }
         g.centeredText(font, Component.literal(status),
-                width / 2, height - 52, 0xFF8E9AA6);
+                width / 2, height - 48, 0xFF8E9AA6);
     }
 
     @Override
