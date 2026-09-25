@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -27,6 +28,10 @@ public final class ChatScreen extends Screen {
     private EditBox input;
     private ChatLine selected;
     private String pendingUrl;
+    private Button replyButton;
+    private Button deleteButton;
+    private Button linkButton;
+    private String status = "Realtime chat connected";
 
     public ChatScreen(Screen parent, String roomCode) {
         super(Component.literal("WorldGate Chat"));
@@ -50,26 +55,22 @@ public final class ChatScreen extends Screen {
                 b -> send()
         ).bounds(cx + 75, height - 48, 75, 20).build());
 
-        addRenderableWidget(Button.builder(
-                Component.literal("Reply"),
-                b -> reply()
-        ).bounds(cx - 150, height - 24, 70, 20).build());
-
-        addRenderableWidget(Button.builder(
-                Component.literal("Delete"),
-                b -> deleteSelected()
-        ).bounds(cx - 75, height - 24, 70, 20).build());
-
-        addRenderableWidget(Button.builder(
-                Component.literal("Open Link"),
-                b -> openPendingUrl()
-        ).bounds(cx, height - 24, 85, 20).build());
+        replyButton = Button.builder(Component.literal("Reply"), b -> reply())
+                .bounds(cx - 150, height - 24, 70, 20).build();
+        deleteButton = Button.builder(Component.literal("Delete"), b -> deleteSelected())
+                .bounds(cx - 75, height - 24, 70, 20).build();
+        linkButton = Button.builder(Component.literal("Open Link"), b -> openPendingUrl())
+                .bounds(cx, height - 24, 85, 20).build();
+        addRenderableWidget(replyButton);
+        addRenderableWidget(deleteButton);
+        addRenderableWidget(linkButton);
 
         addRenderableWidget(Button.builder(
                 Component.literal("Back"),
                 b -> closeScreen()
         ).bounds(cx + 90, height - 24, 60, 20).build());
 
+        updateActions();
         WorldGateModClient.CHAT_MANAGER.listenDetailed(roomCode, event ->
                 Minecraft.getInstance().execute(() -> applyEvent(event)));
     }
@@ -85,6 +86,8 @@ public final class ChatScreen extends Screen {
                     break;
                 }
             }
+            status = "Message deleted";
+            updateActions();
             return;
         }
 
@@ -98,6 +101,16 @@ public final class ChatScreen extends Screen {
         while (messages.size() > 80) {
             messages.remove(0);
         }
+        status = "New message";
+    }
+
+    private void updateActions() {
+        if (replyButton == null) return;
+        replyButton.active = selected != null && !selected.deleted();
+        String myUid = WorldGateModClient.FRIEND_MANAGER.myUid();
+        deleteButton.active = selected != null && !selected.deleted()
+                && myUid != null && myUid.equals(selected.senderUid());
+        linkButton.active = pendingUrl != null && !pendingUrl.isBlank();
     }
 
     private void send() {
@@ -149,6 +162,40 @@ public final class ChatScreen extends Screen {
     private void select(ChatLine line) {
         selected = line;
         pendingUrl = findUrl(line.text());
+        updateActions();
+    }
+
+    private String displayName(String uid) {
+        if (uid == null || uid.isBlank()) return "Player";
+        String myUid = WorldGateModClient.FRIEND_MANAGER.myUid();
+        if (uid.equals(myUid)) return "You";
+        try {
+            String profile = WorldGateModClient.FRIEND_MANAGER.getProfile(uid);
+            if (profile != null && !profile.isBlank() && !profile.equals("null")) {
+                com.google.gson.JsonObject object = com.google.gson.JsonParser.parseString(profile).getAsJsonObject();
+                if (object.has("displayName")) {
+                    String name = object.get("displayName").getAsString();
+                    if (!name.isBlank()) return name;
+                }
+            }
+        } catch (Exception ignored) {}
+        return "Player";
+    }
+
+    @Override
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (event.button() == 0) {
+            int first = Math.max(0, messages.size() - 12);
+            int y = 42;
+            for (int i = first; i < messages.size(); i++) {
+                if (event.y() >= y - 3 && event.y() <= y + 13) {
+                    select(messages.get(i));
+                    return true;
+                }
+                y += 16;
+            }
+        }
+        return super.mouseClicked(event, doubleClick);
     }
 
     private static String findUrl(String text) {
@@ -177,13 +224,8 @@ public final class ChatScreen extends Screen {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
 
         int cx = width / 2;
-        graphics.centeredText(
-                font,
-                Component.literal("WorldGate Chat • Room " + roomCode),
-                cx,
-                18,
-                0xFFFFFF
-        );
+        graphics.centeredText(font, Component.literal("WorldGate Chat • Room " + roomCode), cx, 18, 0xFFFFFF);
+        graphics.centeredText(font, Component.literal(status), cx, 31, 0x8F9BA8);
 
         int first = Math.max(0, messages.size() - 12);
         int y = 42;
@@ -192,7 +234,7 @@ public final class ChatScreen extends Screen {
             ChatLine line = messages.get(i);
             String marker = line == selected ? "> " : "  ";
             String reply = line.replyTo().isBlank() ? "" : " ↪ ";
-            String text = marker + line.senderUid() + reply + line.text();
+            String text = marker + displayName(line.senderUid()) + reply + line.text();
 
             graphics.centeredText(
                     font,
@@ -205,13 +247,11 @@ public final class ChatScreen extends Screen {
         }
 
         if (selected != null) {
-            graphics.centeredText(
-                    font,
-                    Component.literal("Selected: " + selected.text()),
-                    cx,
-                    height - 72,
-                    0xFFFFFF
-            );
+            String selectedText = selected.text() == null ? "" : selected.text();
+            if (selectedText.length() > 70) selectedText = selectedText.substring(0, 70) + "...";
+            graphics.centeredText(font, Component.literal("Selected: " + selectedText), cx, height - 72, 0xD8DDE3);
+        } else {
+            graphics.centeredText(font, Component.literal("Select a message for reply, delete or link actions"), cx, height - 72, 0x68737E);
         }
     }
 
