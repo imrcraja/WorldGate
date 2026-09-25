@@ -66,9 +66,9 @@ public class WorldGateScreen extends Screen {
                 .bounds(left + 8, top + 60, cardW - 16, 20).build());
 
         String[] labels = {
-                "Profile", "Friends", "Chat", "Lobby",
-                "Claim Center", "Settings", "Elite Store", "Cosmetics",
-                "Emotes", "Account Security", "Discord", "Report"
+                "worldgate.dashboard.profile", "worldgate.dashboard.friends", "worldgate.dashboard.chat", "worldgate.dashboard.lobby",
+                "worldgate.dashboard.claim", "worldgate.dashboard.settings", "worldgate.dashboard.elite", "worldgate.dashboard.cosmetics",
+                "worldgate.dashboard.emotes", "worldgate.dashboard.security", "worldgate.dashboard.discord", "worldgate.dashboard.report"
         };
         int rows = (labels.length + 1) / 2;
         int startY = top + 96;
@@ -79,7 +79,7 @@ public class WorldGateScreen extends Screen {
             int row = i / 2;
             int x = col == 0 ? left : right;
             int y = startY + row * rowH;
-            Button button = Button.builder(Component.literal(labels[i]), b -> openDashboardAction(index))
+            Button button = Button.builder(Component.translatable(labels[i]), b -> openDashboardAction(index))
                     .bounds(x, y, cardW, Math.min(24, rowH - 2)).build();
             addRenderableWidget(button);
         }
