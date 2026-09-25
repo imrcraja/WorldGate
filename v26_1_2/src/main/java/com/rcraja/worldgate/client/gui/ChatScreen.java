@@ -28,6 +28,7 @@ public final class ChatScreen extends Screen {
     private EditBox input;
     private ChatLine selected;
     private String pendingUrl;
+    private String replyTargetId;
     private Button replyButton;
     private Button deleteButton;
     private Button linkButton;
@@ -118,15 +119,22 @@ public final class ChatScreen extends Screen {
         String text = input.getValue().trim();
         if (text.isEmpty()) return;
 
+        String target = replyTargetId;
         WorldGateModClient.EXECUTOR.submit(() ->
-                WorldGateModClient.CHAT_MANAGER.sendMessage(roomCode, text));
+                WorldGateModClient.CHAT_MANAGER.sendMessage(roomCode, text, target));
         input.setValue("");
+        replyTargetId = null;
+        status = target == null ? "Message sent" : "Reply sent";
+        updateActions();
     }
 
     private void reply() {
-        if (selected == null || input == null) return;
-        input.setValue("@reply " + selected.text() + " ");
+        if (selected == null || selected.deleted() || input == null) return;
+        replyTargetId = selected.id();
+        input.setValue("");
         input.setFocused(true);
+        status = "Replying to " + displayName(selected.senderUid());
+        updateActions();
     }
 
     private void deleteSelected() {
@@ -162,6 +170,7 @@ public final class ChatScreen extends Screen {
     private void select(ChatLine line) {
         selected = line;
         pendingUrl = findUrl(line.text());
+        replyTargetId = null;
         updateActions();
     }
 
@@ -244,6 +253,11 @@ public final class ChatScreen extends Screen {
                     line.deleted() ? 0x777777 : 0xFFFFFF
             );
             y += 16;
+        }
+
+        if (replyTargetId != null) {
+            graphics.centeredText(font, Component.literal("Reply mode active • tap Reply on another message to change target"),
+                    cx, height - 88, 0x7DE2FF);
         }
 
         if (selected != null) {
