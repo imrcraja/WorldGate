@@ -20,6 +20,9 @@ public class FriendManager {
     private final FirebaseStreamClient friendsStream =
             new FirebaseStreamClient();
 
+    private final FirebaseStreamClient ownProfileStream =
+            new FirebaseStreamClient();
+
     private final Map<String, FirebaseStreamClient> profileStreams =
             new ConcurrentHashMap<>();
 
@@ -54,10 +57,19 @@ public class FriendManager {
             return myFriendCode;
         }
 
-        String existing =
-                session.db().get(
-                        "/profiles/" + uid + "/friendCode"
-                );
+        String existing = UserProfileCache.value("friendCode", null);
+        if (existing == null || existing.isBlank()) {
+            existing = session.db().get(
+                    "/profiles/" + uid + "/friendCode"
+            );
+            if (existing != null && !existing.equals("null")) {
+                try {
+                    JsonObject cachedProfile = JsonParser.parseString(existing).getAsJsonObject();
+                    existing = cachedProfile.has("friendCode") ? cachedProfile.get("friendCode").getAsString() : null;
+                } catch (Exception ignored) {
+                }
+            }
+        }
 
         if (existing != null
                 && !existing.equals("null")
@@ -142,10 +154,14 @@ public class FriendManager {
                         + System.currentTimeMillis()
                         + "}";
 
-        return session.db().put(
+        String result = session.db().put(
                 "/profiles/" + uid,
                 json
-        ) != null;
+        );
+        if (result != null) {
+            UserProfileCache.save(json);
+        }
+        return result != null;
     }
 
     /**
@@ -439,10 +455,13 @@ public class FriendManager {
             return "Player";
         }
 
-        String profile =
-                session.db().get(
-                        "/profiles/" + uid
-                );
+        String profile = UserProfileCache.raw();
+        if (profile == null || profile.isBlank()) {
+            profile = session.db().get(
+                    "/profiles/" + uid
+            );
+            if (profile != null && !profile.equals("null")) UserProfileCache.save(profile);
+        }
 
         if (profile == null
                 || profile.equals("null")) {
@@ -490,6 +509,18 @@ public class FriendManager {
                 "/friend_requests/" + session.uid(),
                 session.idToken(),
                 data -> notifyFriendListChanged()
+        );
+
+        ownProfileStream.listen(
+                Constants.FIREBASE_DATABASE_URL,
+                "/profiles/" + session.uid(),
+                session.idToken(),
+                data -> {
+                    if (data != null && !data.isBlank() && !"null".equals(data)) {
+                        UserProfileCache.save(data);
+                        notifyFriendListChanged();
+                    }
+                }
         );
 
         friendsStream.listen(
@@ -600,6 +631,8 @@ public class FriendManager {
     public void stopRealtime() {
 
         requestStream.stop();
+
+        ownProfileStream.stop();
 
         friendsStream.stop();
 
