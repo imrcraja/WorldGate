@@ -165,50 +165,7 @@ public class WorldGateModClient implements ClientModInitializer {
             if (connected) {
                 String displayName = Minecraft.getInstance().getUser().getName();
                 FRIEND_MANAGER.setOnline(displayName);
-                try {
-                    /*
-                     * Prefer the skin actually attached to the local player.
-                     * This matters for offline/cracked launchers: SkinManager's
-                     * profile lookup can have no Mojang texture even though the
-                     * local player is visibly using a custom skin.
-                     */
-                    String skinUrl = null;
-                    try {
-                        Object player = Minecraft.getInstance().player;
-                        if (player != null) {
-                            Object skin = player.getClass().getMethod("getSkin").invoke(player);
-                            if (skin != null) {
-                                Object value = skin.getClass().getMethod("textureUrl").invoke(skin);
-                                if (value != null) skinUrl = String.valueOf(value);
-                            }
-                        }
-                    } catch (ReflectiveOperationException ignored) {
-                        // Fall back to the normal profile lookup below.
-                    }
-
-                    if (skinUrl == null || skinUrl.isBlank()) {
-                        try {
-                            Object skin = Minecraft.getInstance().getSkinManager()
-                                    .getClass()
-                                    .getMethod("getInsecureSkin", com.mojang.authlib.GameProfile.class)
-                                    .invoke(Minecraft.getInstance().getSkinManager(),
-                                            Minecraft.getInstance().getGameProfile());
-                            if (skin != null) {
-                                Object value = skin.getClass().getMethod("textureUrl").invoke(skin);
-                                if (value != null) skinUrl = String.valueOf(value);
-                            }
-                        } catch (ReflectiveOperationException ignored) {
-                            WorldGateMod.LOGGER.debug("WorldGate skin API shape changed; skipping automatic skin sync");
-                        }
-                    }
-
-                    if (skinUrl != null && !skinUrl.isBlank()) {
-                        FRIEND_MANAGER.updateMySkin(skinUrl);
-                        WorldGateMod.LOGGER.info("WorldGate synced current player skin.");
-                    }
-                } catch (Exception e) {
-                    WorldGateMod.LOGGER.debug("WorldGate skin sync unavailable", e);
-                }
+                syncCurrentSkin();
 
                 WorldGateMod.LOGGER.info(
                         "WorldGate Firebase session ready (uid={})",
@@ -243,3 +200,48 @@ public class WorldGateModClient implements ClientModInitializer {
         }
     }
 }
+    /**
+     * Sync the skin the local player is actually rendering. This is deliberately
+     * callable after entering a world because cracked/offline launchers may only
+     * expose their skin after the player object has been created.
+     */
+    public static void syncCurrentSkin() {
+        EXECUTOR.submit(() -> {
+            if (!SESSION.isReady()) return;
+
+            try {
+                String skinUrl = null;
+                Minecraft minecraft = Minecraft.getInstance();
+                Object player = minecraft.player;
+
+                if (player != null) {
+                    Object skin = player.getClass().getMethod("getSkin").invoke(player);
+                    if (skin != null) {
+                        Object value = skin.getClass().getMethod("textureUrl").invoke(skin);
+                        if (value != null) skinUrl = String.valueOf(value);
+                    }
+                }
+
+                if (skinUrl == null || skinUrl.isBlank()) {
+                    Object skin = minecraft.getSkinManager()
+                            .getClass()
+                            .getMethod("getInsecureSkin", com.mojang.authlib.GameProfile.class)
+                            .invoke(minecraft.getSkinManager(), minecraft.getGameProfile());
+                    if (skin != null) {
+                        Object value = skin.getClass().getMethod("textureUrl").invoke(skin);
+                        if (value != null) skinUrl = String.valueOf(value);
+                    }
+                }
+
+                if (skinUrl != null && !skinUrl.isBlank()) {
+                    FRIEND_MANAGER.updateMySkin(skinUrl);
+                    WorldGateMod.LOGGER.info("WorldGate synced current player skin.");
+                } else {
+                    WorldGateMod.LOGGER.debug("WorldGate could not resolve a public skin URL for the current player.");
+                }
+            } catch (Exception e) {
+                WorldGateMod.LOGGER.debug("WorldGate skin sync unavailable", e);
+            }
+        });
+    }
+
