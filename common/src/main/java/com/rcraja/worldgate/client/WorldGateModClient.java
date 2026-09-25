@@ -129,7 +129,7 @@ public class WorldGateModClient implements ClientModInitializer {
                                 .getClass()
                                 .getMethod("getInsecureSkin", com.mojang.authlib.GameProfile.class)
                                 .invoke(Minecraft.getInstance().getSkinManager(),
-                                        Minecraft.getInstance().getUser().getProfile());
+                                        Minecraft.getInstance().getGameProfile());
                         String skinUrl = null;
                         if (skin != null) {
                             Object value = skin.getClass().getMethod("textureUrl").invoke(skin);
