@@ -49,6 +49,12 @@ jobs:
       - name: Build 26.1.2
         run: gradle :v26_1_2:build --stacktrace --no-daemon
 
+      - name: Upload 26.1.2 jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorldGate-26.1.2
+          path: v26_1_2/build/libs/*.jar
+
       - name: Secret-pattern scan
         shell: bash
         run: |
