@@ -199,7 +199,7 @@ public class WorldGateModClient implements ClientModInitializer {
             );
         }
     }
-}
+
     /**
      * Sync the skin the local player is actually rendering. This is deliberately
      * callable after entering a world because cracked/offline launchers may only
@@ -244,4 +244,3 @@ public class WorldGateModClient implements ClientModInitializer {
             }
         });
     }
-
