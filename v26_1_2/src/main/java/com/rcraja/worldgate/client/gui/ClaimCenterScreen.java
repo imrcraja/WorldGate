@@ -314,24 +314,26 @@ public final class ClaimCenterScreen extends Screen {
             }
         }
 
-        List<EliteCoinManager.Mail> mail = EliteCoinManager.mailbox();
-        if (mail.isEmpty()) {
-            g.text(font, "No messages.", cx - 145, panelY + 31, 0xFF68737E);
-        } else {
-            for (int i = 0; i < Math.min(6, mail.size()); i++) {
-                EliteCoinManager.Mail m = mail.get(i);
-                int y = panelY + 30 + i * 28;
-                String sender = m.fromName() == null || m.fromName().isBlank() ? "Player" : m.fromName();
-                String line = sender + "  +" + m.coins() + " EC";
-                g.text(font, line, cx - 145, y, 0xFFFFFFFF);
-                if (!m.message().isBlank()) {
-                    String message = m.message().length() > 38
-                            ? m.message().substring(0, 38) + "..."
-                            : m.message();
-                    g.text(font, message, cx - 145, y + 11, 0xFF8E9AA6);
-                }
-                if ("UNREAD".equalsIgnoreCase(m.status())) {
-                    g.text(font, "NEW", cx + 62, y, 0xFFFFD45A);
+        if (!showHistory) {
+            List<EliteCoinManager.Mail> mail = EliteCoinManager.mailbox();
+            if (mail.isEmpty()) {
+                g.text(font, "No messages.", cx - 145, panelY + 31, 0xFF68737E);
+            } else {
+                for (int i = 0; i < Math.min(6, mail.size()); i++) {
+                    EliteCoinManager.Mail m = mail.get(i);
+                    int y = panelY + 30 + i * 28;
+                    String sender = m.fromName() == null || m.fromName().isBlank() ? "Player" : m.fromName();
+                    String line = sender + "  +" + m.coins() + " EC";
+                    g.text(font, line, cx - 145, y, 0xFFFFFFFF);
+                    if (!m.message().isBlank()) {
+                        String message = m.message().length() > 38
+                                ? m.message().substring(0, 38) + "..."
+                                : m.message();
+                        g.text(font, message, cx - 145, y + 11, 0xFF8E9AA6);
+                    }
+                    if ("UNREAD".equalsIgnoreCase(m.status())) {
+                        g.text(font, "NEW", cx + 62, y, 0xFFFFD45A);
+                    }
                 }
             }
         }
