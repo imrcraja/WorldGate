@@ -1,5 +1,7 @@
 package com.rcraja.worldgate.client.gui;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.network.EliteCoinManager;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -120,12 +122,26 @@ public final class EliteCoinScreen extends Screen {
         WorldGateModClient.EXECUTOR.submit(() -> {
             String response = EliteCoinManager.purchaseItem(item.id());
             if (minecraft != null) minecraft.execute(() -> {
-                if (response != null && response.contains("\"ok\":true")) {
-                    status = "Purchased " + item.name() + ".";
-                } else if (response != null && response.contains("insufficient_balance")) {
-                    status = "Not enough Elite Coins.";
+                if (response != null && !response.isBlank()) {
+                    try {
+                        JsonObject result = JsonParser.parseString(response).getAsJsonObject();
+                        if (result.has("ok") && result.get("ok").getAsBoolean()) {
+                            status = "Purchased " + item.name() + ".";
+                        } else {
+                            String error = result.has("error")
+                                    ? result.get("error").getAsString()
+                                    : "";
+                            status = "insufficient_balance".equals(error)
+                                    ? "Not enough Elite Coins."
+                                    : error.isBlank()
+                                            ? "Purchase could not be completed."
+                                            : "Purchase failed: " + error;
+                        }
+                    } catch (Exception ignored) {
+                        status = "Purchase could not be completed.";
+                    }
                 } else {
-                    status = response == null ? "Purchase failed." : "Purchase could not be completed.";
+                    status = "Purchase failed.";
                 }
                 refresh();
             });
