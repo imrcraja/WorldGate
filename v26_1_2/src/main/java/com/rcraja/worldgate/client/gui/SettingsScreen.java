@@ -90,8 +90,8 @@ public final class SettingsScreen extends Screen {
             super.extractRenderState(g, mx, my, delta);
             g.centeredText(font, I18n.get("worldgate.settings.local_heading"), width / 2, 24, 0xFFFFFFFF);
             g.centeredText(font, I18n.get("worldgate.settings.local_client"), width / 2, 58, 0xFF7DE2FF);
-            g.centeredText(font, "I18n.get("worldgate.settings.local_profiles")", width / 2, 78, 0xFFB8C2CC);
-            g.centeredText(font, "I18n.get("worldgate.settings.local_world")", width / 2, 106, 0xFFFFD166);
+            g.centeredText(font, I18n.get("worldgate.settings.local_profiles"), width / 2, 78, 0xFFB8C2CC);
+            g.centeredText(font, I18n.get("worldgate.settings.local_world"), width / 2, 106, 0xFFFFD166);
             g.centeredText(font, I18n.get("worldgate.settings.local_network"), width / 2, 126, 0xFF8E9AA6);
         }
 

@@ -14,7 +14,6 @@ import net.minecraft.network.chat.Component;
 public final class AccountSecurityScreen extends Screen {
     private final Screen parent;
     private String status=Component.translatable("worldgate.security.loading").getString();
-        loading=true;
     private boolean loading=true;
     private JsonArray sessions=new JsonArray();
     private static final int MAX_VISIBLE_SESSIONS=12;

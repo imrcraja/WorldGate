@@ -84,7 +84,7 @@ public final class WardrobeScreen extends Screen {
             if (minecraft != null) minecraft.execute(() -> {
                 loading = false;
                 status = EliteCoinManager.wallet().available()
-                        ? Component.translatable("worldgate.wardrobe.synced",EliteCoinManager.wallet().balance()).getString()
+                        ? Component.translatable("worldgate.wardrobe.synced",EliteCoinManager.wallet().balance()).getString();
                         : Component.translatable("worldgate.wardrobe.unavailable").getString();
                 updateButtons();
             });
@@ -106,7 +106,7 @@ public final class WardrobeScreen extends Screen {
             button.active = true;
             if (!inv.owns(item.id())) {
                 button.setMessage(Component.literal(item.priceCoins() == 0
-                        ? Component.translatable("worldgate.coin.unlock").getString()
+                        ? Component.translatable("worldgate.coin.unlock").getString();
                         : Component.translatable("worldgate.coin.buy_item_price", item.priceCoins()).getString()));
             } else if (inv.equipped(item.type(), item.id())) {
                 button.setMessage(Component.translatable("worldgate.wardrobe.equipped"));
@@ -123,12 +123,12 @@ public final class WardrobeScreen extends Screen {
         EliteCoinManager.Inventory inv = EliteCoinManager.inventory();
 
         if (!inv.owns(item.id())) {
-            status = Component.translatable("worldgate.coin.purchasing",item.name()).getString()
+            status = Component.translatable("worldgate.coin.purchasing",item.name()).getString();
             WorldGateModClient.EXECUTOR.submit(() -> {
                 String response = EliteCoinManager.purchaseItem(item.id());
                 if (minecraft != null) minecraft.execute(() -> {
                     if (response != null && response.contains("\"ok\":true")) {
-                        status = Component.translatable("worldgate.coin.purchased",item.name()).getString()
+                        status = Component.translatable("worldgate.coin.purchased",item.name()).getString();
                     } else if (response != null && response.contains("insufficient_balance")) {
                         status = Component.translatable("worldgate.coin.insufficient").getString();
                     } else {
@@ -140,17 +140,17 @@ public final class WardrobeScreen extends Screen {
             return;
         }
 
-        status = Component.translatable("worldgate.wardrobe.equipping",item.name()).getString()
+        status = Component.translatable("worldgate.wardrobe.equipping",item.name()).getString();
         WorldGateModClient.EXECUTOR.submit(() -> {
             String response = EliteCoinManager.equipItem(item.id());
             if (minecraft != null) minecraft.execute(() -> {
                 if (response != null && response.contains("\"ok\":true")) {
-                    status = Component.translatable("worldgate.wardrobe.equipped_item",item.name()).getString()
+                    status = Component.translatable("worldgate.wardrobe.equipped_item",item.name()).getString();
                     if ("emote".equalsIgnoreCase(item.type())) {
                         String room = WorldGateModClient.CURRENT_ROOM_CODE;
                         if (room != null && !room.isBlank()) {
                             WorldGateModClient.EMOTE_MANAGER.sendEmote(room, item.id().substring("emote:".length()));
-                            status = Component.translatable("worldgate.wardrobe.used",item.name()).getString()
+                            status = Component.translatable("worldgate.wardrobe.used",item.name()).getString();
                         }
                     }
                 } else {
@@ -175,7 +175,7 @@ public final class WardrobeScreen extends Screen {
                 width / 2, 20, 0xFFFFFFFF);
         g.centeredText(font,
                 tab == Tab.EMOTES
-                        ? Component.translatable("worldgate.wardrobe.emote_note").getString()
+                        ? Component.translatable("worldgate.wardrobe.emote_note").getString();
                         : Component.translatable("worldgate.wardrobe.cosmetic_note").getString(),
                 width / 2, 38, 0xFF9AA7B4);
 
