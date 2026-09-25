@@ -178,36 +178,7 @@ public class LobbyScreen extends Screen {
                 }
         );
 
-        String room =
-                WorldGateModClient
-                        .CURRENT_ROOM_CODE;
-
-        if (room != null
-                && !room.isBlank()) {
-
-            WorldGateModClient.ROOM_MANAGER
-                    .setRoomChangedListener(
-                            json -> roomJson = json
-                    );
-
-            WorldGateModClient.ROOM_MANAGER
-                    .startRealtime(room);
-
-            WorldGateModClient.CHAT_MANAGER
-                    .listen(
-                            room,
-                            (uid, text) ->
-                                    this.minecraft.execute(
-                                            () ->
-                                                    addChatMessage(
-                                                            "<"
-                                                                    + displayName(uid)
-                                                                    + "> "
-                                                                    + text
-                                                    )
-                                    )
-                    );
-        }
+        bindRoomRealtime(WorldGateModClient.CURRENT_ROOM_CODE);
 
         loading = false;
         status = room != null && !room.isBlank()
@@ -225,15 +196,57 @@ public class LobbyScreen extends Screen {
                     ? null
                     : WorldGateModClient.ROOM_MANAGER.getRoom(room);
             if (minecraft != null) minecraft.execute(() -> {
+                String previousRoom = WorldGateModClient.CURRENT_ROOM_CODE;
                 friendsJson = json;
                 roomJson = roomData;
                 refreshFriendProfiles();
+
+                if (!sameRoom(previousRoom, room)) {
+                    bindRoomRealtime(room);
+                }
+
                 loading = false;
                 status = room == null || room.isBlank()
                         ? "Refreshed • No active room"
                         : "Refreshed • Room " + room;
             });
         });
+    }
+
+    private static boolean sameRoom(String first, String second) {
+        String a = first == null ? "" : first.trim();
+        String b = second == null ? "" : second.trim();
+        return a.equals(b);
+    }
+
+    private void bindRoomRealtime(String room) {
+        WorldGateModClient.ROOM_MANAGER.stopRealtime();
+        WorldGateModClient.CHAT_MANAGER.stopListening();
+        roomJson = null;
+
+        if (room == null || room.isBlank()) {
+            status = "Connected • No active room";
+            return;
+        }
+
+        WorldGateModClient.ROOM_MANAGER.setRoomChangedListener(json -> {
+            roomJson = json;
+            if (minecraft != null) {
+                minecraft.execute(() -> status = "Connected • Room " + room);
+            }
+        });
+        WorldGateModClient.ROOM_MANAGER.startRealtime(room);
+
+        WorldGateModClient.CHAT_MANAGER.listen(
+                room,
+                (uid, text) -> {
+                    if (minecraft != null) {
+                        minecraft.execute(() ->
+                                addChatMessage("<" + displayName(uid) + "> " + text));
+                    }
+                }
+        );
+        status = "Connected • Room " + room;
     }
 
     private void openFriends() {
