@@ -22,6 +22,8 @@ public final class ClaimCenterScreen extends Screen {
     private Button dailyButton;
     private Button activityButton;
     private final List<Button> readButtons = new ArrayList<>();
+    private Button historyButton;
+    private boolean showHistory;
     private String status = "Syncing...";
     private long activityEndsAt;
     private String activitySession;
@@ -80,6 +82,15 @@ public final class ClaimCenterScreen extends Screen {
             addRenderableWidget(read);
         }
 
+        historyButton = Button.builder(Component.literal("History"),
+                b -> {
+                    showHistory = !showHistory;
+                    historyButton.setMessage(Component.literal(showHistory ? "Mailbox" : "History"));
+                    updateState();
+                })
+                .bounds(cx + 53, height - 30, 92, 20).build();
+        addRenderableWidget(historyButton);
+
         addRenderableWidget(Button.builder(Component.literal("Refresh"),
                 b -> refresh())
                 .bounds(cx - 145, height - 30, 92, 20).build());
@@ -117,7 +128,7 @@ public final class ClaimCenterScreen extends Screen {
         List<EliteCoinManager.Mail> mail = EliteCoinManager.mailbox();
         for (int i = 0; i < readButtons.size(); i++) {
             if (i < mail.size()) {
-                readButtons.get(i).active = "UNREAD".equalsIgnoreCase(mail.get(i).status());
+                readButtons.get(i).active = !showHistory && "UNREAD".equalsIgnoreCase(mail.get(i).status());
             } else {
                 readButtons.get(i).active = false;
             }
@@ -285,7 +296,23 @@ public final class ClaimCenterScreen extends Screen {
         int panelY = 174;
         g.fill(cx - 155, panelY, cx + 155, panelY + 190, 0xCC10161D);
         g.outline(cx - 155, panelY, 310, 190, 0xFF2B3742);
-        g.text(font, "MAILBOX", cx - 145, panelY + 10, 0xFFD8C7FF);
+        g.text(font, showHistory ? "TRANSACTION HISTORY" : "MAILBOX", cx - 145, panelY + 10, 0xFFD8C7FF);
+
+        if (showHistory) {
+            List<EliteCoinManager.Transaction> transactions = EliteCoinManager.transactions();
+            if (transactions.isEmpty()) {
+                g.text(font, "No transactions yet.", cx - 145, panelY + 31, 0xFF68737E);
+            } else {
+                for (int i = 0; i < Math.min(7, transactions.size()); i++) {
+                    EliteCoinManager.Transaction t = transactions.get(i);
+                    int y = panelY + 31 + i * 22;
+                    String type = t.type().replace('_', ' ');
+                    String amount = (t.coins() >= 0 ? "+" : "") + t.coins() + " EC";
+                    g.text(font, type, cx - 145, y, 0xFFFFFFFF);
+                    g.text(font, amount, cx + 72, y, t.coins() >= 0 ? 0xFF72E6A6 : 0xFFFF8A8A);
+                }
+            }
+        }
 
         List<EliteCoinManager.Mail> mail = EliteCoinManager.mailbox();
         if (mail.isEmpty()) {
@@ -313,6 +340,10 @@ public final class ClaimCenterScreen extends Screen {
         if (activitySession != null) {
             long seconds = Math.max(0, (activityEndsAt - System.currentTimeMillis() + 999) / 1000);
             bottomStatus = "Activity reward: " + seconds + "s remaining";
+        }
+
+        if (showHistory) {
+            // History mode does not expose mailbox action buttons.
         }
 
         g.centeredText(font, Component.literal(bottomStatus),
