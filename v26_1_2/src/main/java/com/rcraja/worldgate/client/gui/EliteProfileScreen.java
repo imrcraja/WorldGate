@@ -46,8 +46,8 @@ public final class EliteProfileScreen extends Screen {
         String uid=WorldGateModClient.SESSION.uid();
         String friendCode=UserProfileCache.value("friendCode","Not set");
         graphics.centeredText(font,Component.literal(displayName),cx,52,0xFFFFFFFF);
-        graphics.centeredText(font,Component.literal("UID: "+(uid==null?"—":uid)),cx,67,0xFFBDBDBD);
-        graphics.centeredText(font,Component.literal("Friend Code: "+friendCode),cx,82,0xFFBDBDBD);
+        graphics.centeredText(font,Component.literal("Public ID: "+(publicId==null?"—":publicId)),cx,67,0xFF7DE2FF);
+        
 
         if(profile.hasElite()){
             EliteBadgeRenderer.draw(graphics,font,cx,101,116,profile.level());
