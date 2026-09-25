@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.Constants;
 import com.rcraja.worldgate.WorldGateMod;
+import com.rcraja.worldgate.client.UserProfileCache;
 
 import java.util.Map;
 import java.util.UUID;
@@ -91,6 +92,15 @@ public class FriendManager {
                     "\"" + uid + "\""
             );
 
+            return myFriendCode;
+        }
+
+        if (existing != null && !existing.isBlank() && !existing.equals("null")) {
+            myFriendCode = existing.trim();
+            session.db().put(
+                    "/friend_codes/" + myFriendCode,
+                    "\"" + uid + "\""
+            );
             return myFriendCode;
         }
 
