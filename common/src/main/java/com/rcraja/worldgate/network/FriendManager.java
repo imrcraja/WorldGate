@@ -115,8 +115,8 @@ public class FriendManager {
                         + "\"uid\":\""
                         + escapeJson(uid)
                         + "\","
-                        + "\"friendCode\":\""
-                        + escapeJson(code)
+                        + "\"publicId\":\""
+                        + escapeJson(publicId)
                         + "\","
                         + "\"displayName\":\""
                         + safeName
@@ -189,7 +189,7 @@ public class FriendManager {
         if (!session.isReady() || publicId == null || !publicId.matches("\\d{7,12}")) return null;
         String value = session.db().get("/public_ids/" + publicId);
         if (value == null || value.equals("null")) return null;
-        if (value.startsWith("\\\"") && value.endsWith("\\\"")) return value.substring(1, value.length() - 1);
+        if (value.startsWith("\"") && value.endsWith("\"")) return value.substring(1, value.length() - 1);
         return value;
     }
 
