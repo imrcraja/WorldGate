@@ -16,6 +16,10 @@ public final class WorldGateButton extends AbstractWidget {
         this(x, y, width, height, message, event -> action.run(), 0xFF67D8FF);
     }
 
+    public WorldGateButton(int x, int y, int width, int height, Component message, Runnable action, int accent) {
+        this(x, y, width, height, message, event -> action.run(), accent);
+    }
+
     public WorldGateButton(int x, int y, int width, int height, Component message,
                            Consumer<MouseButtonEvent> action, int accent) {
         super(x, y, width, height, message);
