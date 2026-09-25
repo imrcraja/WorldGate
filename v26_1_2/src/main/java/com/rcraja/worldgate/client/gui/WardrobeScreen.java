@@ -84,7 +84,7 @@ public final class WardrobeScreen extends Screen {
             if (minecraft != null) minecraft.execute(() -> {
                 loading = false;
                 status = EliteCoinManager.wallet().available()
-                        ? Component.translatable("worldgate.wardrobe.synced",EliteCoinManager.wallet().balance()).getString();
+                        ? Component.translatable("worldgate.wardrobe.synced",EliteCoinManager.wallet().balance()).getString()
                         : Component.translatable("worldgate.wardrobe.unavailable").getString();
                 updateButtons();
             });
@@ -106,7 +106,7 @@ public final class WardrobeScreen extends Screen {
             button.active = true;
             if (!inv.owns(item.id())) {
                 button.setMessage(Component.literal(item.priceCoins() == 0
-                        ? Component.translatable("worldgate.coin.unlock").getString();
+                        ? Component.translatable("worldgate.coin.unlock").getString()
                         : Component.translatable("worldgate.coin.buy_item_price", item.priceCoins()).getString()));
             } else if (inv.equipped(item.type(), item.id())) {
                 button.setMessage(Component.translatable("worldgate.wardrobe.equipped"));
@@ -175,7 +175,7 @@ public final class WardrobeScreen extends Screen {
                 width / 2, 20, 0xFFFFFFFF);
         g.centeredText(font,
                 tab == Tab.EMOTES
-                        ? Component.translatable("worldgate.wardrobe.emote_note").getString();
+                        ? Component.translatable("worldgate.wardrobe.emote_note").getString()
                         : Component.translatable("worldgate.wardrobe.cosmetic_note").getString(),
                 width / 2, 38, 0xFF9AA7B4);
 
