@@ -96,18 +96,13 @@ public class WorldGateScreen extends Screen {
         addRenderableWidget(Button.builder(
                 Component.literal("Profile"),
                 b -> minecraft.setScreen(new EliteProfileScreen(this))
-        ).bounds(leftX + 14, topY + 48, (cardW - 42) / 3, 20).build());
-
-        // The PLAY card owns the room-code controls, so move SOCIAL controls to the
-        // second row and give them their own space.
-        roomCodeBox.setX(leftX + 14);
-        roomCodeBox.setY(topY + 48);
-        roomCodeBox.setWidth(inputW);
+        ).bounds(rightX + 14, topY + 48, (cardW - 42) / 3, 24).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.friends"),
                 b -> minecraft.setScreen(new FriendsScreen(this))
-        ).bounds(leftX + 14, topY + 82, (cardW - 42) / 3, 24).build());
+        ).bounds(rightX + 21 + (cardW - 42) / 3, topY + 48,
+                (cardW - 42) / 3, 24).build());
 
         addRenderableWidget(Button.builder(
                 Component.literal("Chat"),
@@ -118,32 +113,8 @@ public class WorldGateScreen extends Screen {
                     } else {
                         sendMessage("Join or create a room first.");
                     }
-                }).bounds(leftX + 14 + (cardW - 42) / 3 + 7, topY + 82,
-                        (cardW - 42) / 3, 24).build());
-
-        // Replace the temporary Profile placement with a clean Social row.
-        // Profile/Friends/Chat are rebuilt below at the card's lower row.
-        // The first Profile widget is kept inactive only until init completes.
-        addRenderableWidget(Button.builder(
-                Component.literal("Profile"),
-                b -> minecraft.setScreen(new EliteProfileScreen(this))
-        ).bounds(leftX + 14 + ((cardW - 42) / 3 + 7) * 2, topY + 82,
+                }).bounds(rightX + 28 + ((cardW - 42) / 3) * 2, topY + 48,
                 (cardW - 42) / 3, 24).build());
-
-        addRenderableWidget(Button.builder(
-                Component.literal("Elite Store"),
-                b -> minecraft.setScreen(new EliteCoinScreen(this))
-        ).bounds(rightX + 14, topY + 48, cardW - 28, 24).build());
-
-        addRenderableWidget(Button.builder(
-                Component.literal("Cosmetics"),
-                b -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS))
-        ).bounds(rightX + 14, topY + 82, (cardW - 42) / 2, 24).build());
-
-        addRenderableWidget(Button.builder(
-                Component.literal("Emotes"),
-                b -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.EMOTES))
-        ).bounds(rightX + 21 + (cardW - 42) / 2, topY + 82, (cardW - 42) / 2, 24).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.lobby"),
@@ -162,15 +133,30 @@ public class WorldGateScreen extends Screen {
                 (cardW - 42) / 3, 24).build());
 
         addRenderableWidget(Button.builder(
+                Component.literal("Elite Store"),
+                b -> minecraft.setScreen(new EliteCoinScreen(this))
+        ).bounds(rightX + 14, bottomY + 48, cardW - 28, 24).build());
+
+        addRenderableWidget(Button.builder(
+                Component.literal("Cosmetics"),
+                b -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS))
+        ).bounds(rightX + 14, bottomY + 82, (cardW - 42) / 2, 24).build());
+
+        addRenderableWidget(Button.builder(
+                Component.literal("Emotes"),
+                b -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.EMOTES))
+        ).bounds(rightX + 21 + (cardW - 42) / 2, bottomY + 82,
+                (cardW - 42) / 2, 24).build());
+
+        addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.report"),
                 b -> openLink(Constants.GITHUB_ISSUES)
-        ).bounds(rightX + 14, bottomY + 48, (cardW - 42) / 2, 20).build());
+        ).bounds(width / 2 - 300, height - 30, 90, 20).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.youtube"),
                 b -> openLink(Constants.YOUTUBE_CHANNEL)
-        ).bounds(rightX + 21 + (cardW - 42) / 2, bottomY + 48,
-                (cardW - 42) / 2, 20).build());
+        ).bounds(width / 2 + 210, height - 30, 90, 20).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.back"),
