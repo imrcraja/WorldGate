@@ -22,7 +22,7 @@ public abstract class PlayerInfoMixin {
     private void worldgate$applyProfileSkin(GameProfile profile, boolean enforcesSecureChat, CallbackInfo ci) {
         if (profile == null || profile.getId() == null) return;
 
-        String skinUrl = WorldGateSkinCache.get(profile.id());
+        String skinUrl = WorldGateSkinCache.get(profile.getId());
         if (skinUrl == null || skinUrl.isBlank()) return;
 
         try {
