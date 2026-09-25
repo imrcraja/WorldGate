@@ -250,25 +250,13 @@ public class FriendsScreen extends Screen {
             return;
         }
         String room = pendingInviteRoom;
-        String from = pendingInviteFromUid;
         status = "Joining invited room...";
-        WorldGateScreen target;
-        if (parent instanceof WorldGateScreen screen) {
-            target = screen;
-        } else {
-            target = new WorldGateScreen(parent);
-        }
+        WorldGateScreen target = parent instanceof WorldGateScreen screen
+                ? screen
+                : new WorldGateScreen(parent);
         if (minecraft != null) {
             minecraft.setScreen(target);
-            final WorldGateScreen joinScreen = target;
-            WorldGateModClient.EXECUTOR.submit(() -> {
-                String invite = WorldGateModClient.ROOM_MANAGER.getIncomingInvites();
-                boolean stillValid = invite != null && invite.contains("\"" + from + "\"");
-                if (minecraft != null) minecraft.execute(() -> {
-                    if (stillValid) joinScreen.joinRoomFromInvite(room);
-                    else sendMessage("WorldGate: that room invite is no longer available.");
-                });
-            });
+            target.joinRoomFromInvite(room);
         }
     }
 
