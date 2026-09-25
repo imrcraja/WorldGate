@@ -30,6 +30,7 @@ public class LobbyScreen extends Screen {
 
     private volatile String friendsJson = null;
     private volatile String roomJson = null;
+    private volatile String boundRoom = "";
 
     private final List<String> chatMessages =
             new ArrayList<>();
@@ -197,7 +198,7 @@ public class LobbyScreen extends Screen {
                     ? null
                     : WorldGateModClient.ROOM_MANAGER.getRoom(room);
             if (minecraft != null) minecraft.execute(() -> {
-                String previousRoom = WorldGateModClient.CURRENT_ROOM_CODE;
+                String previousRoom = boundRoom;
                 friendsJson = json;
                 roomJson = roomData;
                 refreshFriendProfiles();
@@ -224,6 +225,7 @@ public class LobbyScreen extends Screen {
         WorldGateModClient.ROOM_MANAGER.stopRealtime();
         WorldGateModClient.CHAT_MANAGER.stopListening();
         roomJson = null;
+        boundRoom = room == null ? "" : room.trim();
 
         if (room == null || room.isBlank()) {
             status = "Connected • No active room";
