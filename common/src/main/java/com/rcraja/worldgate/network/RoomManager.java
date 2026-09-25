@@ -3,7 +3,7 @@ package com.rcraja.worldgate.network;
 import com.rcraja.worldgate.Constants;
 import com.rcraja.worldgate.WorldGateMod;
 
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 public class RoomManager {
@@ -361,25 +361,37 @@ public class RoomManager {
                 .replace("\"", "\\\"");
     }
 
+    /**
+     * Generates a numeric room code and avoids an already-existing room.
+     *
+     * The code starts at 5 digits and can grow through 6, 7, 8, 9 and finally
+     * 10 digits when the shorter namespaces are exhausted. Existing rooms are
+     * checked in Firebase before a code is returned.
+     */
     private String generateRoomCode() {
+        for (int length = 5; length <= 10; length++) {
+            int attempts = length <= 8 ? 80 : 160;
 
-        String chars =
-                "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            for (int attempt = 0; attempt < attempts; attempt++) {
+                String code = randomNumericCode(length);
 
-        Random random =
-                new Random();
+                String existing = session.db().get("/rooms/" + code);
+                if (existing == null || existing.isBlank() || "null".equals(existing)) {
+                    return code;
+                }
+            }
+        }
 
-        StringBuilder code =
-                new StringBuilder(6);
+        WorldGateMod.LOGGER.error("WorldGate could not find a free numeric room code.");
+        return null;
+    }
 
-        for (int i = 0; i < 6; i++) {
-            code.append(
-                    chars.charAt(
-                            random.nextInt(
-                                    chars.length()
-                            )
-                    )
-            );
+    private static String randomNumericCode(int length) {
+        StringBuilder code = new StringBuilder(length);
+
+        for (int i = 0; i < length; i++) {
+            int digit = ThreadLocalRandom.current().nextInt(i == 0 ? 1 : 0, 10);
+            code.append(digit);
         }
 
         return code.toString();
