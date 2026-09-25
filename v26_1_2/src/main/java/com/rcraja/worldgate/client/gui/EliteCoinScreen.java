@@ -18,7 +18,7 @@ public final class EliteCoinScreen extends Screen {
     private final Screen parent;
     private final List<Button> itemButtons = new ArrayList<>();
     private Filter filter = Filter.ALL;
-    private String status = "Syncing Elite Store...";
+    private String status = Component.translatable("worldgate.coin.syncing").getString();
 
     public EliteCoinScreen(Screen parent) {
         super(Component.translatable("worldgate.coin.title"));
@@ -27,11 +27,11 @@ public final class EliteCoinScreen extends Screen {
 
     @Override
     protected void init() {
-        addRenderableWidget(Button.builder(Component.literal("All"),
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.coin.filter_all"),
                 b -> setFilter(Filter.ALL)).bounds(width / 2 - 156, 58, 76, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Cosmetics"),
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.coin.filter_cosmetics"),
                 b -> setFilter(Filter.COSMETICS)).bounds(width / 2 - 76, 58, 100, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Emotes"),
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.coin.filter_emotes"),
                 b -> setFilter(Filter.EMOTES)).bounds(width / 2 + 28, 58, 76, 20).build());
 
         int left = Math.max(20, width / 2 - 310);
@@ -55,7 +55,7 @@ public final class EliteCoinScreen extends Screen {
 
         addRenderableWidget(Button.builder(Component.translatable("worldgate.button.refresh"),
                 b -> refresh()).bounds(width / 2 - 155, height - 30, 97, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Claim Center"),
+        addRenderableWidget(Button.builder(Component.translatable("worldgate.claim.title"),
                 b -> minecraft.setScreen(new ClaimCenterScreen(this))).bounds(width / 2 - 52, height - 30, 104, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("worldgate.button.back"),
                 b -> onClose()).bounds(width / 2 + 56, height - 30, 99, 20).build());
@@ -83,8 +83,8 @@ public final class EliteCoinScreen extends Screen {
         EliteCoinManager.refresh(() -> {
             if (minecraft != null) minecraft.execute(() -> {
                 status = EliteCoinManager.wallet().available()
-                        ? "Server synced"
-                        : "Coin data unavailable.";
+                        ? Component.translatable("worldgate.coin.synced").getString()
+                        : Component.translatable("worldgate.coin.unavailable").getString();
                 updateButtons();
             });
         });
@@ -98,7 +98,7 @@ public final class EliteCoinScreen extends Screen {
             Button button = itemButtons.get(i);
             if (i >= items.size()) {
                 button.active = false;
-                button.setMessage(Component.literal("Unavailable"));
+                button.setMessage(Component.translatable("worldgate.coin.unavailable"));
                 continue;
             }
             EliteCoinManager.Item item = items.get(i);
@@ -114,11 +114,11 @@ public final class EliteCoinScreen extends Screen {
         if (index < 0 || index >= items.size()) return;
         EliteCoinManager.Item item = items.get(index);
         if (EliteCoinManager.inventory().owns(item.id())) {
-            status = "Already owned.";
+            status = Component.translatable("worldgate.coin.already_owned").getString();
             return;
         }
 
-        status = "Purchasing " + item.name() + "...";
+        status = Component.translatable("worldgate.coin.purchasing",item.name()).getString();
         WorldGateModClient.EXECUTOR.submit(() -> {
             String response = EliteCoinManager.purchaseItem(item.id());
             if (minecraft != null) minecraft.execute(() -> {
@@ -126,22 +126,22 @@ public final class EliteCoinScreen extends Screen {
                     try {
                         JsonObject result = JsonParser.parseString(response).getAsJsonObject();
                         if (result.has("ok") && result.get("ok").getAsBoolean()) {
-                            status = "Purchased " + item.name() + ".";
+                            status = Component.translatable("worldgate.coin.purchased",item.name()).getString();
                         } else {
                             String error = result.has("error")
                                     ? result.get("error").getAsString()
                                     : "";
                             status = "insufficient_balance".equals(error)
-                                    ? "Not enough Elite Coins."
+                                    ? Component.translatable("worldgate.coin.insufficient").getString()
                                     : error.isBlank()
-                                            ? "Purchase could not be completed."
+                                            ? Component.translatable("worldgate.coin.purchase_failed").getString()
                                             : "Purchase failed: " + error;
                         }
                     } catch (Exception ignored) {
                         status = "Purchase could not be completed.";
                     }
                 } else {
-                    status = "Purchase failed.";
+                    status = Component.translatable("worldgate.coin.purchase_failed").getString();
                 }
                 refresh();
             });
@@ -158,7 +158,7 @@ public final class EliteCoinScreen extends Screen {
                         Long.toString(EliteCoinManager.wallet().balance())),
                 cx, 38, 0xFFFFD45A);
         g.centeredText(font,
-                "Server-owned catalog • purchases use Elite Coins",
+                Component.translatable("worldgate.coin.catalog_note").getString(),
                 cx, 76, 0xFF9AA7B4);
 
         int left = Math.max(20, width / 2 - 310);
@@ -177,7 +177,7 @@ public final class EliteCoinScreen extends Screen {
             g.fill(x, y, x + cardW, y + cardH, 0xCC10161D);
             if (i >= items.size()) {
                 g.outline(x, y, cardW, cardH, 0xFF2B3742);
-                g.centeredText(font, "No item", x + cardW / 2, y + 34, 0xFF59636D);
+                g.centeredText(font, Component.translatable("worldgate.coin.no_item").getString(), x + cardW / 2, y + 34, 0xFF59636D);
                 continue;
             }
 
@@ -189,7 +189,7 @@ public final class EliteCoinScreen extends Screen {
             g.centeredText(font, Component.literal(item.description()),
                     x + cardW / 2, y + 35, 0xFF8E9AA6);
             g.centeredText(font, Component.literal(
-                            owned ? "OWNED" : item.priceCoins() + " EC"),
+                            owned ? Component.translatable("worldgate.coin.owned_upper").getString() : item.priceCoins() + " EC"),
                     x + cardW / 2, y + 51,
                     owned ? 0xFF70E090 : 0xFFFFD45A);
         }
