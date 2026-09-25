@@ -32,6 +32,28 @@ public class WorldGateModClient implements ClientModInitializer {
 
     public static volatile String CURRENT_ROOM_CODE = null;
 
+    private static volatile String networkMode = "auto";
+
+    public static String getNetworkMode() {
+        return networkMode;
+    }
+
+    public static void setNetworkMode(String mode) {
+        if (!"lan".equals(mode) && !"internet".equals(mode) && !"auto".equals(mode)) {
+            mode = "auto";
+        }
+        networkMode = mode;
+        LocalWorldGateData.set("networkMode", mode);
+    }
+
+    public static boolean useInternetRelay() {
+        return !"lan".equals(networkMode);
+    }
+
+    public static boolean allowLanFallback() {
+        return !"internet".equals(networkMode);
+    }
+
     private static final ScheduledExecutorService HEARTBEAT =
             Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = new Thread(r, "WorldGate-Heartbeat");
@@ -82,6 +104,8 @@ public class WorldGateModClient implements ClientModInitializer {
         WorldGateMod.LOGGER.info("WorldGate client initialized.");
 
         WorldGateSounds.initialize();
+        LocalWorldGateData.load();
+        networkMode = LocalWorldGateData.get("networkMode", "auto");
         registerVersionKeybinds();
 
         EXECUTOR.submit(() -> {
