@@ -47,47 +47,70 @@ public class WorldGateScreen extends Screen {
 
     @Override
     protected void init() {
-        int margin = Math.max(10, Math.min(22, width / 30));
-        int gap = 8;
-        int top = 48;
-        int footerY = height - 28;
-        int cardW = Math.max(150, (width - margin * 2 - gap) / 2);
-        int left = margin;
-        int right = margin + cardW + gap;
+        int margin = Math.max(14, Math.min(28, width / 24));
+        int gap = Math.max(10, Math.min(16, width / 80));
+        int top = Math.max(52, height / 10);
+        int footerY = height - 34;
 
-        roomCodeBox = new EditBox(font, left + 8, top + 34, Math.max(110, cardW - 94), 20,
+        int contentW = Math.min(920, width - margin * 2);
+        int left = (width - contentW) / 2;
+        int mainW = Math.max(300, Math.min(560, (contentW * 2) / 3));
+        int sideW = Math.max(180, contentW - mainW - gap);
+
+        roomCodeBox = new EditBox(font, left + 16, top + 54, Math.max(120, mainW - 112), 20,
                 Component.translatable("worldgate.roomcode.hint"));
         roomCodeBox.setMaxLength(10);
         roomCodeBox.setHint(Component.literal("Room code"));
         addRenderableWidget(roomCodeBox);
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.join"), b -> onJoin())
-                .bounds(left + cardW - 78, top + 34, 70, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.create"), b -> onCreate())
-                .bounds(left + 8, top + 60, cardW - 16, 20).build());
+        addRenderableWidget(new WorldGateButton(left + mainW - 88, top + 50, 72, 28,
+                Component.translatable("worldgate.button.join"), this::onJoin));
+        addRenderableWidget(new WorldGateButton(left + 16, top + 82, mainW - 32, 28,
+                Component.translatable("worldgate.button.create"), this::onCreate, 0xFF73E0A1));
 
         String[] labels = {
-                "worldgate.dashboard.profile", "worldgate.dashboard.friends", "worldgate.dashboard.chat", "worldgate.dashboard.lobby",
-                "worldgate.dashboard.claim", "worldgate.dashboard.settings", "worldgate.dashboard.elite", "worldgate.dashboard.cosmetics",
-                "worldgate.dashboard.emotes", "worldgate.dashboard.security", "worldgate.dashboard.discord", "worldgate.dashboard.report"
+                "worldgate.dashboard.profile", "worldgate.dashboard.friends",
+                "worldgate.dashboard.chat", "worldgate.dashboard.lobby",
+                "worldgate.dashboard.claim", "worldgate.dashboard.settings",
+                "worldgate.dashboard.elite", "worldgate.dashboard.cosmetics",
+                "worldgate.dashboard.emotes", "worldgate.dashboard.security",
+                "worldgate.dashboard.discord", "worldgate.dashboard.report"
         };
-        int rows = (labels.length + 1) / 2;
-        int startY = top + 96;
-        int rowH = Math.max(24, Math.min(30, (height - startY - 42) / Math.max(1, rows)));
+        int startY = top + 132;
+        int cols = mainW >= 420 ? 2 : 1;
+        int buttonGap = 8;
+        int buttonW = cols == 2 ? (mainW - 32 - buttonGap) / 2 : mainW - 32;
+        int buttonH = 30;
+        int rowStep = buttonH + buttonGap;
         for (int i = 0; i < labels.length; i++) {
             final int index = i;
-            int col = i % 2;
-            int row = i / 2;
-            int x = col == 0 ? left : right;
-            int y = startY + row * rowH;
-            Button button = Button.builder(Component.translatable(labels[i]), b -> openDashboardAction(index))
-                    .bounds(x, y, cardW, Math.min(24, rowH - 2)).build();
-            addRenderableWidget(button);
+            int col = i % cols;
+            int row = i / cols;
+            int x = left + 16 + col * (buttonW + buttonGap);
+            int y = startY + row * rowStep;
+            addRenderableWidget(new WorldGateButton(x, y, buttonW, buttonH,
+                    Component.translatable(labels[i]), () -> openDashboardAction(index)));
         }
 
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.youtube"),
-                b -> openLink(Constants.YOUTUBE_CHANNEL)).bounds(left, footerY, cardW, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.back"),
-                b -> goBack()).bounds(right, footerY, cardW, 20).build());
+        int sideX = left + mainW + gap;
+        int sideTop = top;
+        int sideButtonH = 34;
+        int sideStep = 42;
+        String[] sideLabels = {
+                "worldgate.dashboard.profile", "worldgate.dashboard.friends",
+                "worldgate.dashboard.cosmetics", "worldgate.dashboard.claim",
+                "worldgate.dashboard.settings", "worldgate.dashboard.security"
+        };
+        for (int i = 0; i < sideLabels.length; i++) {
+            final int index = i;
+            addRenderableWidget(new WorldGateButton(sideX, sideTop + 44 + i * sideStep, sideW, sideButtonH,
+                    Component.translatable(sideLabels[i]), () -> openDashboardAction(index == 2 ? 7 : index == 3 ? 4 : index)));
+        }
+
+        addRenderableWidget(new WorldGateButton(left, footerY, Math.max(140, (contentW - gap) / 2), 26,
+                Component.translatable("worldgate.button.youtube"), () -> openLink(Constants.YOUTUBE_CHANNEL), 0xFFFFD36B));
+        addRenderableWidget(new WorldGateButton(left + Math.max(140, (contentW - gap) / 2) + gap, footerY,
+                Math.max(140, (contentW - gap) / 2), 26,
+                Component.translatable("worldgate.button.back"), this::goBack, 0xFF9CA9B8));
     }
 
     private void openDashboardAction(int index) {
@@ -116,30 +139,37 @@ public class WorldGateScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         super.extractRenderState(g, mouseX, mouseY, delta);
-        g.fill(0, 0, width, height, 0xF2080B10);
-        g.centeredText(font, Component.translatable("worldgate.screen.title"), width / 2, 16, 0xFFF2F6FA);
-        g.centeredText(font, Component.literal("Social • Multiplayer • Elite"), width / 2, 31, 0xFF778697);
+        g.blurBeforeThisStratum();
+        g.fill(0, 0, width, height, 0xD9080C12);
 
-        int margin = Math.max(10, Math.min(22, width / 30));
-        int gap = 8;
-        int top = 48;
-        int cardW = Math.max(150, (width - margin * 2 - gap) / 2);
-        int left = margin;
-        int right = margin + cardW + gap;
-        g.fill(left, top, left + cardW, top + 82, 0xE50D1219);
-        g.fill(right, top, right + cardW, top + 82, 0xE50D1219);
-        g.outline(left, top, cardW, 82, 0xFF263341);
-        g.outline(right, top, cardW, 82, 0xFF263341);
-        g.text(font, Component.literal("ROOM"), left + 8, top + 9, 0xFF7DE2FF);
-        g.text(font, Component.literal("SOCIAL"), right + 8, top + 9, 0xFFBFA7FF);
+        int margin = Math.max(14, Math.min(28, width / 24));
+        int gap = Math.max(10, Math.min(16, width / 80));
+        int top = Math.max(52, height / 10);
+        int contentW = Math.min(920, width - margin * 2);
+        int left = (width - contentW) / 2;
+        int mainW = Math.max(300, Math.min(560, (contentW * 2) / 3));
+        int sideW = Math.max(180, contentW - mainW - gap);
+        int sideX = left + mainW + gap;
+
+        g.text(font, Component.translatable("worldgate.screen.title"), left, 18, 0xFFF4F7FA);
+        g.text(font, Component.literal("SOCIAL  •  MULTIPLAYER  •  ELITE"), left, 34, 0xFF7B8A9A);
+
+        g.fill(left, top, left + mainW, top + 116, 0xE50D131B);
+        g.outline(left, top, mainW, 116, 0xFF2A3745);
+        g.text(font, Component.literal("ROOM"), left + 16, top + 14, 0xFF70DFFF);
+        g.text(font, Component.literal("Create a private room or join with a code."), left + 16, top + 30, 0xFF788695);
+
+        g.fill(sideX, top, sideX + sideW, top + 300, 0xE50D131B);
+        g.outline(sideX, top, sideW, 300, 0xFF2A3745);
+        g.text(font, Component.literal("WORLDGATE"), sideX + 14, top + 14, 0xFFBDA6FF);
+        g.text(font, Component.literal("Quick access"), sideX + 14, top + 30, 0xFF788695);
+
         String room = WorldGateModClient.CURRENT_ROOM_CODE;
         g.text(font, Component.literal(room == null || room.isBlank() ? "No active room" : "Room " + room),
-                right + 8, top + 30, 0xFFD8DDE3);
-        g.text(font, Component.literal("Join/create a room, then use the dashboard below."),
-                right + 8, top + 48, 0xFF718091);
+                left + 16, top + 100, 0xFFD8E0E8);
         if (WorldGateModClient.HOSTING_ROOM_CODE != null && !WorldGateModClient.HOSTING_ROOM_CODE.isBlank()) {
             g.text(font, Component.literal("Hosting " + WorldGateModClient.HOSTING_ROOM_CODE),
-                    left + 8, top + 87, 0xFF70E090);
+                    left + mainW - 150, top + 100, 0xFF73E0A1);
         }
     }
 
