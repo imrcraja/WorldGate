@@ -97,7 +97,7 @@ public final class ClaimCenterScreen extends Screen {
 
         addRenderableWidget(Button.builder(Component.literal("Back"),
                 b -> onClose())
-                .bounds(cx - 47, height - 30, 192, 20).build());
+                .bounds(cx + 50, height - 30, 95, 20).build());
 
         refresh();
     }
