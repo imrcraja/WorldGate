@@ -20,9 +20,9 @@ import java.util.Base64;
 public abstract class PlayerInfoMixin {
     @Inject(method = "<init>", at = @At("TAIL"))
     private void worldgate$applyProfileSkin(GameProfile profile, boolean enforcesSecureChat, CallbackInfo ci) {
-        if (profile == null || profile.getId() == null) return;
+        if (profile == null || profile.id() == null) return;
 
-        String skinUrl = WorldGateSkinCache.get(profile.getId());
+        String skinUrl = WorldGateSkinCache.get(profile.id());
         if (skinUrl == null || skinUrl.isBlank()) return;
 
         try {
@@ -32,7 +32,7 @@ public abstract class PlayerInfoMixin {
             String encoded = Base64.getEncoder().encodeToString(
                     payload.getBytes(StandardCharsets.UTF_8)
             );
-            profile.getProperties().put("textures", new Property("textures", encoded));
+            profile.properties().put("textures", new Property("textures", encoded));
         } catch (Exception ignored) {
         }
     }
