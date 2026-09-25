@@ -201,9 +201,7 @@ public final class ClaimCenterScreen extends Screen {
             String response = EliteCoinManager.gift(uid, coins, message);
             if (minecraft != null) {
                 minecraft.execute(() -> {
-                    status = response != null && response.contains("\"ok\":true")
-                            ? "Gift sent successfully."
-                            : parseGiftError(response);
+                    status = parseGiftError(response);
                     refresh();
                 });
             }
@@ -243,11 +241,25 @@ public final class ClaimCenterScreen extends Screen {
     }
 
     private String parseGiftError(String response) {
-        if (response == null) return "Gift request failed.";
-        if (response.contains("insufficient_balance")) return "Not enough Elite Coins.";
-        if (response.contains("recipient_not_found")) return "Recipient was not found.";
-        if (response.contains("self_gift")) return "You cannot gift yourself.";
-        return "Gift could not be sent.";
+        if (response == null || response.isBlank()) return "Gift request failed.";
+        try {
+            JsonObject object = JsonParser.parseString(response).getAsJsonObject();
+            if (object.has("ok") && object.get("ok").getAsBoolean()) {
+                return "Gift sent successfully.";
+            }
+            String error = object.has("error") && !object.get("error").isJsonNull()
+                    ? object.get("error").getAsString()
+                    : "";
+            return switch (error) {
+                case "insufficient_balance" -> "Not enough Elite Coins.";
+                case "recipient_not_found" -> "Recipient was not found.";
+                case "self_gift" -> "You cannot gift yourself.";
+                case "invalid_amount" -> "Enter a valid Elite Coin amount.";
+                default -> error.isBlank() ? "Gift could not be sent." : "Gift failed: " + error;
+            };
+        } catch (Exception ignored) {
+            return "Gift request failed.";
+        }
     }
 
     @Override
