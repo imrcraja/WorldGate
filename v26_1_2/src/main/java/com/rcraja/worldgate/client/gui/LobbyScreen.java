@@ -220,11 +220,18 @@ public class LobbyScreen extends Screen {
         loading = true;
         WorldGateModClient.EXECUTOR.submit(() -> {
             String json = WorldGateModClient.FRIEND_MANAGER.getFriends();
+            String room = WorldGateModClient.CURRENT_ROOM_CODE;
+            String roomData = room == null || room.isBlank()
+                    ? null
+                    : WorldGateModClient.ROOM_MANAGER.getRoom(room);
             if (minecraft != null) minecraft.execute(() -> {
                 friendsJson = json;
+                roomJson = roomData;
                 refreshFriendProfiles();
                 loading = false;
-                status = "Refreshed";
+                status = room == null || room.isBlank()
+                        ? "Refreshed • No active room"
+                        : "Refreshed • Room " + room;
             });
         });
     }
