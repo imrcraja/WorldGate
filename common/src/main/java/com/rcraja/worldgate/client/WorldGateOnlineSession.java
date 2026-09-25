@@ -32,7 +32,7 @@ public final class WorldGateOnlineSession {
     private static void refresh(){
         if(!running||!WorldGateModClient.SESSION.isReady())return;
         String response;
-        String device="Minecraft "+net.minecraft.SharedConstants.getCurrentVersion().getName();
+        String device="Minecraft "+net.minecraft.SharedConstants.getCurrentVersion().name();
         if(!registered){
             response=BackendClient.startOnlineSession(WorldGateModClient.SESSION,sessionId,device);
             if(response!=null)registered=true;
