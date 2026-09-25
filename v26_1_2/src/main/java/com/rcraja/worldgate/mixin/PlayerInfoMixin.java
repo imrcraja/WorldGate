@@ -19,7 +19,7 @@ import java.util.Base64;
 @Mixin(PlayerInfo.class)
 public abstract class PlayerInfoMixin {
     @Inject(method = "<init>", at = @At("HEAD"))
-    private void worldgate$applyProfileSkin(GameProfile profile, boolean enforcesSecureChat, CallbackInfo ci) {
+    private static void worldgate$applyProfileSkin(GameProfile profile, boolean enforcesSecureChat, CallbackInfo ci) {
         if (profile == null || profile.id() == null) return;
 
         String skinUrl = WorldGateSkinCache.get(profile.id());
