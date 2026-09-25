@@ -213,61 +213,66 @@ public class FriendsScreen extends Screen {
     private void loadInvites() {
         WorldGateModClient.EXECUTOR.submit(() -> {
             String json = WorldGateModClient.ROOM_MANAGER.getIncomingInvites();
-
             try {
                 JsonObject inviteObject = (json == null || json.equals("null") || json.isBlank())
                         ? new JsonObject()
                         : JsonParser.parseString(json).getAsJsonObject();
 
-                this.invites.clear();
-                if (inviteObject.entrySet().isEmpty()) {
-                    if (minecraft != null) minecraft.execute(() -> {
+                List<InviteEntry> loaded = new ArrayList<>();
+                for (String inviteUid : inviteObject.keySet()) {
+                    if (!inviteObject.get(inviteUid).isJsonObject()) continue;
+                    JsonObject inviteData = inviteObject.getAsJsonObject(inviteUid);
+                    String inviteName = inviteData.has("fromName")
+                            ? inviteData.get("fromName").getAsString() : "Player";
+                    String inviteRoom = inviteData.has("roomCode")
+                            ? inviteData.get("roomCode").getAsString() : "";
+                    if (!inviteRoom.isBlank()) {
+                        loaded.add(new InviteEntry(inviteUid, inviteName, inviteRoom));
+                    }
+                }
+
+                if (minecraft != null) minecraft.execute(() -> {
+                    invites.clear();
+                    invites.addAll(loaded);
+
+                    if (invites.isEmpty()) {
                         pendingInviteFromUid = null;
                         pendingInviteRoom = null;
                         selectedInviteFromUid = null;
                         requestNotification = "";
                         updateButtons();
-                    });
-                    return;
-                }
+                        return;
+                    }
 
-                for (String inviteUid : inviteObject.keySet()) {
-                    JsonObject inviteData = inviteObject.getAsJsonObject(inviteUid);
-                    String inviteName = inviteData.has("fromName") ? inviteData.get("fromName").getAsString() : "Player";
-                    String inviteRoom = inviteData.has("roomCode") ? inviteData.get("roomCode").getAsString() : "";
-                    this.invites.add(new InviteEntry(inviteUid, inviteName, inviteRoom));
-                }
-                String fromUid = selectedInviteFromUid;
-                if (fromUid == null || this.invites.stream().noneMatch(i -> i.fromUid().equals(fromUid))) {
-                    fromUid = this.invites.get(0).fromUid();
-                }
-                JsonObject invite = inviteObject.getAsJsonObject(fromUid);
-                for (String inviteUid : invites.keySet()) {
-                    JsonObject inviteObject = invites.getAsJsonObject(inviteUid);
-                    String inviteName = inviteObject.has("fromName") ? inviteObject.get("fromName").getAsString() : "Player";
-                    String inviteRoom = inviteObject.has("roomCode") ? inviteObject.get("roomCode").getAsString() : "";
-                    this.invites.add(new InviteEntry(inviteUid, inviteName, inviteRoom));
-                }
-                String fromUid = invites.keySet().iterator().next();
-                JsonObject invite = invites.getAsJsonObject(fromUid);
-                String name = invite.has("fromName")
-                        ? invite.get("fromName").getAsString()
-                        : "Player";
-                String room = invite.has("roomCode")
-                        ? invite.get("roomCode").getAsString()
-                        : "";
+                    String selected = selectedInviteFromUid;
+                    if (selected == null || invites.stream().noneMatch(i -> i.fromUid().equals(selected))) {
+                        selected = invites.get(0).fromUid();
+                    }
 
-                if (minecraft != null) {
-                    minecraft.execute(() -> {
-                        selectedInviteFromUid = fromUid;
-                        pendingInviteFromUid = fromUid;
-                        pendingInviteRoom = room;
-                        requestNotification = "Room Invite: " + name + " [" + room + "]";
-                        requestNotificationUntil = System.currentTimeMillis() + 7000L;
-                        status = "Room invite received: " + room;
-                    });
-                }
+                    selectedInviteFromUid = selected;
+                    InviteEntry active = invites.stream()
+                            .filter(i -> i.fromUid().equals(selected))
+                            .findFirst()
+                            .orElse(invites.get(0));
+
+                    pendingInviteFromUid = active.fromUid();
+                    pendingInviteRoom = active.roomCode();
+                    requestNotification = invites.size() == 1
+                            ? "Room Invite: " + active.fromName() + " [" + active.roomCode() + "]"
+                            : invites.size() + " room invites received";
+                    requestNotificationUntil = System.currentTimeMillis() + 7000L;
+                    status = "Room invite received: " + active.roomCode();
+                    updateButtons();
+                });
             } catch (Exception ignored) {
+                if (minecraft != null) minecraft.execute(() -> {
+                    invites.clear();
+                    pendingInviteFromUid = null;
+                    pendingInviteRoom = null;
+                    selectedInviteFromUid = null;
+                    status = "Could not load room invites.";
+                    updateButtons();
+                });
             }
         });
     }
