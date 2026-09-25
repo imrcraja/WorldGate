@@ -211,10 +211,10 @@ public class FriendManager {
         String senderName = getMyDisplayName();
         String senderId = myPublicId();
         String json = "{"
-                + "\"fromUid\":\"" + escapeJson(session.uid()) + "\", 
-                + "\"fromPublicId\":\"" + escapeJson(senderId) + "\", 
-                + "\"fromName\":\"" + escapeJson(senderName) + "\", 
-                + "\"sentAt\": + System.currentTimeMillis() + "}";
+                + "\"fromUid\":\"" + escapeJson(session.uid()) + "\","
+                + "\"fromPublicId\":\"" + escapeJson(senderId) + "\","
+                + "\"fromName\":\"" + escapeJson(senderName) + "\","
+                + "\"sentAt\":" + System.currentTimeMillis() + "}";
         return session.db().put("/friend_requests/" + targetUid + "/" + session.uid(), json) != null;
     }
 
