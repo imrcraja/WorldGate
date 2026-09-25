@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 public final class ChatScreen extends Screen {
     private static final Pattern URL_PATTERN =
@@ -33,6 +35,9 @@ public final class ChatScreen extends Screen {
     private Button deleteButton;
     private Button linkButton;
     private String status = "Realtime chat connected";
+    private String typingText = "";
+    private long lastTypingAt = 0L;
+    private boolean localTyping = false;
 
     public ChatScreen(Screen parent, String roomCode) {
         super(Component.literal("WorldGate Chat"));
@@ -49,6 +54,14 @@ public final class ChatScreen extends Screen {
                 Component.literal("Message")
         );
         input.setMaxLength(200);
+        input.setResponder(value -> {
+            boolean typing = value != null && !value.trim().isEmpty();
+            if (typing != localTyping) {
+                localTyping = typing;
+                WorldGateModClient.CHAT_MANAGER.setTyping(roomCode, typing);
+            }
+            lastTypingAt = System.currentTimeMillis();
+        });
         addRenderableWidget(input);
 
         addRenderableWidget(Button.builder(
@@ -72,8 +85,31 @@ public final class ChatScreen extends Screen {
         ).bounds(cx + 90, height - 24, 60, 20).build());
 
         updateActions();
+        WorldGateModClient.CHAT_MANAGER.bindTypingRoom(roomCode);
+        WorldGateModClient.CHAT_MANAGER.setTypingChangedListener(data ->
+                Minecraft.getInstance().execute(() -> updateTyping(data)));
         WorldGateModClient.CHAT_MANAGER.listenDetailed(roomCode, event ->
                 Minecraft.getInstance().execute(() -> applyEvent(event)));
+    }
+
+    private void updateTyping(String data) {
+        if (data == null || data.isBlank() || "null".equals(data)) { typingText = ""; return; }
+        try {
+            JsonObject all = JsonParser.parseString(data).getAsJsonObject();
+            StringBuilder names = new StringBuilder();
+            String myUid = WorldGateModClient.FRIEND_MANAGER.myUid();
+            for (String uid : all.keySet()) {
+                if (uid.equals(myUid)) continue;
+                JsonObject item = all.getAsJsonObject(uid);
+                long seen = item.has("lastSeen") ? item.get("lastSeen").getAsLong() : 0L;
+                boolean typing = item.has("typing") && item.get("typing").getAsBoolean();
+                if (typing && System.currentTimeMillis() - seen < 5000) {
+                    if (names.length() > 0) names.append(", ");
+                    names.append(displayName(uid));
+                }
+            }
+            typingText = names.length() == 0 ? "" : names + (names.indexOf(",") >= 0 ? " are typing" : " is typing");
+        } catch (Exception ignored) { typingText = ""; }
     }
 
     private void applyEvent(ChatManager.ChatEvent event) {
@@ -123,6 +159,8 @@ public final class ChatScreen extends Screen {
         WorldGateModClient.EXECUTOR.submit(() ->
                 WorldGateModClient.CHAT_MANAGER.sendMessage(roomCode, text, target));
         input.setValue("");
+        localTyping = false;
+        WorldGateModClient.CHAT_MANAGER.setTyping(roomCode, false);
         replyTargetId = null;
         status = target == null ? "Message sent" : "Reply sent";
         updateActions();
@@ -253,6 +291,12 @@ public final class ChatScreen extends Screen {
                     line.deleted() ? 0x777777 : 0xFFFFFF
             );
             y += 16;
+        }
+
+        if (!typingText.isBlank()) {
+            long pulse = (System.currentTimeMillis() / 450L) % 4;
+            String dots = ".".repeat((int)pulse);
+            graphics.centeredText(font, Component.literal(typingText + dots), cx, height - 104, 0x7DE2FF);
         }
 
         if (replyTargetId != null) {
