@@ -31,6 +31,8 @@ public class WorldGateModClient implements ClientModInitializer {
             });
 
     public static volatile String CURRENT_ROOM_CODE = null;
+    /** Stable for the entire lifetime of the currently hosted Minecraft world. */
+    public static volatile String HOSTING_ROOM_CODE = null;
 
     private static volatile String networkMode = "auto";
 
@@ -52,6 +54,46 @@ public class WorldGateModClient implements ClientModInitializer {
 
     public static boolean allowLanFallback() {
         return !"internet".equals(networkMode);
+    }
+
+    /**
+     * Ends the WorldGate room only when the actual Minecraft world/network
+     * connection is closing. Opening/closing WorldGate screens must not change
+     * the room code or make the host leave.
+     */
+    public static void leaveCurrentRoomOnWorldDisconnect() {
+        final String room = CURRENT_ROOM_CODE;
+        final boolean host = HOSTING_ROOM_CODE != null
+                && HOSTING_ROOM_CODE.equals(room);
+
+        if (room == null || room.isBlank()) {
+            RelayBridge.stop();
+            HostBridge.stop();
+            HOSTING_ROOM_CODE = null;
+            CURRENT_ROOM_CODE = null;
+            stopHeartbeat();
+            return;
+        }
+
+        stopHeartbeat();
+        HOSTING_ROOM_CODE = null;
+        CURRENT_ROOM_CODE = null;
+
+        EXECUTOR.submit(() -> {
+            try {
+                if (host) {
+                    ROOM_MANAGER.hostLeave(room);
+                    HostBridge.stop();
+                } else {
+                    ROOM_MANAGER.playerLeave(room);
+                    RelayBridge.stop();
+                }
+            } catch (Exception e) {
+                WorldGateMod.LOGGER.debug("WorldGate room cleanup failed", e);
+                HostBridge.stop();
+                RelayBridge.stop();
+            }
+        });
     }
 
     private static final ScheduledExecutorService HEARTBEAT =
@@ -122,24 +164,45 @@ public class WorldGateModClient implements ClientModInitializer {
                 String displayName = Minecraft.getInstance().getUser().getName();
                 FRIEND_MANAGER.setOnline(displayName);
                 try {
-                    // Keep this compatible across mapping changes: SkinManager's
-                    // insecure-skin API changed shape across Minecraft versions.
+                    /*
+                     * Prefer the skin actually attached to the local player.
+                     * This matters for offline/cracked launchers: SkinManager's
+                     * profile lookup can have no Mojang texture even though the
+                     * local player is visibly using a custom skin.
+                     */
+                    String skinUrl = null;
                     try {
-                        Object skin = Minecraft.getInstance().getSkinManager()
-                                .getClass()
-                                .getMethod("getInsecureSkin", com.mojang.authlib.GameProfile.class)
-                                .invoke(Minecraft.getInstance().getSkinManager(),
-                                        Minecraft.getInstance().getGameProfile());
-                        String skinUrl = null;
-                        if (skin != null) {
-                            Object value = skin.getClass().getMethod("textureUrl").invoke(skin);
-                            if (value != null) skinUrl = String.valueOf(value);
-                        }
-                        if (skinUrl != null && !skinUrl.isBlank()) {
-                            FRIEND_MANAGER.updateMySkin(skinUrl);
+                        Object player = Minecraft.getInstance().player;
+                        if (player != null) {
+                            Object skin = player.getClass().getMethod("getSkin").invoke(player);
+                            if (skin != null) {
+                                Object value = skin.getClass().getMethod("textureUrl").invoke(skin);
+                                if (value != null) skinUrl = String.valueOf(value);
+                            }
                         }
                     } catch (ReflectiveOperationException ignored) {
-                        WorldGateMod.LOGGER.debug("WorldGate skin API shape changed; skipping automatic skin sync");
+                        // Fall back to the normal profile lookup below.
+                    }
+
+                    if (skinUrl == null || skinUrl.isBlank()) {
+                        try {
+                            Object skin = Minecraft.getInstance().getSkinManager()
+                                    .getClass()
+                                    .getMethod("getInsecureSkin", com.mojang.authlib.GameProfile.class)
+                                    .invoke(Minecraft.getInstance().getSkinManager(),
+                                            Minecraft.getInstance().getGameProfile());
+                            if (skin != null) {
+                                Object value = skin.getClass().getMethod("textureUrl").invoke(skin);
+                                if (value != null) skinUrl = String.valueOf(value);
+                            }
+                        } catch (ReflectiveOperationException ignored) {
+                            WorldGateMod.LOGGER.debug("WorldGate skin API shape changed; skipping automatic skin sync");
+                        }
+                    }
+
+                    if (skinUrl != null && !skinUrl.isBlank()) {
+                        FRIEND_MANAGER.updateMySkin(skinUrl);
+                        WorldGateMod.LOGGER.info("WorldGate synced current player skin.");
                     }
                 } catch (Exception e) {
                     WorldGateMod.LOGGER.debug("WorldGate skin sync unavailable", e);
