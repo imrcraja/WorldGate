@@ -355,6 +355,15 @@ public class WorldGateScreen extends Screen {
         );
     }
 
+    public void joinRoomFromInvite(String code) {
+        if (code == null || code.isBlank()) {
+            sendMessage("WorldGate: invite has no room code.");
+            return;
+        }
+        roomCodeBox.setValue(code.trim().toUpperCase());
+        onJoin();
+    }
+
     private void onJoin() {
 
         String code =
