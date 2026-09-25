@@ -9,6 +9,8 @@ import com.rcraja.worldgate.client.elite.EliteManager;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.server.players.NameAndId;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -21,6 +23,7 @@ public class LobbyScreen extends Screen {
 
     private final Screen parent;
     private EditBox chatBox;
+    private EditBox opPlayerBox;
 
     private final Map<String, FriendProfile> friendProfiles =
             new ConcurrentHashMap<>();
@@ -81,6 +84,15 @@ public class LobbyScreen extends Screen {
 
         chatBox.setMaxLength(200);
 
+        opPlayerBox = new EditBox(this.font, 20, 58, 170, 20, Component.literal("Player IGN"));
+        opPlayerBox.setMaxLength(16);
+        opPlayerBox.setHint(Component.literal("Player IGN"));
+        addRenderableWidget(opPlayerBox);
+        addRenderableWidget(Button.builder(Component.literal("Grant OP"), btn -> setPlayerOp(true))
+                .bounds(195, 58, 75, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Revoke OP"), btn -> setPlayerOp(false))
+                .bounds(275, 58, 82, 20).build());
+
         chatBox.setHint(
                 Component.translatable("worldgate.chat.hint")
         );
@@ -132,6 +144,40 @@ public class LobbyScreen extends Screen {
         );
 
         startRealtime();
+    }
+
+    private void setPlayerOp(boolean grant) {
+        if (minecraft == null || minecraft.getSingleplayerServer() == null) {
+            status = "OP control is host-only.";
+            return;
+        }
+        IntegratedServer server = minecraft.getSingleplayerServer();
+        if (!server.isPublished() || !WorldGateModClient.CURRENT_ROOM_CODE.equals(boundRoom)) {
+            status = "Only the active WorldGate host can manage OP.";
+            return;
+        }
+        String name = opPlayerBox == null ? "" : opPlayerBox.getValue().trim();
+        if (name.isBlank()) {
+            status = "Enter a player IGN first.";
+            return;
+        }
+        var player = server.getPlayerList().getPlayerByName(name);
+        if (player == null) {
+            status = "Player is not currently connected.";
+            return;
+        }
+        try {
+            NameAndId target = new NameAndId(player.getGameProfile());
+            if (grant) {
+                server.getPlayerList().op(target);
+                status = "OP granted to " + name + ".";
+            } else {
+                server.getPlayerList().deop(target);
+                status = "OP revoked from " + name + ".";
+            }
+        } catch (Exception e) {
+            status = "Could not change OP for " + name + ".";
+        }
     }
 
     private void startRealtime() {
@@ -599,7 +645,7 @@ public class LobbyScreen extends Screen {
                 this.width / 2;
 
         int panelTop =
-                38;
+                84;
 
         int bottom =
                 this.height - 58;
