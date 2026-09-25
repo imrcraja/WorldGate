@@ -549,8 +549,10 @@ public class WorldGateScreen extends Screen {
         int[] colors = {0xFF7DE2FF, 0xFF70E090, 0xFFFFD166, 0xFFB8A7FF};
 
         for (int i = 0; i < 4; i++) {
-            graphics.fill(xs[i], top, xs[i] + buttonW, top + panelH, 0xCC10161D);
-            graphics.outline(xs[i], top, buttonW, panelH, 0xFF2B3742);
+            // Keep the category areas transparent so the Minecraft background remains visible.
+            // The buttons themselves provide the visual hierarchy; a second opaque panel layer
+            // made every control look like it had a black box painted over it.
+            graphics.outline(xs[i], top, buttonW, panelH, 0x662B3742);
             graphics.text(font, titles[i], xs[i] + 10, top + 10, colors[i]);
         }
 
@@ -561,8 +563,7 @@ public class WorldGateScreen extends Screen {
 
         int infoY = top + panelH + 14;
         int infoH = Math.max(88, height - infoY - 72);
-        graphics.fill(left, infoY, width - left, infoY + infoH, 0xCC0D1218);
-        graphics.outline(left, infoY, width - left * 2, infoH, 0xFF26323D);
+        graphics.outline(left, infoY, width - left * 2, infoH, 0x5526323D);
 
         String room = WorldGateModClient.CURRENT_ROOM_CODE;
         graphics.text(font, room == null || room.isBlank() ? "READY" : "ACTIVE ROOM",
