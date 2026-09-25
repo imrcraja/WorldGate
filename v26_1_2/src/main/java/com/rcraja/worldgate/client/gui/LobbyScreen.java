@@ -35,6 +35,7 @@ public class LobbyScreen extends Screen {
             new ArrayList<>();
 
     private volatile boolean loading = true;
+    private volatile String status = "Connecting to WorldGate...";
 
     public LobbyScreen(Screen parent) {
         super(Component.translatable("worldgate.lobby.title"));
@@ -100,16 +101,32 @@ public class LobbyScreen extends Screen {
         );
 
         addRenderableWidget(
+                Button.builder(Component.literal("Refresh"),
+                        btn -> refreshNow())
+                .bounds(centerX - 155, this.height - 20, 75, 20)
+                .build()
+        );
+
+        addRenderableWidget(
+                Button.builder(Component.literal("Friends"),
+                        btn -> openFriends())
+                .bounds(centerX - 75, this.height - 20, 75, 20)
+                .build()
+        );
+
+        addRenderableWidget(
+                Button.builder(Component.literal("Elite Store"),
+                        btn -> minecraft.setScreen(new EliteCoinScreen(this)))
+                .bounds(centerX + 5, this.height - 20, 90, 20)
+                .build()
+        );
+
+        addRenderableWidget(
                 Button.builder(
                         Component.translatable("worldgate.button.back"),
                         btn -> goBack()
                 )
-                .bounds(
-                        centerX - 70,
-                        this.height - 20,
-                        140,
-                        20
-                )
+                .bounds(centerX + 100, this.height - 20, 70, 20)
                 .build()
         );
 
@@ -193,6 +210,27 @@ public class LobbyScreen extends Screen {
         }
 
         loading = false;
+        status = room != null && !room.isBlank()
+                ? "Connected • Room " + room
+                : "Connected • No active room";
+    }
+
+    private void refreshNow() {
+        status = "Refreshing...";
+        loading = true;
+        WorldGateModClient.EXECUTOR.submit(() -> {
+            String json = WorldGateModClient.FRIEND_MANAGER.getFriends();
+            if (minecraft != null) minecraft.execute(() -> {
+                friendsJson = json;
+                refreshFriendProfiles();
+                loading = false;
+                status = "Refreshed";
+            });
+        });
+    }
+
+    private void openFriends() {
+        if (minecraft != null) minecraft.setScreen(new FriendsScreen(this));
     }
 
     private void refreshFriendProfiles() {
@@ -544,13 +582,8 @@ public class LobbyScreen extends Screen {
                 0xFFFFFF
         );
 
-        graphics.centeredText(
-                font,
-                "Friends • Players • Realtime Chat",
-                centerX,
-                27,
-                0xAAAAAA
-        );
+        graphics.centeredText(font, "Friends • Players • Realtime Chat", centerX, 27, 0xAAAAAA);
+        graphics.centeredText(font, status, centerX, 36, 0x8F9BA8);
 
         int leftX =
                 12;
