@@ -39,7 +39,8 @@ public class FriendsScreen extends Screen {
     private Button joinInviteButton;
     private Button dismissInviteButton;
     private String pendingInviteFromUid;
-    private String pendingInviteRoom;\n    private final List<InviteEntry> invites = new ArrayList<>();
+    private String pendingInviteRoom;
+    private final List<InviteEntry> invites = new ArrayList<>();
 
     private final Set<String> knownRequestUids = new HashSet<>();
     private boolean requestSnapshotReady;
@@ -221,7 +222,14 @@ public class FriendsScreen extends Screen {
                     return;
                 }
 
-                this.invites.clear();\n                for (String inviteUid : invites.keySet()) {\n                    JsonObject inviteObject = invites.getAsJsonObject(inviteUid);\n                    String inviteName = inviteObject.has("fromName") ? inviteObject.get("fromName").getAsString() : "Player";\n                    String inviteRoom = inviteObject.has("roomCode") ? inviteObject.get("roomCode").getAsString() : "";\n                    this.invites.add(new InviteEntry(inviteUid, inviteName, inviteRoom));\n                }\n                String fromUid = invites.keySet().iterator().next();
+                this.invites.clear();
+                for (String inviteUid : invites.keySet()) {
+                    JsonObject inviteObject = invites.getAsJsonObject(inviteUid);
+                    String inviteName = inviteObject.has("fromName") ? inviteObject.get("fromName").getAsString() : "Player";
+                    String inviteRoom = inviteObject.has("roomCode") ? inviteObject.get("roomCode").getAsString() : "";
+                    this.invites.add(new InviteEntry(inviteUid, inviteName, inviteRoom));
+                }
+                String fromUid = invites.keySet().iterator().next();
                 JsonObject invite = invites.getAsJsonObject(fromUid);
                 String name = invite.has("fromName")
                         ? invite.get("fromName").getAsString()
