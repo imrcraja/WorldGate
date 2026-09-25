@@ -30,6 +30,11 @@ public class RoomManager {
         String roomCode =
                 generateRoomCode();
 
+        if (roomCode == null || roomCode.isBlank()) {
+            WorldGateMod.LOGGER.error("WorldGate room creation aborted: no free room code.");
+            return null;
+        }
+
         long now =
                 System.currentTimeMillis();
 
