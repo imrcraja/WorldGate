@@ -37,9 +37,13 @@ public final class SettingsScreen extends Screen {
                         : "Relay is idle. It connects automatically when a room uses Internet mode."))
                 .bounds(x, 104, 240, 20).build());
 
+        addRenderableWidget(Button.builder(Component.literal("Discord Account"),
+                b -> minecraft.setScreen(new DiscordLinkScreen(this)))
+                .bounds(x, 132, 240, 20).build());
+
         addRenderableWidget(Button.builder(Component.literal("Privacy & Local Data"),
                 b -> minecraft.setScreen(new LocalDataScreen(this)))
-                .bounds(x, 132, 240, 20).build());
+                .bounds(x, 160, 240, 20).build());
 
         addRenderableWidget(Button.builder(Component.literal("Back"),
                 b -> onClose()).bounds(x, height - 30, 240, 20).build());
