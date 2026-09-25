@@ -55,6 +55,7 @@ public class WorldGateScreen extends Screen {
         this.parent =
                 parent;
         WorldGateSounds.play(WorldGateSounds.WORLDGATE_OPEN, 0.85F);
+        WorldGateModClient.syncCurrentSkin();
     }
 
     @Override
@@ -1138,8 +1139,6 @@ public class WorldGateScreen extends Screen {
          * host minimizes/opens another screen. Actual world disconnect cleanup
          * is handled by ClientPacketListenerMixin.
          */
-        WorldGateSounds.play(WorldGateSounds.WORLD_DISCONNECT, 0.75F);
-
         if (minecraft != null) {
 
             minecraft.setScreen(
