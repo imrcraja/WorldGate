@@ -309,7 +309,8 @@ public final class RelayBridge {
             copy.get(bytes);
 
             output.write(bytes);
-            // TCP_NODELAY keeps small Minecraft packets from waiting for a flush cycle.\n            output.flush();
+            // TCP_NODELAY keeps small Minecraft packets from waiting for a flush cycle.
+            output.flush();
 
         } catch (Exception e) {
             if (running) {
@@ -473,7 +474,16 @@ public final class RelayBridge {
         }
 
         @Override
-        public CompletionStage<?> onPong(WebSocket webSocket, ByteBuffer message) {\n            long sent = lastPingAt;\n            if (sent > 0) rttMillis = Math.max(0L, (System.nanoTime() - sent) / 1_000_000L);\n            lastPongAt = System.currentTimeMillis();\n            webSocket.request(1);\n            return CompletableFuture.completedFuture(null);\n        }\n\n        @Override\n        public CompletionStage<?> onBinary(
+        public CompletionStage<?> onPong(WebSocket webSocket, ByteBuffer message) {
+            long sent = lastPingAt;
+            if (sent > 0) rttMillis = Math.max(0L, (System.nanoTime() - sent) / 1_000_000L);
+            lastPongAt = System.currentTimeMillis();
+            webSocket.request(1);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public CompletionStage<?> onBinary(
                 WebSocket webSocket,
                 ByteBuffer data,
                 boolean last
