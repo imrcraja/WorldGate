@@ -340,6 +340,10 @@ public class RoomManager {
         );
     }
 
+    public void stopInviteRealtime() {
+        inviteStream.stop();
+    }
+
     public void stopRealtime() {
         roomStream.stop();
         inviteStream.stop();
