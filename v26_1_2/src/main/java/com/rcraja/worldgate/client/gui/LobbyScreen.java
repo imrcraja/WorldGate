@@ -3,6 +3,7 @@ package com.rcraja.worldgate.client.gui;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
+import com.rcraja.worldgate.client.HostPermissionManager;
 import com.rcraja.worldgate.client.elite.EliteBadgeRenderer;
 import com.rcraja.worldgate.client.elite.EliteManager;
 
@@ -170,10 +171,12 @@ public class LobbyScreen extends Screen {
             NameAndId target = new NameAndId(player.getGameProfile());
             if (grant) {
                 server.getPlayerList().op(target);
-                status = "OP granted to " + name + ".";
+                HostPermissionManager.grant(player.getUUID());
+                status = "OP granted to " + name + " and saved on the host.";
             } else {
                 server.getPlayerList().deop(target);
-                status = "OP revoked from " + name + ".";
+                HostPermissionManager.revoke(player.getUUID());
+                status = "OP revoked from " + name + " and removed from host storage.";
             }
         } catch (Exception e) {
             status = "Could not change OP for " + name + ".";
