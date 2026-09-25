@@ -47,7 +47,7 @@ public final class DiscordLinkManager {
                 if (url.isBlank() || ticket.isBlank()) return;
 
                 LocalWorldGateData.set(TICKET_KEY, ticket);
-                java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
+                net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create(url));
 
                 for (int i = 0; i < 120; i++) {
                     Thread.sleep(2000L);
