@@ -9,7 +9,8 @@
     "PlayerModelMixin",
     "PlayerInfoMixin",
     "PlayerTabOverlayMixin",
-    "TitleScreenMixin"
+    "TitleScreenMixin",
+    "ClientPacketListenerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
