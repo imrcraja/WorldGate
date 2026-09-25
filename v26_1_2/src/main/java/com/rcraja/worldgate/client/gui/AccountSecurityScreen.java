@@ -14,12 +14,22 @@ public final class AccountSecurityScreen extends Screen {
     private final Screen parent;
     private String status="Loading sessions...";
     private JsonArray sessions=new JsonArray();
+    private final Button[] revokeButtons=new Button[6];
+    private final String[] revokeIds=new String[6];
 
     public AccountSecurityScreen(Screen parent){super(Component.literal("Account Security"));this.parent=parent;}
 
     @Override protected void init(){
         addRenderableWidget(Button.builder(Component.literal("Refresh"),b->load())
                 .bounds(width/2-110,70,220,20).build());
+        for(int i=0;i<revokeButtons.length;i++){
+            final int slot=i;
+            revokeButtons[i]=addRenderableWidget(Button.builder(Component.literal("Revoke"),b->{
+                String id=revokeIds[slot];
+                if(id!=null&&!id.isBlank()) revoke(id);
+            }).bounds(width/2+105,96+i*42,85,20).build());
+        }
+        updateRevokeButtons();
         addRenderableWidget(Button.builder(Component.literal("Back"),b->onClose())
                 .bounds(width/2-110,height-30,220,20).build());
         load();
@@ -35,8 +45,19 @@ public final class AccountSecurityScreen extends Screen {
                 if(root.has("sessions")&&root.get("sessions").isJsonArray())found=root.getAsJsonArray("sessions");
             }catch(Exception ignored){}
             final JsonArray result=found;
-            if(minecraft!=null)minecraft.execute(()->{sessions=result;status=result.size()+" logged-in session(s)";});
+            if(minecraft!=null)minecraft.execute(()->{sessions=result;status=result.size()+" logged-in session(s)";updateRevokeButtons();});
         });
+    }
+
+    private void updateRevokeButtons(){
+        for(int i=0;i<revokeButtons.length;i++){
+            revokeIds[i]=null;
+            if(i<sessions.size()){
+                JsonObject item=sessions.get(i).getAsJsonObject();
+                if(item.has("sessionId")) revokeIds[i]=item.get("sessionId").getAsString();
+            }
+            if(revokeButtons[i]!=null) revokeButtons[i].visible=revokeIds[i]!=null&&!revokeIds[i].isBlank();
+        }
     }
 
     private void revoke(String id){
