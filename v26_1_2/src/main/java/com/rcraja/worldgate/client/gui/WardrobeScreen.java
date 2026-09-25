@@ -17,6 +17,7 @@ public final class WardrobeScreen extends Screen {
     private final Tab tab;
     private final List<Button> itemButtons = new ArrayList<>();
     private String status = Component.translatable("worldgate.wardrobe.syncing").getString();
+    private boolean loading = true;
 
     public WardrobeScreen(Screen parent, Tab tab) {
         super(Component.translatable(tab == Tab.EMOTES ? "worldgate.wardrobe.emotes" : "worldgate.wardrobe.cosmetics"));
@@ -48,7 +49,7 @@ public final class WardrobeScreen extends Screen {
             int row = i / 4;
             int x = left + col * (cardW + gap);
             int y = top + row * (cardH + gap);
-            Button button = Button.builder(Component.literal("Loading..."),
+            Button button = Button.builder(Component.translatable("worldgate.loading"),
                     b -> action(index))
                     .bounds(x + 10, y + 66, cardW - 20, 20).build();
             itemButtons.add(button);
@@ -77,9 +78,11 @@ public final class WardrobeScreen extends Screen {
     }
 
     private void refresh() {
-        status = "Syncing wardrobe...";
+        status = Component.translatable("worldgate.wardrobe.syncing").getString();
+        loading = true;
         EliteCoinManager.refresh(() -> {
             if (minecraft != null) minecraft.execute(() -> {
+                loading = false;
                 status = EliteCoinManager.wallet().available()
                         ? Component.translatable("worldgate.wardrobe.synced",EliteCoinManager.wallet().balance()).getString()
                         : Component.translatable("worldgate.wardrobe.unavailable").getString();
@@ -103,8 +106,8 @@ public final class WardrobeScreen extends Screen {
             button.active = true;
             if (!inv.owns(item.id())) {
                 button.setMessage(Component.literal(item.priceCoins() == 0
-                        ? "Unlock"
-                        : "Buy " + item.priceCoins() + " EC"));
+                        ? Component.translatable("worldgate.coin.unlock").getString()
+                        : Component.translatable("worldgate.coin.buy_item_price", item.priceCoins()).getString()));
             } else if (inv.equipped(item.type(), item.id())) {
                 button.setMessage(Component.translatable("worldgate.wardrobe.equipped"));
             } else {
@@ -215,6 +218,7 @@ public final class WardrobeScreen extends Screen {
 
         g.centeredText(font, Component.literal(status),
                 width / 2, height - 48, 0xFF8E9AA6);
+        if (loading) WorldGateLoadingAnimation.draw(g, font, width / 2, height - 62);
     }
 
     @Override

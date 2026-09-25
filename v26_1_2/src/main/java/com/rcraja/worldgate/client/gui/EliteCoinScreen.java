@@ -8,6 +8,9 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +22,7 @@ public final class EliteCoinScreen extends Screen {
     private final List<Button> itemButtons = new ArrayList<>();
     private Filter filter = Filter.ALL;
     private String status = Component.translatable("worldgate.coin.syncing").getString();
+    private boolean loading = true;
 
     public EliteCoinScreen(Screen parent) {
         super(Component.translatable("worldgate.coin.title"));
@@ -46,7 +50,7 @@ public final class EliteCoinScreen extends Screen {
             int row = i / 4;
             int x = left + col * (cardW + gap);
             int y = top + row * (cardH + gap);
-            Button button = Button.builder(Component.literal("Loading..."),
+            Button button = Button.builder(Component.translatable("worldgate.loading"),
                     b -> purchase(index))
                     .bounds(x + 10, y + 66, cardW - 20, 20).build();
             itemButtons.add(button);
@@ -79,9 +83,11 @@ public final class EliteCoinScreen extends Screen {
     }
 
     private void refresh() {
-        status = "Syncing Elite Store...";
+        status = Component.translatable("worldgate.coin.syncing").getString();
+        loading = true;
         EliteCoinManager.refresh(() -> {
             if (minecraft != null) minecraft.execute(() -> {
+                loading = false;
                 status = EliteCoinManager.wallet().available()
                         ? Component.translatable("worldgate.coin.synced").getString()
                         : Component.translatable("worldgate.coin.unavailable").getString();
@@ -127,6 +133,7 @@ public final class EliteCoinScreen extends Screen {
                         JsonObject result = JsonParser.parseString(response).getAsJsonObject();
                         if (result.has("ok") && result.get("ok").getAsBoolean()) {
                             status = Component.translatable("worldgate.coin.purchased",item.name()).getString();
+                            loading = false;
                         } else {
                             String error = result.has("error")
                                     ? result.get("error").getAsString()
@@ -152,6 +159,13 @@ public final class EliteCoinScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
         super.extractRenderState(g, mx, my, delta);
         int cx = width / 2;
+        if (minecraft.player != null) {
+            try {
+                EntityRenderState preview = minecraft.getEntityRenderDispatcher().getRenderer(minecraft.player).createRenderState(minecraft.player, delta);
+                g.entity(preview, 1.0f, new Vector3f(cx - 230, 152, 0), new Quaternionf().rotateY((float)Math.toRadians(18)), null, cx - 292, 94, cx - 168, 270);
+            } catch (Exception ignored) {
+            }
+        }
         g.centeredText(font, Component.translatable("worldgate.coin.title"), cx, 18, 0xFFFFFFFF);
         g.centeredText(font,
                 Component.translatable("worldgate.coin.balance",

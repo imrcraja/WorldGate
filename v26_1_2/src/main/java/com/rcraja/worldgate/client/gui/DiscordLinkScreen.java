@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 public final class DiscordLinkScreen extends Screen {
     private final Screen parent;
     private String status = Component.translatable("worldgate.discord.linking").getString();
+    private boolean loading=false;
 
     public DiscordLinkScreen(Screen parent) {
         super(Component.translatable("worldgate.settings.discord"));
@@ -25,9 +26,10 @@ public final class DiscordLinkScreen extends Screen {
                         return;
                     }
                     status = Component.translatable("worldgate.discord.opening").getString();
+                    loading = true;
                     DiscordLinkManager.begin(() -> status = DiscordLinkManager.isLinked()
-                            ? "Linked as " + DiscordLinkManager.linkedName()
-                            : "Authorization was not completed.");
+                            ? Component.translatable("worldgate.discord.linked_as", DiscordLinkManager.linkedName()).getString()
+                            : Component.translatable("worldgate.discord.incomplete").getString());
                 }).bounds(width / 2 - 120, 86, 240, 22).build());
 
         addRenderableWidget(Button.builder(Component.translatable("worldgate.button.back"),
@@ -43,6 +45,7 @@ public final class DiscordLinkScreen extends Screen {
                 ? "Account linked • " + DiscordLinkManager.linkedName()
                 : "Not linked", width / 2, 66, 0xFFB8C2CC);
         g.centeredText(font, status, width / 2, height - 56, 0xFF7DE2FF);
+        if (loading) WorldGateLoadingAnimation.draw(g, font, width / 2, height - 72);
     }
 
     @Override public void onClose() { minecraft.setScreen(parent); }

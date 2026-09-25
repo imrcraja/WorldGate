@@ -14,6 +14,8 @@ import net.minecraft.network.chat.Component;
 public final class AccountSecurityScreen extends Screen {
     private final Screen parent;
     private String status=Component.translatable("worldgate.security.loading").getString();
+        loading=true;
+    private boolean loading=true;
     private JsonArray sessions=new JsonArray();
     private static final int MAX_VISIBLE_SESSIONS=12;
     private final Button[] revokeButtons=new Button[MAX_VISIBLE_SESSIONS];
@@ -47,7 +49,7 @@ public final class AccountSecurityScreen extends Screen {
                 if(root.has("sessions")&&root.get("sessions").isJsonArray())found=root.getAsJsonArray("sessions");
             }catch(Exception ignored){}
             final JsonArray result=found;
-            if(minecraft!=null)minecraft.execute(()->{sessions=result;status=Component.translatable("worldgate.security.session_count",result.size()).getString();updateRevokeButtons();});
+            if(minecraft!=null)minecraft.execute(()->{sessions=result;loading=false;status=Component.translatable("worldgate.security.session_count",result.size()).getString();updateRevokeButtons();});
         });
     }
 
@@ -63,10 +65,11 @@ public final class AccountSecurityScreen extends Screen {
     }
 
     private void revoke(String id){
-        status="Revoking session...";
+        status=Component.translatable("worldgate.security.revoking").getString();
+        loading=true;
         WorldGateModClient.EXECUTOR.submit(()->{
             String result=BackendClient.revokeOnlineSession(WorldGateModClient.SESSION,id);
-            if(minecraft!=null)minecraft.execute(()->{status=result==null?Component.translatable("worldgate.security.revoke_failed").getString():Component.translatable("worldgate.security.revoked").getString();load();});
+            if(minecraft!=null)minecraft.execute(()->{loading=false;status=result==null?Component.translatable("worldgate.security.revoke_failed").getString():Component.translatable("worldgate.security.revoked").getString();load();});
         });
     }
 
@@ -75,6 +78,7 @@ public final class AccountSecurityScreen extends Screen {
         g.centeredText(font,Component.translatable("worldgate.settings.security"),width/2,24,0xFFFFFFFF);
         g.centeredText(font,Component.translatable("worldgate.security.subtitle"),width/2,42,0xFF9AA7B4);
         g.centeredText(font,status,width/2,58,0xFF7DE2FF);
+        if (loading) WorldGateLoadingAnimation.draw(g, font, width / 2, 74);
         int y=100;
         for(int i=0;i<sessions.size();i++){
             JsonObject item=sessions.get(i).getAsJsonObject();
