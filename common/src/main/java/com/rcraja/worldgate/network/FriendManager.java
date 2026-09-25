@@ -414,6 +414,23 @@ public class FriendManager {
         );
     }
 
+    public boolean updateMySkin(String skinUrl) {
+        if (!session.isReady() || skinUrl == null || skinUrl.isBlank()) return false;
+        String safe = escapeJson(skinUrl.trim());
+        return session.db().patch("/profiles/" + session.uid(), "{\"skinUrl\":\"" + safe + "\"}") != null;
+    }
+
+    public String getSkinUrl(String uid) {
+        String profile = getProfile(uid);
+        if (profile == null || profile.isBlank() || "null".equals(profile)) return null;
+        try {
+            JsonObject object = JsonParser.parseString(profile).getAsJsonObject();
+            return object.has("skinUrl") ? object.get("skinUrl").getAsString() : null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     public String getMyDisplayName() {
 
         String uid = session.uid();
