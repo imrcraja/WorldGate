@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
+import com.rcraja.worldgate.client.WorldGateOnlineSession;
 import com.rcraja.worldgate.network.BackendClient;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -14,8 +15,9 @@ public final class AccountSecurityScreen extends Screen {
     private final Screen parent;
     private String status="Loading sessions...";
     private JsonArray sessions=new JsonArray();
-    private final Button[] revokeButtons=new Button[6];
-    private final String[] revokeIds=new String[6];
+    private static final int MAX_VISIBLE_SESSIONS=12;
+    private final Button[] revokeButtons=new Button[MAX_VISIBLE_SESSIONS];
+    private final String[] revokeIds=new String[MAX_VISIBLE_SESSIONS];
 
     public AccountSecurityScreen(Screen parent){super(Component.literal("Account Security"));this.parent=parent;}
 
@@ -27,7 +29,7 @@ public final class AccountSecurityScreen extends Screen {
             revokeButtons[i]=addRenderableWidget(Button.builder(Component.literal("Revoke"),b->{
                 String id=revokeIds[slot];
                 if(id!=null&&!id.isBlank()) revoke(id);
-            }).bounds(width/2+105,96+i*42,85,20).build());
+            }).bounds(width/2+105,96+i*28,85,20).build());
         }
         updateRevokeButtons();
         addRenderableWidget(Button.builder(Component.literal("Back"),b->onClose())
@@ -79,9 +81,11 @@ public final class AccountSecurityScreen extends Screen {
             String name=item.has("deviceName")?item.get("deviceName").getAsString():"WorldGate Device";
             boolean active=item.has("active")&&item.get("active").getAsBoolean();
             String id=item.has("sessionId")?item.get("sessionId").getAsString():"";
-            g.text(font,name+" — "+(active?"ONLINE":"logged in"),width/2-150,y,0xFFFFFFFF);
+            boolean current=id.equals(WorldGateOnlineSession.id());
+            String state=active?(current?"ONLINE • THIS DEVICE":"ONLINE"):"logged in";
+            g.text(font,name+" — "+state,width/2-150,y,0xFFFFFFFF);
             if(!id.isBlank())g.text(font,"Session "+id.substring(0,Math.min(8,id.length()))+"…",width/2-150,y+14,0xFF8E9AA6);
-            y+=42;
+            y+=28;
             if(y>height-55)break;
         }
     }
