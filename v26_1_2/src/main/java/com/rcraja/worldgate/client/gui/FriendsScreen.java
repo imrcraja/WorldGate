@@ -29,7 +29,7 @@ public class FriendsScreen extends Screen {
     private String selectedFriendUid;
 
     private String myUid = "Loading...";
-    private String myCode = "Loading...";
+    private String myPublicId = "Loading...";
     private String myName = "Player";
     private String status = "Loading profile...";
     private Button acceptButton;
@@ -73,10 +73,10 @@ public class FriendsScreen extends Screen {
                 contentTop + 46,
                 inputWidth,
                 20,
-                Component.translatable("worldgate.friends.uid_hint")
+                Component.translatable("worldgate.friends.public_id_hint")
         );
-        targetBox.setMaxLength(128);
-        targetBox.setHint(Component.literal("UID or Friend Code"));
+        targetBox.setMaxLength(12);
+        targetBox.setHint(Component.literal("Public ID (7-12 digits)"));
         addRenderableWidget(targetBox);
 
         addRenderableWidget(Button.builder(
@@ -142,7 +142,7 @@ public class FriendsScreen extends Screen {
     private void loadProfile() {
         WorldGateModClient.EXECUTOR.submit(() -> {
             String uid = WorldGateModClient.FRIEND_MANAGER.myUid();
-            String code = WorldGateModClient.FRIEND_MANAGER.myFriendCode();
+            String publicId = WorldGateModClient.FRIEND_MANAGER.myPublicId();
             String name = minecraft != null ? minecraft.getUser().getName() : "Player";
 
             WorldGateModClient.FRIEND_MANAGER.setOnline(name);
@@ -155,21 +155,21 @@ public class FriendsScreen extends Screen {
                     if (object.has("displayName")) {
                         resolvedName = object.get("displayName").getAsString();
                     }
-                    if (object.has("friendCode")) {
-                        code = object.get("friendCode").getAsString();
+                    if (object.has("publicId")) {
+                        publicId = object.get("publicId").getAsString();
                     }
                 } catch (Exception ignored) {
                 }
             }
 
             final String finalUid = uid == null ? "Unavailable" : uid;
-            final String finalCode = code == null ? "Unavailable" : code;
+            final String finalPublicId = publicId == null ? "Unavailable" : publicId;
             final String finalName = resolvedName;
 
             if (minecraft != null) {
                 minecraft.execute(() -> {
                     myUid = finalUid;
-                    myCode = finalCode;
+                    myPublicId = finalPublicId;
                     myName = finalName;
                     status = "Profile ready";
                 });
@@ -190,7 +190,7 @@ public class FriendsScreen extends Screen {
     private void sendRequest() {
         String target = targetBox.getValue().trim();
         if (target.isEmpty()) {
-            status = "Enter a UID or Friend Code.";
+            status = "Enter a 7-12 digit Public ID.";
             return;
         }
 
@@ -199,7 +199,7 @@ public class FriendsScreen extends Screen {
             boolean ok = WorldGateModClient.FRIEND_MANAGER.sendRequest(target);
             if (minecraft != null) {
                 minecraft.execute(() -> status =
-                        ok ? "Friend request sent." : "UID / Friend Code not found.");
+                        ok ? "Friend request sent." : "Public ID not found.");
             }
         });
     }
@@ -367,8 +367,8 @@ public class FriendsScreen extends Screen {
                         String name = p.has("displayName")
                                 ? p.get("displayName").getAsString()
                                 : "Player";
-                        String code = p.has("friendCode")
-                                ? p.get("friendCode").getAsString()
+                        String code = p.has("publicId")
+                                ? p.get("publicId").getAsString()
                                 : "--------";
                         boolean online = p.has("online") && p.get("online").getAsBoolean();
                         int eliteLevel = EliteManager.loadProfile(uid).level();
@@ -406,8 +406,8 @@ public class FriendsScreen extends Screen {
                         String name = request.has("fromName")
                                 ? request.get("fromName").getAsString()
                                 : "Player";
-                        String code = request.has("fromFriendCode")
-                                ? request.get("fromFriendCode").getAsString()
+                        String code = request.has("fromPublicId")
+                                ? request.get("fromPublicId").getAsString()
                                 : "--------";
                         result.add(new RequestEntry(uid, name, code));
                     }
@@ -534,13 +534,11 @@ public class FriendsScreen extends Screen {
 
         graphics.text(font, "YOUR PROFILE", left + 10, contentTop + 10, 0xFF7DE2FF);
         graphics.text(font, myName, left + 10, contentTop + 25, 0xFFFFFFFF);
-        graphics.text(font, "UID", left + 10, contentTop + 101, 0xFF8F9BA8);
-        drawClippedText(graphics, myUid, left + 10, contentTop + 113, panelWidth - 20, 0xFFD8DDE3);
-        graphics.text(font, "FRIEND CODE", left + 10, contentTop + 134, 0xFF8F9BA8);
-        graphics.text(font, myCode, left + 10, contentTop + 146, 0xFF7DE2FF);
-        graphics.text(font, "Send a request by UID or code", left + 10, contentTop + 32, 0xFF7F8A96);
+        graphics.text(font, "PUBLIC ID", left + 10, contentTop + 101, 0xFF7F8A96);
+        drawClippedText(graphics, myPublicId, left + 10, contentTop + 115, panelWidth - 20, 0xFF7DE2FF);
+        graphics.text(font, "Share this 7-12 digit ID with friends", left + 10, contentTop + 136, 0xFF7F8A96);
 
-        graphics.text(font, "FRIEND REQUESTS", center + 10, contentTop + 10, 0xFFFFD166);
+        graphics.text(font, "REQUESTS", center + 10, contentTop + 10, 0xFFBFA7FF);
         int requestY = contentTop + 30;
         if (requests.isEmpty()) {
             graphics.text(font, "No pending requests.", center + 10, requestY, 0xFF7F8A96);
@@ -557,13 +555,13 @@ public class FriendsScreen extends Screen {
                         requestY,
                         selected ? 0xFF7DE2FF : 0xFFFFFFFF
                 );
-                graphics.text(font, request.code(), center + 12, requestY + 13, 0xFF8F9BA8);
+                graphics.text(font, "ID " + request.code(), center + 12, requestY + 13, 0xFF8F9BA8);
                 requestY += 38;
                 if (requestY > height - 92) break;
             }
         }
 
-        graphics.text(font, "FRIENDS", right + 10, contentTop + 10, 0xFF70E090);
+        graphics.text(font, "FRIENDS", right + 10, contentTop + 10, 0xFF70D6FF);
         int friendY = contentTop + 30;
         if (friends.isEmpty()) {
             graphics.text(font, "No friends yet.", right + 10, friendY, 0xFF7F8A96);
@@ -580,7 +578,7 @@ public class FriendsScreen extends Screen {
 
                 int textX = friend.eliteLevel() > 0 ? right + 40 : right + 12;
                 graphics.text(font, friend.name(), textX, friendY, 0xFFFFFFFF);
-                graphics.text(font, friend.code(), textX, friendY + 13, 0xFF8F9BA8);
+                graphics.text(font, "ID " + friend.code(), textX, friendY + 13, 0xFF8F9BA8);
 
                 String state = friend.online() ? "Online" : "Offline";
                 int stateX = right + panelWidth - 12 - font.width(state);
@@ -620,8 +618,8 @@ public class FriendsScreen extends Screen {
             int w,
             int h
     ) {
-        graphics.fill(x, y, x + w, y + h, 0xCC10161D);
-        graphics.outline(x, y, w, h, 0xFF2B3742);
+        graphics.fill(x, y, x + w, y + h, 0xE50B0F15);
+        graphics.outline(x, y, w, h, 0xFF263341);
     }
 
     private void drawClippedText(
