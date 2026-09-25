@@ -88,7 +88,7 @@ public final class ClaimCenterScreen extends Screen {
                     historyButton.setMessage(Component.literal(showHistory ? "Mailbox" : "History"));
                     updateState();
                 })
-                .bounds(cx + 53, height - 30, 92, 20).build();
+                .bounds(cx - 47, height - 30, 92, 20).build();
         addRenderableWidget(historyButton);
 
         addRenderableWidget(Button.builder(Component.literal("Refresh"),
