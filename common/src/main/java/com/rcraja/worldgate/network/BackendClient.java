@@ -11,6 +11,11 @@ import java.time.Duration;
 public final class BackendClient {
     private static final HttpClient CLIENT=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private BackendClient(){}
+    public static String startOnlineSession(FirebaseSession s,String sessionId,String deviceName){return post(Constants.BACKEND_BASE_URL+"/v1/session/start",s,"{\"sessionId\":\""+escape(sessionId)+"\",\"deviceName\":\""+escape(deviceName)+"\"}");}
+    public static String heartbeatOnlineSession(FirebaseSession s,String sessionId){return post(Constants.BACKEND_BASE_URL+"/v1/session/heartbeat",s,"{\"sessionId\":\""+escape(sessionId)+"\"}");}
+    public static String endOnlineSession(FirebaseSession s,String sessionId){return post(Constants.BACKEND_BASE_URL+"/v1/session/end",s,"{\"sessionId\":\""+escape(sessionId)+"\"}");}
+    public static String listOnlineSessions(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/session/list",s);}
+    public static String revokeOnlineSession(FirebaseSession s,String sessionId){return post(Constants.BACKEND_BASE_URL+"/v1/session/revoke",s,"{\"sessionId\":\""+escape(sessionId)+"\"}");}
     public static String discordAuthorize(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/auth/discord",s);}
     public static String discordResult(String ticket){return getPublic(Constants.BACKEND_BASE_URL+"/auth/discord/result?ticket="+escape(ticket));}
     public static String eliteProfile(FirebaseSession s,String uid){return post(Constants.BACKEND_BASE_URL+"/v1/elite/profile",s,"{\"uid\":\""+escape(uid)+"\"}");}

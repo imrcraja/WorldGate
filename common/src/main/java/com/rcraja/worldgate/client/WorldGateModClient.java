@@ -201,6 +201,7 @@ public class WorldGateModClient implements ClientModInitializer {
             );
 
             if (connected) {
+                WorldGateOnlineSession.start();
                 String displayName = Minecraft.getInstance().getUser().getName();
                 FRIEND_MANAGER.setOnline(displayName);
                 syncCurrentSkin();
