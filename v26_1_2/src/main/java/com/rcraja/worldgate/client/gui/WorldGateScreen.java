@@ -6,6 +6,7 @@ import com.rcraja.worldgate.Constants;
 import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.client.WorldGateSkinCache;
 import com.rcraja.worldgate.network.HostBridge;
+import com.rcraja.worldgate.network.LanDiscovery;
 import com.rcraja.worldgate.network.RelayBridge;
 import com.rcraja.worldgate.client.WorldGateSounds;
 
@@ -329,7 +330,7 @@ public class WorldGateScreen extends Screen {
                                             port
                                     );
 
-                    if (code == null) {
+                    if (code == null || code.isBlank()) {
 
                         HostBridge.stop();
 
@@ -379,7 +380,9 @@ public class WorldGateScreen extends Screen {
                     minecraft.execute(
                             () -> {
 
-                                if (!relayStarted) {
+                                if (localOnly) {
+                                    sendMessage("WorldGate: LAN-only room ready. No Internet data is required for discovery or Minecraft traffic.");
+                                } else if (!relayStarted) {
 
                                     sendMessage(
                                             "WorldGate: relay could not start; LAN fallback is available."
@@ -430,37 +433,36 @@ public class WorldGateScreen extends Screen {
         WorldGateModClient.EXECUTOR.submit(
                 () -> {
 
-                    String roomJson =
-                            WorldGateModClient
-                                    .ROOM_MANAGER
-                                    .getRoom(code);
+                    LanDiscovery.HostInfo lanHost =
+                            LanDiscovery.discover(code, 900);
+
+                    String roomJson = null;
+                    if (lanHost == null) {
+                        roomJson = WorldGateModClient.ROOM_MANAGER.getRoom(code);
+                    }
+
+                    final String discoveredRoomJson = roomJson;
+                    final LanDiscovery.HostInfo discoveredLanHost = lanHost;
 
                     minecraft.execute(
                             () -> {
 
-                                if (
-                                        roomJson == null
-                                                || roomJson.equals("null")
-                                ) {
+                                boolean lanDirect = discoveredLanHost != null;
 
-                                    sendMessage(
-                                            "WorldGate: room not found."
-                                    );
-
+                                if (!lanDirect && (discoveredRoomJson == null || discoveredRoomJson.equals("null"))) {
+                                    sendMessage("WorldGate: room not found.");
                                     return;
                                 }
 
                                 String hostAddress =
-                                        extractJsonString(
-                                                roomJson,
-                                                "hostAddress"
-                                        );
+                                        lanDirect
+                                                ? discoveredLanHost.address()
+                                                : extractJsonString(discoveredRoomJson, "hostAddress");
 
                                 int hostPort =
-                                        extractJsonInt(
-                                                roomJson,
-                                                "hostPort"
-                                        );
+                                        lanDirect
+                                                ? discoveredLanHost.port()
+                                                : extractJsonInt(discoveredRoomJson, "hostPort");
 
                                 if (
                                         hostAddress == null
@@ -481,13 +483,7 @@ public class WorldGateScreen extends Screen {
                                                 .getUser()
                                                 .getName();
 
-                                boolean joined =
-                                        WorldGateModClient
-                                                .ROOM_MANAGER
-                                                .playerJoin(
-                                                        code,
-                                                        ign
-                                                );
+                                boolean joined = lanDirect || WorldGateModClient.ROOM_MANAGER.playerJoin(code, ign);
 
                                 if (!joined) {
                                     minecraft.execute(
@@ -504,7 +500,7 @@ public class WorldGateScreen extends Screen {
                                  * failed relay can immediately fall back to the host.
                                  */
                                 int relayPort =
-                                        WorldGateModClient.useInternetRelay()
+                                        WorldGateModClient.useInternetRelay() && !lanDirect
                                                 ? RelayBridge.startPlayer(code)
                                                 : -1;
 
@@ -518,12 +514,12 @@ public class WorldGateScreen extends Screen {
 
                                             WorldGateModClient
                                                     .startHeartbeat(false);
-                                            WorldGateSkinCache.refreshRoomPlayers(roomJson);
+                                            WorldGateSkinCache.refreshRoomPlayers(discoveredRoomJson);
 
                                             ServerAddress address;
                                             if (relayPort > 0) {
                                                 address = new ServerAddress("127.0.0.1", relayPort);
-                                            } else if (WorldGateModClient.allowLanFallback()) {
+                                            } else if (WorldGateModClient.allowLanFallback() || lanDirect) {
                                                 address = new ServerAddress(hostAddress, hostPort);
                                             } else {
                                                 sendMessage("WorldGate: Internet relay unavailable and LAN fallback is disabled.");
@@ -542,7 +538,7 @@ public class WorldGateScreen extends Screen {
                                             String connectionType =
                                                     relayPort > 0
                                                             ? "Internet relay"
-                                                            : "LAN";
+                                                            : (lanDirect ? "LAN discovery" : "LAN");
 
                                             sendMessage(
                                                     "WorldGate: connecting via "

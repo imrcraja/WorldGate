@@ -391,6 +391,10 @@ public class RoomManager {
         return null;
     }
 
+    public String createLocalLanRoomCode() {
+        return randomNumericCode(5);
+    }
+
     private static String randomNumericCode(int length) {
         StringBuilder code = new StringBuilder(length);
 
