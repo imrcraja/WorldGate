@@ -81,7 +81,8 @@ public class WorldGateScreen extends Screen {
                 font, leftX + 14, topY + 48, inputW, 20,
                 Component.translatable("worldgate.roomcode.hint")
         );
-        roomCodeBox.setMaxLength(6);
+        roomCodeBox.setMaxLength(10);
+        roomCodeBox.setFilter(value -> value.matches("\\\\d{0,10}"));
         roomCodeBox.setHint(Component.literal("Room Code"));
         addRenderableWidget(roomCodeBox);
 
@@ -165,6 +166,14 @@ public class WorldGateScreen extends Screen {
     }
 
     private void onCreate() {
+
+        // A hosted world's room code is stable until that world actually disconnects.
+        String activeHostRoom = WorldGateModClient.HOSTING_ROOM_CODE;
+        if (activeHostRoom != null && !activeHostRoom.isBlank()) {
+            roomCodeBox.setValue(activeHostRoom);
+            sendMessage("WorldGate: already hosting Room Code = " + activeHostRoom);
+            return;
+        }
 
         if (
                 minecraft == null
@@ -356,6 +365,9 @@ public class WorldGateScreen extends Screen {
 
                     WorldGateModClient
                             .CURRENT_ROOM_CODE =
+                            code;
+                    WorldGateModClient
+                            .HOSTING_ROOM_CODE =
                             code;
 
                     WorldGateModClient
@@ -571,7 +583,7 @@ public class WorldGateScreen extends Screen {
         int cardW = Math.max(220, (width - margin * 2 - gap) / 2);
         int cardH = 154;
         int leftX = margin;
-        int rightX = margin + cardW;
+        int rightX = margin + cardW + gap;
         int bottomY = contentTop + cardH + gap;
 
         graphics.centeredText(font, "WorldGate", width / 2, 18, 0xFFFFFFFF);
@@ -1120,59 +1132,13 @@ public class WorldGateScreen extends Screen {
         WorldGateSounds.play(WorldGateSounds.WORLDGATE_CLOSE, 0.8F);
         stopWorldGateRealtime();
 
-        String currentRoom =
-                WorldGateModClient.CURRENT_ROOM_CODE;
-
-        WorldGateModClient.stopHeartbeat();
-
-        if (
-                currentRoom != null
-                        && !currentRoom.isBlank()
-        ) {
-
-            final boolean wasHost = hostingRoom;
-
-            WorldGateModClient.EXECUTOR.submit(
-                    () -> {
-
-                        try {
-                            if (wasHost) {
-                                WorldGateModClient
-                                        .ROOM_MANAGER
-                                        .hostLeave(currentRoom);
-                                HostBridge.stop();
-                            } else {
-                                WorldGateModClient
-                                        .ROOM_MANAGER
-                                        .playerLeave(currentRoom);
-                                RelayBridge.stop();
-                            }
-                        } catch (Exception ignored) {
-                            RelayBridge.stop();
-                            if (wasHost) {
-                                HostBridge.stop();
-                            }
-                        }
-
-                        WorldGateModClient
-                                .CURRENT_ROOM_CODE =
-                                null;
-                    }
-            );
-        } else {
-
-            RelayBridge.stop();
-            if (hostingRoom) {
-                HostBridge.stop();
-            }
-
-            WorldGateModClient
-                    .CURRENT_ROOM_CODE =
-                    null;
-        }
-
+        /*
+         * Leaving the WorldGate menu is NOT leaving the Minecraft world.
+         * The room, heartbeat, relay and room code must stay alive while the
+         * host minimizes/opens another screen. Actual world disconnect cleanup
+         * is handled by ClientPacketListenerMixin.
+         */
         WorldGateSounds.play(WorldGateSounds.WORLD_DISCONNECT, 0.75F);
-        hostingRoom = false;
 
         if (minecraft != null) {
 
