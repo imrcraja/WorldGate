@@ -72,7 +72,7 @@ public class WorldGateScreen extends Screen {
         int cardH = 154;
 
         int leftX = margin;
-        int rightX = margin + cardW;
+        int rightX = margin + cardW + gap;
         int topY = contentTop;
         int bottomY = contentTop + cardH + gap;
 
