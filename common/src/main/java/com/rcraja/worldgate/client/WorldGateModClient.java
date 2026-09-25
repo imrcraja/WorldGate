@@ -121,6 +121,16 @@ public class WorldGateModClient implements ClientModInitializer {
             if (connected) {
                 String displayName = Minecraft.getInstance().getUser().getName();
                 FRIEND_MANAGER.setOnline(displayName);
+                try {
+                    String skinUrl = Minecraft.getInstance().getSkinManager()
+                            .getInsecureSkin(Minecraft.getInstance().getUser().getProfile())
+                            .textureUrl();
+                    if (skinUrl != null && !skinUrl.isBlank()) {
+                        FRIEND_MANAGER.updateMySkin(skinUrl);
+                    }
+                } catch (Exception e) {
+                    WorldGateMod.LOGGER.debug("WorldGate skin sync unavailable", e);
+                }
 
                 WorldGateMod.LOGGER.info(
                         "WorldGate Firebase session ready (uid={})",
