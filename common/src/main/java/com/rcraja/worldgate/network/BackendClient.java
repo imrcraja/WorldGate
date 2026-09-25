@@ -16,6 +16,7 @@ public final class BackendClient {
     public static String coinWallet(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/coins/wallet",s);}
     public static String coinCatalog(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/coins/catalog",s);}
     public static String coinTransactions(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/coins/transactions",s);}
+    public static String coinInventory(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/coins/inventory",s);}
     public static String coinMailbox(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/coins/mailbox",s);}
     public static String coinRewardStatus(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/coins/rewards/status",s);}
     public static String claimDaily(FirebaseSession s){return post(Constants.BACKEND_BASE_URL+"/v1/coins/rewards/daily-claim",s,"{}");}
@@ -25,6 +26,7 @@ public final class BackendClient {
     public static String markMailboxRead(FirebaseSession s,String messageId){return post(Constants.BACKEND_BASE_URL+"/v1/coins/mailbox/read",s,"{\"messageId\":\""+escape(messageId)+"\"}");}
     public static String purchaseCoinPackage(FirebaseSession s,String packageId){return post(Constants.BACKEND_BASE_URL+"/v1/coins/purchase-intent",s,"{\"packageId\":\""+escape(packageId)+"\"}");}
     public static String purchaseItem(FirebaseSession s,String itemId,String idempotencyKey){return post(Constants.BACKEND_BASE_URL+"/v1/coins/shop/purchase",s,"{\"itemId\":\""+escape(itemId)+"\",\"idempotencyKey\":\""+escape(idempotencyKey)+"\"}");}
+    public static String equipItem(FirebaseSession s,String itemId){return post(Constants.BACKEND_BASE_URL+"/v1/coins/shop/equip",s,"{\"itemId\":\""+escape(itemId)+"\"}");}
     private static boolean ready(FirebaseSession s){return s!=null&&s.isReady()&&s.idToken()!=null&&!s.idToken().isBlank();}
     private static String get(String url,FirebaseSession s){if(!ready(s))return null;try{HttpRequest r=HttpRequest.newBuilder().uri(URI.create(url)).timeout(Duration.ofSeconds(15)).header("Authorization","Bearer "+s.idToken()).GET().build();HttpResponse<String> h=CLIENT.send(r,HttpResponse.BodyHandlers.ofString());if(h.statusCode()<200||h.statusCode()>=300){WorldGateMod.LOGGER.warn("WorldGate backend returned HTTP {} for {}",h.statusCode(),url);return null;}return h.body();}catch(Exception e){WorldGateMod.LOGGER.warn("WorldGate backend request failed: {}",url,e);return null;}}
     private static String post(String url,FirebaseSession s,String body){if(!ready(s))return null;return request(url,s.idToken(),body);}
