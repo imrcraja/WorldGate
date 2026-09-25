@@ -33,7 +33,7 @@ public final class EliteCoinManager {
     public static String claimDaily(){return BackendClient.claimDaily(WorldGateModClient.SESSION);}
     public static String startActivity(){return BackendClient.startActivityReward(WorldGateModClient.SESSION);}
     public static String completeActivity(String id){return BackendClient.completeActivityReward(WorldGateModClient.SESSION,id);}
-    public static String gift(String publicId,long coins,String message){String target=publicId; if(publicId!=null&&publicId.matches("\\d{7,12}")){String resolved=WorldGateModClient.FRIEND_MANAGER.resolvePublicId(publicId); if(resolved==null||resolved.isBlank()) return "{\\"ok\\":false,\\"error\\":\\"public_id_not_found\\"}"; target=resolved;} return BackendClient.giftCoins(WorldGateModClient.SESSION,target,coins,message);}
+    public static String gift(String publicId,long coins,String message){String target=publicId; if(publicId!=null&&publicId.matches("\\d{7,12}")){String resolved=WorldGateModClient.FRIEND_MANAGER.resolvePublicId(publicId); if(resolved==null||resolved.isBlank()) return "{\"ok\":false,\"error\":\"public_id_not_found\"}"; target=resolved;} return BackendClient.giftCoins(WorldGateModClient.SESSION,target,coins,message);}
     public static String markRead(String id){return BackendClient.markMailboxRead(WorldGateModClient.SESSION,id);}
     public static String purchaseItem(String id){return BackendClient.purchaseItem(WorldGateModClient.SESSION,id,UUID.randomUUID().toString());}
     public static String equipItem(String id){return BackendClient.equipItem(WorldGateModClient.SESSION,id);}
