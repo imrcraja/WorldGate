@@ -32,6 +32,10 @@ public class FriendsScreen extends Screen {
     private String myCode = "Loading...";
     private String myName = "Player";
     private String status = "Loading profile...";
+    private Button acceptButton;
+    private Button rejectButton;
+    private Button inviteButton;
+    private Button refreshButton;
 
     private final Set<String> knownRequestUids = new HashSet<>();
     private boolean requestSnapshotReady;
@@ -77,21 +81,26 @@ public class FriendsScreen extends Screen {
         int center = profileLeft + panelWidth + margin;
         int requestsWidth = panelWidth;
 
-        addRenderableWidget(Button.builder(
-                Component.translatable("worldgate.friends.accept"),
-                btn -> acceptSelectedRequest()
-        ).bounds(center, height - 52, (requestsWidth - 5) / 2, 20).build());
-
-        addRenderableWidget(Button.builder(
-                Component.translatable("worldgate.friends.reject"),
-                btn -> rejectSelectedRequest()
-        ).bounds(center + (requestsWidth + 5) / 2, height - 52, (requestsWidth - 5) / 2, 20).build());
+        acceptButton = Button.builder(Component.translatable("worldgate.friends.accept"),
+                btn -> acceptSelectedRequest())
+                .bounds(center, height - 52, (requestsWidth - 5) / 2, 20).build();
+        rejectButton = Button.builder(Component.translatable("worldgate.friends.reject"),
+                btn -> rejectSelectedRequest())
+                .bounds(center + (requestsWidth + 5) / 2, height - 52, (requestsWidth - 5) / 2, 20).build();
+        addRenderableWidget(acceptButton);
+        addRenderableWidget(rejectButton);
 
         int right = center + panelWidth + margin;
-        addRenderableWidget(Button.builder(
-                Component.literal("Invite Selected"),
-                btn -> inviteSelectedFriend()
-        ).bounds(right + 10, height - 52, panelWidth - 20, 20).build());
+        inviteButton = Button.builder(Component.literal("Invite Selected"),
+                btn -> inviteSelectedFriend())
+                .bounds(right + 10, height - 52, panelWidth - 20, 20).build();
+        addRenderableWidget(inviteButton);
+
+        refreshButton = Button.builder(Component.literal("Refresh"),
+                btn -> loadAll())
+                .bounds(left, height - 52, inputWidth, 20).build();
+        addRenderableWidget(refreshButton);
+        updateButtons();
 
         addRenderableWidget(Button.builder(
                 Component.translatable("worldgate.button.back"),
@@ -153,6 +162,14 @@ public class FriendsScreen extends Screen {
                 });
             }
         });
+    }
+
+    private void updateButtons() {
+        if (acceptButton == null) return;
+        acceptButton.active = selectedRequestUid != null;
+        rejectButton.active = selectedRequestUid != null;
+        inviteButton.active = selectedFriendUid != null && WorldGateModClient.CURRENT_ROOM_CODE != null && !WorldGateModClient.CURRENT_ROOM_CODE.isBlank();
+        refreshButton.active = true;
     }
 
     private void sendRequest() {
@@ -278,6 +295,7 @@ public class FriendsScreen extends Screen {
                             && friends.stream().noneMatch(f -> f.uid().equals(selectedFriendUid))) {
                         selectedFriendUid = null;
                     }
+                    updateButtons();
                 });
             }
         });
@@ -328,6 +346,7 @@ public class FriendsScreen extends Screen {
                             && requests.stream().noneMatch(r -> r.uid().equals(selectedRequestUid))) {
                         selectedRequestUid = null;
                     }
+                    updateButtons();
                 });
             }
         });
@@ -355,6 +374,7 @@ public class FriendsScreen extends Screen {
                     status = ok ? "Friend added." : "Could not accept request.";
                     if (ok) {
                         selectedRequestUid = null;
+                        updateButtons();
                         loadAll();
                     }
                 });
@@ -378,6 +398,7 @@ public class FriendsScreen extends Screen {
                     status = ok ? "Request rejected." : "Could not reject request.";
                     if (ok) {
                         selectedRequestUid = null;
+                        updateButtons();
                         loadRequests();
                     }
                 });
@@ -486,6 +507,8 @@ public class FriendsScreen extends Screen {
             graphics.outline(boxX, 3, boxWidth, 25, 0xFF2C4052);
             graphics.centeredText(font, requestNotification, width / 2, 10, 0xFF7DE2FF);
         }
+
+        updateButtons();
 
         if (!status.isEmpty()) {
             graphics.centeredText(font, status, width / 2, height - 28, 0xFF9BA7B3);
