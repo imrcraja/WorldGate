@@ -41,6 +41,7 @@ public class FriendsScreen extends Screen {
     private String pendingInviteFromUid;
     private String pendingInviteRoom;
     private final List<InviteEntry> invites = new ArrayList<>();
+    private String selectedInviteFromUid;
 
     private final Set<String> knownRequestUids = new HashSet<>();
     private boolean requestSnapshotReady;
@@ -212,17 +213,35 @@ public class FriendsScreen extends Screen {
     private void loadInvites() {
         WorldGateModClient.EXECUTOR.submit(() -> {
             String json = WorldGateModClient.ROOM_MANAGER.getIncomingInvites();
-            if (json == null || json.equals("null") || json.isBlank()) {
-                return;
-            }
 
             try {
-                JsonObject invites = JsonParser.parseString(json).getAsJsonObject();
-                if (invites.entrySet().isEmpty()) {
+                JsonObject inviteObject = (json == null || json.equals("null") || json.isBlank())
+                        ? new JsonObject()
+                        : JsonParser.parseString(json).getAsJsonObject();
+
+                this.invites.clear();
+                if (inviteObject.entrySet().isEmpty()) {
+                    if (minecraft != null) minecraft.execute(() -> {
+                        pendingInviteFromUid = null;
+                        pendingInviteRoom = null;
+                        selectedInviteFromUid = null;
+                        requestNotification = "";
+                        updateButtons();
+                    });
                     return;
                 }
 
-                this.invites.clear();
+                for (String inviteUid : inviteObject.keySet()) {
+                    JsonObject inviteData = inviteObject.getAsJsonObject(inviteUid);
+                    String inviteName = inviteData.has("fromName") ? inviteData.get("fromName").getAsString() : "Player";
+                    String inviteRoom = inviteData.has("roomCode") ? inviteData.get("roomCode").getAsString() : "";
+                    this.invites.add(new InviteEntry(inviteUid, inviteName, inviteRoom));
+                }
+                String fromUid = selectedInviteFromUid;
+                if (fromUid == null || this.invites.stream().noneMatch(i -> i.fromUid().equals(fromUid))) {
+                    fromUid = this.invites.get(0).fromUid();
+                }
+                JsonObject invite = inviteObject.getAsJsonObject(fromUid);
                 for (String inviteUid : invites.keySet()) {
                     JsonObject inviteObject = invites.getAsJsonObject(inviteUid);
                     String inviteName = inviteObject.has("fromName") ? inviteObject.get("fromName").getAsString() : "Player";
@@ -240,6 +259,7 @@ public class FriendsScreen extends Screen {
 
                 if (minecraft != null) {
                     minecraft.execute(() -> {
+                        selectedInviteFromUid = fromUid;
                         pendingInviteFromUid = fromUid;
                         pendingInviteRoom = room;
                         requestNotification = "Room Invite: " + name + " [" + room + "]";
@@ -276,6 +296,7 @@ public class FriendsScreen extends Screen {
             if (minecraft != null) minecraft.execute(() -> {
                 pendingInviteFromUid = null;
                 pendingInviteRoom = null;
+                selectedInviteFromUid = null;
                 requestNotification = "";
                 status = ok ? "Room invite dismissed." : "Could not dismiss room invite.";
                 updateButtons();
