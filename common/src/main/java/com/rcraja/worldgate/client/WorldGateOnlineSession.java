@@ -29,10 +29,23 @@ public final class WorldGateOnlineSession {
         EXECUTOR.scheduleAtFixedRate(WorldGateOnlineSession::refresh,10,10,TimeUnit.SECONDS);
     }
 
+    private static String currentVersionName(){
+        Object version=net.minecraft.SharedConstants.getCurrentVersion();
+        try{
+            return String.valueOf(version.getClass().getMethod("getName").invoke(version));
+        }catch(ReflectiveOperationException ignored){
+            try{
+                return String.valueOf(version.getClass().getMethod("name").invoke(version));
+            }catch(ReflectiveOperationException ignoredAgain){
+                return String.valueOf(version);
+            }
+        }
+    }
+
     private static void refresh(){
         if(!running||!WorldGateModClient.SESSION.isReady())return;
         String response;
-        String device="Minecraft "+net.minecraft.SharedConstants.getCurrentVersion().name();
+        String device="Minecraft "+currentVersionName();
         if(!registered){
             response=BackendClient.startOnlineSession(WorldGateModClient.SESSION,sessionId,device);
             if(response!=null)registered=true;
