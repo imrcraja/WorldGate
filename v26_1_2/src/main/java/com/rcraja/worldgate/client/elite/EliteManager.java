@@ -3,6 +3,7 @@ package com.rcraja.worldgate.client.elite;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
+import com.rcraja.worldgate.client.LocalWorldGateData;
 import com.rcraja.worldgate.network.BackendClient;
 import com.rcraja.worldgate.network.FirebaseSession;
 
@@ -29,13 +30,20 @@ public final class EliteManager {
 
         String uid = session.uid();
         EliteProfile cached = CACHE.get(uid);
-        if (cached != null) {
+        if (cached != null && cached.available()) {
             return cached;
+        }
+
+        EliteProfile local = loadLocal(uid);
+        if (local.available()) {
+            CACHE.put(uid, local);
+            return local;
         }
 
         String raw = BackendClient.eliteProfile(session, uid);
         EliteProfile profile = parse(uid, raw);
         CACHE.put(uid, profile);
+        if (profile.available()) saveLocal(profile);
         return profile;
     }
 
@@ -47,7 +55,14 @@ public final class EliteManager {
 
         String uid = session.uid();
         String raw = BackendClient.eliteProfile(session, uid);
-        CACHE.put(uid, parse(uid, raw));
+        EliteProfile profile = parse(uid, raw);
+        if (profile.available()) {
+            CACHE.put(uid, profile);
+            saveLocal(profile);
+        } else {
+            EliteProfile local = loadLocal(uid);
+            CACHE.put(uid, local);
+        }
     }
 
     public static EliteProfile loadProfile(String uid) {
@@ -96,6 +111,23 @@ public final class EliteManager {
         } catch (Exception ignored) {
             return EliteProfile.unavailable(uid);
         }
+        return parse(uid, raw);
+    }
+
+    private static void saveLocal(EliteProfile profile) {
+        String uid = profile.uid();
+        if (uid == null || uid.isBlank() || !profile.available()) return;
+        JsonObject o = new JsonObject();
+        o.addProperty("uid", uid);
+        o.addProperty("level", profile.level());
+        o.addProperty("eligibleSpentMinorUnits", profile.eligibleSpentMinorUnits());
+        o.addProperty("nextLevelThresholdMinorUnits", profile.nextLevelThresholdMinorUnits());
+        o.addProperty("maxLevelThresholdMinorUnits", profile.maxLevelThresholdMinorUnits());
+        LocalWorldGateData.set("eliteProfileCache." + uid, o.toString());
+    }
+
+    private static EliteProfile loadLocal(String uid) {
+        String raw = LocalWorldGateData.get("eliteProfileCache." + uid);
         return parse(uid, raw);
     }
 
