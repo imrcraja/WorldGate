@@ -114,7 +114,7 @@ public class WorldGateScreen extends Screen {
                 b -> minecraft.setScreen(new ClaimCenterScreen(this)))
                 .bounds(c4, top + rowH, buttonW, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Settings"),
-                b -> sendMessage("WorldGate settings are being prepared for the 26.1.2 UI."))
+                b -> minecraft.setScreen(new SettingsScreen(this)))
                 .bounds(c4, top + rowH * 2, buttonW, 20).build());
 
         addRenderableWidget(Button.builder(
@@ -318,8 +318,8 @@ public class WorldGateScreen extends Screen {
                     HostBridge.startLanDiscovery(code, hostName);
 
                     boolean relayStarted =
-                            HostBridge
-                                    .startRelay(code);
+                            WorldGateModClient.useInternetRelay()
+                                    && HostBridge.startRelay(code);
 
                     hostingRoom = true;
 
@@ -448,10 +448,9 @@ public class WorldGateScreen extends Screen {
                                  * failed relay can immediately fall back to the host.
                                  */
                                 int relayPort =
-                                        RelayBridge
-                                                .startPlayer(
-                                                        code
-                                                );
+                                        WorldGateModClient.useInternetRelay()
+                                                ? RelayBridge.startPlayer(code)
+                                                : -1;
 
                                 minecraft.execute(
                                         () -> {
@@ -464,16 +463,16 @@ public class WorldGateScreen extends Screen {
                                             WorldGateModClient
                                                     .startHeartbeat(false);
 
-                                            ServerAddress address =
-                                                    relayPort > 0
-                                                            ? new ServerAddress(
-                                                                    "127.0.0.1",
-                                                                    relayPort
-                                                            )
-                                                            : new ServerAddress(
-                                                                    hostAddress,
-                                                                    hostPort
-                                                            );
+                                            ServerAddress address;
+                                            if (relayPort > 0) {
+                                                address = new ServerAddress("127.0.0.1", relayPort);
+                                            } else if (WorldGateModClient.allowLanFallback()) {
+                                                address = new ServerAddress(hostAddress, hostPort);
+                                            } else {
+                                                sendMessage("WorldGate: Internet relay unavailable and LAN fallback is disabled.");
+                                                WorldGateModClient.ROOM_MANAGER.playerLeave(code);
+                                                return;
+                                            }
 
                                             ServerData serverData =
                                                     new ServerData(
@@ -486,7 +485,7 @@ public class WorldGateScreen extends Screen {
                                             String connectionType =
                                                     relayPort > 0
                                                             ? "Internet relay"
-                                                            : "LAN fallback";
+                                                            : "LAN";
 
                                             sendMessage(
                                                     "WorldGate: connecting via "
