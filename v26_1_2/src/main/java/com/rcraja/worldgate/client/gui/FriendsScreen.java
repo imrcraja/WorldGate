@@ -640,7 +640,7 @@ public class FriendsScreen extends Screen {
         WorldGateModClient.FRIEND_MANAGER.setFriendListChangedListener(null);
         WorldGateModClient.FRIEND_MANAGER.stopRealtime();
         WorldGateModClient.ROOM_MANAGER.setInviteChangedListener(null);
-        WorldGateModClient.ROOM_MANAGER.stopRealtime();
+        WorldGateModClient.ROOM_MANAGER.stopInviteRealtime();
         WorldGateModClient.FRIEND_MANAGER.setOffline();
 
         if (minecraft != null) {
