@@ -4,6 +4,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import com.rcraja.worldgate.client.LocalWorldGateData;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -19,6 +20,13 @@ public final class WardrobeScreen extends Screen {
     private static final Map<String, Boolean> OWNED = new LinkedHashMap<>();
     private static String equippedCosmetic = "WorldGate";
     private static String equippedEmote = "Wave";
+
+    static {
+        try {
+            equippedCosmetic = LocalWorldGateData.get("equippedCosmetic", "WorldGate");
+            equippedEmote = LocalWorldGateData.get("equippedEmote", "Wave");
+        } catch (Exception ignored) {}
+    }
 
     private final Screen parent;
     private final Tab tab;
@@ -83,10 +91,12 @@ public final class WardrobeScreen extends Screen {
 
         if (tab == Tab.EMOTES) {
             equippedEmote = "Wave";
+            LocalWorldGateData.set("equippedEmote", equippedEmote);
             OWNED.put("emote:wave", true);
             status = "Equipped emote: Wave";
         } else {
             equippedCosmetic = "WorldGate";
+            LocalWorldGateData.set("equippedCosmetic", equippedCosmetic);
             OWNED.put("cosmetic:worldgate", true);
             status = "Equipped cosmetic: WorldGate";
         }
