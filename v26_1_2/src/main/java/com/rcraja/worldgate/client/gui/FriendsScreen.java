@@ -245,8 +245,19 @@ public class FriendsScreen extends Screen {
                     }
 
                     String selected = selectedInviteFromUid;
-                    if (selected == null || invites.stream().noneMatch(i -> i.fromUid().equals(selected))) {
+                    if (selected == null) {
                         selected = invites.get(0).fromUid();
+                    } else {
+                        boolean stillPresent = false;
+                        for (InviteEntry invite : invites) {
+                            if (invite.fromUid().equals(selected)) {
+                                stillPresent = true;
+                                break;
+                            }
+                        }
+                        if (!stillPresent) {
+                            selected = invites.get(0).fromUid();
+                        }
                     }
                     final String selectedUid = selected;
 
