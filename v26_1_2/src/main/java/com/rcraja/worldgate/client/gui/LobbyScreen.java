@@ -225,6 +225,9 @@ public class LobbyScreen extends Screen {
         WorldGateModClient.ROOM_MANAGER.stopRealtime();
         WorldGateModClient.CHAT_MANAGER.stopListening();
         roomJson = null;
+        synchronized (chatMessages) {
+            chatMessages.clear();
+        }
         boundRoom = room == null ? "" : room.trim();
 
         if (room == null || room.isBlank()) {
@@ -235,7 +238,11 @@ public class LobbyScreen extends Screen {
         WorldGateModClient.ROOM_MANAGER.setRoomChangedListener(json -> {
             roomJson = json;
             if (minecraft != null) {
-                minecraft.execute(() -> status = "Connected • Room " + room);
+                minecraft.execute(() -> {
+                    if (sameRoom(boundRoom, room)) {
+                        status = "Connected • Room " + room;
+                    }
+                });
             }
         });
         WorldGateModClient.ROOM_MANAGER.startRealtime(room);
