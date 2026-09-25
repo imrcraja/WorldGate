@@ -82,7 +82,7 @@ public class WorldGateScreen extends Screen {
                 Component.translatable("worldgate.roomcode.hint")
         );
         roomCodeBox.setMaxLength(10);
-        roomCodeBox.setFilter(value -> value.matches("\\\\d{0,10}"));
+        roomCodeBox.setFilter(value -> value.matches("\\d{0,10}"));
         roomCodeBox.setHint(Component.literal("Room Code"));
         addRenderableWidget(roomCodeBox);
 
