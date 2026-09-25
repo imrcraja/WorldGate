@@ -122,11 +122,24 @@ public class WorldGateModClient implements ClientModInitializer {
                 String displayName = Minecraft.getInstance().getUser().getName();
                 FRIEND_MANAGER.setOnline(displayName);
                 try {
-                    String skinUrl = Minecraft.getInstance().getSkinManager()
-                            .getInsecureSkin(Minecraft.getInstance().getUser().getProfile())
-                            .textureUrl();
-                    if (skinUrl != null && !skinUrl.isBlank()) {
-                        FRIEND_MANAGER.updateMySkin(skinUrl);
+                    // Keep this compatible across mapping changes: SkinManager's
+                    // insecure-skin API changed shape across Minecraft versions.
+                    try {
+                        Object skin = Minecraft.getInstance().getSkinManager()
+                                .getClass()
+                                .getMethod("getInsecureSkin", com.mojang.authlib.GameProfile.class)
+                                .invoke(Minecraft.getInstance().getSkinManager(),
+                                        Minecraft.getInstance().getUser().getProfile());
+                        String skinUrl = null;
+                        if (skin != null) {
+                            Object value = skin.getClass().getMethod("textureUrl").invoke(skin);
+                            if (value != null) skinUrl = String.valueOf(value);
+                        }
+                        if (skinUrl != null && !skinUrl.isBlank()) {
+                            FRIEND_MANAGER.updateMySkin(skinUrl);
+                        }
+                    } catch (ReflectiveOperationException ignored) {
+                        WorldGateMod.LOGGER.debug("WorldGate skin API shape changed; skipping automatic skin sync");
                     }
                 } catch (Exception e) {
                     WorldGateMod.LOGGER.debug("WorldGate skin sync unavailable", e);
