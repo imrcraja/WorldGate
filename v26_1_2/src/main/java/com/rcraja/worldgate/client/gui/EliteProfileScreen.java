@@ -44,7 +44,7 @@ public final class EliteProfileScreen extends Screen {
 
         String displayName=UserProfileCache.value("displayName","Player");
         String uid=WorldGateModClient.SESSION.uid();
-        String friendCode=UserProfileCache.value("friendCode","Not set");
+        String publicId=UserProfileCache.value("publicId","Not set");
         graphics.centeredText(font,Component.literal(displayName),cx,52,0xFFFFFFFF);
         graphics.centeredText(font,Component.literal("Public ID: "+(publicId==null?"—":publicId)),cx,67,0xFF7DE2FF);
         
