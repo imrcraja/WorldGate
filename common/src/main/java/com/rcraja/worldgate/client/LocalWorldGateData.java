@@ -32,14 +32,16 @@ public final class LocalWorldGateData {
         synchronized (LOCK) { return data.has(key) ? data.get(key).getAsString() : fallback; }
     }
 
+    public static String get(String key) {
+        synchronized (LOCK) {
+            return data.has(key) ? data.get(key).getAsString() : null;
+        }
+    }
+
     public static void set(String key, String value) {
         synchronized (LOCK) {
             data.addProperty(key, value);
-            try {
-                Path dir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
-                Files.createDirectories(dir);
-                Files.writeString(dir.resolve("worldgate-player.json"), GSON.toJson(data), StandardCharsets.UTF_8);
-            } catch (Exception ignored) {}
+            persist();
         }
     }
 }
