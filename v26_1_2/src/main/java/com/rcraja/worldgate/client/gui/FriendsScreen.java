@@ -248,10 +248,11 @@ public class FriendsScreen extends Screen {
                     if (selected == null || invites.stream().noneMatch(i -> i.fromUid().equals(selected))) {
                         selected = invites.get(0).fromUid();
                     }
+                    final String selectedUid = selected;
 
-                    selectedInviteFromUid = selected;
+                    selectedInviteFromUid = selectedUid;
                     InviteEntry active = invites.stream()
-                            .filter(i -> i.fromUid().equals(selected))
+                            .filter(i -> i.fromUid().equals(selectedUid))
                             .findFirst()
                             .orElse(invites.get(0));
 
