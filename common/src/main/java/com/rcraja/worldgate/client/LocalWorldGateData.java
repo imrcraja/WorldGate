@@ -44,4 +44,19 @@ public final class LocalWorldGateData {
             persist();
         }
     }
+
+    public static void remove(String key) {
+        synchronized (LOCK) {
+            data.remove(key);
+            persist();
+        }
+    }
+
+    private static void persist() {
+        try {
+            Path dir = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
+            Files.createDirectories(dir);
+            Files.writeString(dir.resolve("worldgate-player.json"), GSON.toJson(data), StandardCharsets.UTF_8);
+        } catch (Exception ignored) {}
+    }
 }
