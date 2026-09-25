@@ -36,6 +36,10 @@ public class FriendsScreen extends Screen {
     private Button rejectButton;
     private Button inviteButton;
     private Button refreshButton;
+    private Button joinInviteButton;
+    private Button dismissInviteButton;
+    private String pendingInviteFromUid;
+    private String pendingInviteRoom;
 
     private final Set<String> knownRequestUids = new HashSet<>();
     private boolean requestSnapshotReady;
@@ -95,6 +99,13 @@ public class FriendsScreen extends Screen {
                 btn -> inviteSelectedFriend())
                 .bounds(right + 10, height - 52, panelWidth - 20, 20).build();
         addRenderableWidget(inviteButton);
+
+        joinInviteButton = Button.builder(Component.literal("Join Invite"), b -> joinPendingInvite())
+                .bounds(center, height - 78, (requestsWidth - 5) / 2, 20).build();
+        dismissInviteButton = Button.builder(Component.literal("Dismiss"), b -> dismissPendingInvite())
+                .bounds(center + (requestsWidth + 5) / 2, height - 78, (requestsWidth - 5) / 2, 20).build();
+        addRenderableWidget(joinInviteButton);
+        addRenderableWidget(dismissInviteButton);
 
         refreshButton = Button.builder(Component.literal("Refresh"),
                 btn -> loadAll())
@@ -170,6 +181,8 @@ public class FriendsScreen extends Screen {
         rejectButton.active = selectedRequestUid != null;
         inviteButton.active = selectedFriendUid != null && WorldGateModClient.CURRENT_ROOM_CODE != null && !WorldGateModClient.CURRENT_ROOM_CODE.isBlank();
         refreshButton.active = true;
+        joinInviteButton.active = pendingInviteRoom != null && !pendingInviteRoom.isBlank();
+        dismissInviteButton.active = pendingInviteFromUid != null && !pendingInviteFromUid.isBlank();
     }
 
     private void sendRequest() {
@@ -219,6 +232,8 @@ public class FriendsScreen extends Screen {
 
                 if (minecraft != null) {
                     minecraft.execute(() -> {
+                        pendingInviteFromUid = fromUid;
+                        pendingInviteRoom = room;
                         requestNotification = "Room Invite: " + name + " [" + room + "]";
                         requestNotificationUntil = System.currentTimeMillis() + 7000L;
                         status = "Room invite received: " + room;
@@ -226,6 +241,49 @@ public class FriendsScreen extends Screen {
                 }
             } catch (Exception ignored) {
             }
+        });
+    }
+
+    private void joinPendingInvite() {
+        if (pendingInviteRoom == null || pendingInviteRoom.isBlank()) {
+            status = "No room invite selected.";
+            return;
+        }
+        String room = pendingInviteRoom;
+        String from = pendingInviteFromUid;
+        status = "Joining invited room...";
+        WorldGateScreen target;
+        if (parent instanceof WorldGateScreen screen) {
+            target = screen;
+        } else {
+            target = new WorldGateScreen(parent);
+        }
+        if (minecraft != null) {
+            minecraft.setScreen(target);
+            final WorldGateScreen joinScreen = target;
+            WorldGateModClient.EXECUTOR.submit(() -> {
+                String invite = WorldGateModClient.ROOM_MANAGER.getIncomingInvites();
+                boolean stillValid = invite != null && invite.contains("\"" + from + "\"");
+                if (minecraft != null) minecraft.execute(() -> {
+                    if (stillValid) joinScreen.joinRoomFromInvite(room);
+                    else sendMessage("WorldGate: that room invite is no longer available.");
+                });
+            });
+        }
+    }
+
+    private void dismissPendingInvite() {
+        String from = pendingInviteFromUid;
+        if (from == null || from.isBlank()) return;
+        WorldGateModClient.EXECUTOR.submit(() -> {
+            boolean ok = WorldGateModClient.ROOM_MANAGER.removeInvite(from);
+            if (minecraft != null) minecraft.execute(() -> {
+                pendingInviteFromUid = null;
+                pendingInviteRoom = null;
+                requestNotification = "";
+                status = ok ? "Room invite dismissed." : "Could not dismiss room invite.";
+                updateButtons();
+            });
         });
     }
 
@@ -509,6 +567,12 @@ public class FriendsScreen extends Screen {
         }
 
         updateButtons();
+
+        if (pendingInviteRoom != null && !pendingInviteRoom.isBlank()) {
+            graphics.text(font, "ROOM INVITE", center + 10, contentTop + 10, 0xFFB8A7FF);
+            graphics.text(font, "Room " + pendingInviteRoom, center + 10, contentTop + 27, 0xFFFFFFFF);
+            graphics.text(font, "Join or dismiss the invitation below.", center + 10, contentTop + 41, 0xFF8F9BA8);
+        }
 
         if (!status.isEmpty()) {
             graphics.centeredText(font, status, width / 2, height - 28, 0xFF9BA7B3);
