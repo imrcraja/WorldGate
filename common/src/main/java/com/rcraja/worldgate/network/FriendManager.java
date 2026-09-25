@@ -7,7 +7,7 @@ import com.rcraja.worldgate.WorldGateMod;
 import com.rcraja.worldgate.client.UserProfileCache;
 
 import java.util.Map;
-import java.util.UUID;
+import java.security.MessageDigest;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -28,7 +28,7 @@ public class FriendManager {
             new ConcurrentHashMap<>();
 
     private volatile Consumer<String> friendListChanged;
-    private volatile String myFriendCode;
+    private volatile String myPublicId;
 
     public FriendManager(FirebaseSession session) {
         this.session = session;
@@ -39,86 +39,48 @@ public class FriendManager {
     }
 
     /**
-     * Returns the short Friend Code.
-     * The code is stored permanently in Firebase.
+     * Stable public numeric identity. Firebase UID remains private/internal.
+     * The displayed ID is always 12 digits (within the requested 7-12 range).
      */
-    public String myFriendCode() {
-
-        if (!session.isReady()) {
-            return null;
-        }
-
+    public String myPublicId() {
+        if (!session.isReady()) return null;
         String uid = session.uid();
+        if (uid == null || uid.isBlank()) return null;
+        if (myPublicId != null) return myPublicId;
 
-        if (uid == null || uid.isBlank()) {
-            return null;
+        String cached = UserProfileCache.value("publicId", null);
+        if (cached != null && cached.matches("\\\\d{7,12}")) {
+            myPublicId = cached;
+            return cached;
         }
 
-        if (myFriendCode != null) {
-            return myFriendCode;
+        String existing = session.db().get("/profiles/" + uid + "/publicId");
+        if (existing != null && !existing.equals("null")) {
+            try {
+                JsonObject o = JsonParser.parseString(existing).getAsJsonObject();
+                if (o.has("publicId")) existing = o.get("publicId").getAsString();
+            } catch (Exception ignored) { }
+        }
+        if (existing != null && existing.matches("\\\\d{7,12}")) {
+            myPublicId = existing;
+            return existing;
         }
 
-        String existing = UserProfileCache.value("friendCode", null);
-        if (existing == null || existing.isBlank()) {
-            existing = session.db().get(
-                    "/profiles/" + uid + "/friendCode"
-            );
-            if (existing != null && !existing.equals("null")) {
-                try {
-                    JsonObject cachedProfile = JsonParser.parseString(existing).getAsJsonObject();
-                    existing = cachedProfile.has("friendCode") ? cachedProfile.get("friendCode").getAsString() : null;
-                } catch (Exception ignored) {
-                }
-            }
+        String id = generatePublicId(uid);
+        for (int attempt = 0; attempt < 10; attempt++) {
+            String owner = session.db().get("/public_ids/" + id);
+            if (owner == null || owner.equals("null") || owner.equals("\\\"" + uid + "\\\"")) break;
+            id = incrementPublicId(id);
         }
+        session.db().put("/profiles/" + uid + "/publicId", "\\\"" + id + "\\\"");
+        session.db().put("/public_ids/" + id, "\\\"" + uid + "\\\"");
+        myPublicId = id;
+        return id;
+    }
 
-        if (existing != null
-                && !existing.equals("null")
-                && existing.startsWith("\"")
-                && existing.endsWith("\"")) {
-
-            myFriendCode =
-                    existing.substring(
-                            1,
-                            existing.length() - 1
-                    );
-
-            /*
-             * Make sure the Friend Code -> UID mapping
-             * also exists.
-             */
-            session.db().put(
-                    "/friend_codes/" + myFriendCode,
-                    "\"" + uid + "\""
-            );
-
-            return myFriendCode;
-        }
-
-        if (existing != null && !existing.isBlank() && !existing.equals("null")) {
-            myFriendCode = existing.trim();
-            session.db().put(
-                    "/friend_codes/" + myFriendCode,
-                    "\"" + uid + "\""
-            );
-            return myFriendCode;
-        }
-
-        String code = generateFriendCode();
-
-        session.db().put(
-                "/profiles/" + uid + "/friendCode",
-                "\"" + code + "\""
-        );
-
-        session.db().put(
-                "/friend_codes/" + code,
-                "\"" + uid + "\""
-        );
-
-        myFriendCode = code;
-
-        return code;
+    /** Compatibility alias: old callers now receive the numeric public ID. */
+    public String myFriendCode() {
+        return myPublicId();
     }
 
     /**
@@ -136,9 +98,9 @@ public class FriendManager {
             return false;
         }
 
-        String code = myFriendCode();
+        String publicId = myPublicId();
 
-        if (code == null) {
+        if (publicId == null) {
             return false;
         }
 
@@ -222,128 +184,34 @@ public class FriendManager {
         }
     }
 
-    /**
-     * Friend Code -> UID lookup.
-     */
-    private String uidFromFriendCode(String code) {
-
-        if (!session.isReady()
-                || code == null
-                || code.isBlank()) {
-            return null;
-        }
-
-        String value =
-                session.db().get(
-                        "/friend_codes/"
-                                + code.trim().toUpperCase()
-                );
-
-        if (value == null || value.equals("null")) {
-            return null;
-        }
-
-        if (value.startsWith("\"")
-                && value.endsWith("\"")) {
-
-            return value.substring(
-                    1,
-                    value.length() - 1
-            );
-        }
-
+    /** Numeric public ID -> private Firebase UID lookup. */
+    private String uidFromPublicId(String publicId) {
+        if (!session.isReady() || publicId == null || !publicId.matches("\\\\d{7,12}")) return null;
+        String value = session.db().get("/public_ids/" + publicId);
+        if (value == null || value.equals("null")) return null;
+        if (value.startsWith("\\\"") && value.endsWith("\\\"")) return value.substring(1, value.length() - 1);
         return value;
     }
 
-    /**
-     * Send friend request using Friend Code.
-     */
-    public boolean sendRequestByCode(String friendCode) {
-
-        if (!session.isReady()
-                || friendCode == null
-                || friendCode.isBlank()) {
-            return false;
-        }
-
-        String code =
-                friendCode.trim().toUpperCase();
-
-        String targetUid =
-                uidFromFriendCode(code);
-
-        if (targetUid == null
-                || targetUid.isBlank()
-                || targetUid.equals(session.uid())) {
-            return false;
-        }
-
-        String senderName =
-                getMyDisplayName();
-
-        String json =
-                "{"
-                        + "\"fromUid\":\""
-                        + escapeJson(session.uid())
-                        + "\","
-                        + "\"fromFriendCode\":\""
-                        + escapeJson(myFriendCode())
-                        + "\","
-                        + "\"fromName\":\""
-                        + escapeJson(senderName)
-                        + "\","
-                        + "\"sentAt\":"
-                        + System.currentTimeMillis()
-                        + "}";
-
-        String result =
-                session.db().put(
-                        "/friend_requests/"
-                                + targetUid
-                                + "/"
-                                + session.uid(),
-                        json
-                );
-
-        return result != null;
+    /** Send a friend request using the public numeric ID only. */
+    public boolean sendRequestByCode(String publicId) {
+        return sendRequest(publicId);
     }
 
-    /**
-     * Compatibility method for old code.
-     */
-    public boolean sendRequest(String targetUid) {
+    /** Send a friend request using a 7-12 digit public ID. */
+    public boolean sendRequest(String publicId) {
+        if (!session.isReady() || publicId == null || !publicId.matches("\\\\d{7,12}")) return false;
+        String targetUid = uidFromPublicId(publicId.trim());
+        if (targetUid == null || targetUid.isBlank() || targetUid.equals(session.uid())) return false;
 
-        if (!session.isReady()
-                || targetUid == null
-                || targetUid.isBlank()) {
-            return false;
-        }
-
-        String json =
-                "{"
-                        + "\"fromUid\":\""
-                        + escapeJson(session.uid())
-                        + "\","
-                        + "\"fromFriendCode\":\""
-                        + escapeJson(myFriendCode())
-                        + "\","
-                        + "\"fromName\":\""
-                        + escapeJson(getMyDisplayName())
-                        + "\","
-                        + "\"sentAt\":"
-                        + System.currentTimeMillis()
-                        + "}";
-
-        String result =
-                session.db().put(
-                        "/friend_requests/"
-                                + targetUid.trim()
-                                + "/"
-                                + session.uid(),
-                        json
-                );
-
-        return result != null;
+        String senderName = getMyDisplayName();
+        String senderId = myPublicId();
+        String json = "{"
+                + "\\\"fromUid\\\":\\\"" + escapeJson(session.uid()) + "\\\"," 
+                + "\\\"fromPublicId\\\":\\\"" + escapeJson(senderId) + "\\\"," 
+                + "\\\"fromName\\\":\\\"" + escapeJson(senderName) + "\\\"," 
+                + "\\\"sentAt\\\":" + System.currentTimeMillis() + "}";
+        return session.db().put("/friend_requests/" + targetUid + "/" + session.uid(), json) != null;
     }
 
     public String getIncomingRequests() {
@@ -655,29 +523,26 @@ public class FriendManager {
         profileStreams.clear();
     }
 
-    private String generateFriendCode() {
-
-        String uid = session.uid();
-
-        if (uid == null || uid.isBlank()) {
-
-            return "WG"
-                    + UUID.randomUUID()
-                            .toString()
-                            .replace("-", "")
-                            .substring(0, 6)
-                            .toUpperCase();
+    private String generatePublicId(String uid) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(uid.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            long value = 0L;
+            for (int i = 0; i < 8; i++) value = (value << 8) | (digest[i] & 0xFFL);
+            value = Math.floorMod(value, 900_000_000_000L) + 100_000_000_000L;
+            return Long.toString(value);
+        } catch (Exception e) {
+            return "100000000000";
         }
+    }
 
-        String raw =
-                uid.replace("-", "")
-                        .toUpperCase();
-
-        return "WG"
-                + raw.substring(
-                        0,
-                        Math.min(6, raw.length())
-                );
+    private static String incrementPublicId(String id) {
+        try {
+            long value = Long.parseLong(id);
+            value = value >= 999_999_999_999L ? 100_000_000_000L : value + 1L;
+            return Long.toString(value);
+        } catch (Exception ignored) {
+            return "100000000000";
+        }
     }
 
     private static String escapeJson(String value) {
