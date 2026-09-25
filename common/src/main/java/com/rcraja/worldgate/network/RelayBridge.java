@@ -30,6 +30,9 @@ public final class RelayBridge {
     private static volatile boolean connected;
     private static volatile boolean handshakeAccepted;
     private static volatile boolean handshakeRejected;
+    private static volatile long lastPongAt;
+    private static volatile long lastPingAt;
+    private static volatile long rttMillis = -1;
 
 
     public static boolean startHost(String roomCode, int minecraftPort) {
@@ -87,6 +90,8 @@ public final class RelayBridge {
                 }
 
                 Socket socket = new Socket("127.0.0.1", minecraftPort);
+                socket.setTcpNoDelay(true);
+                socket.setKeepAlive(true);
                 tcpSocket = socket;
 
                 bridge(socket, ws);
@@ -123,6 +128,7 @@ public final class RelayBridge {
                 ServerSocket server = new ServerSocket(0, 1,
                         java.net.InetAddress.getLoopbackAddress());
 
+                server.setReuseAddress(true);
                 playerServer = server;
                 running = true;
                 connected = false;
@@ -165,6 +171,8 @@ public final class RelayBridge {
             );
 
             Socket socket = server.accept();
+            socket.setTcpNoDelay(true);
+            socket.setKeepAlive(true);
             tcpSocket = socket;
 
             if (!waitForConnection(15)) {
@@ -190,7 +198,7 @@ public final class RelayBridge {
             String roomCode
     ) {
         try {
-            HttpClient client = HttpClient.newHttpClient();
+            HttpClient client = HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(3)).build();
 
             RelayListener listener = new RelayListener();
             handshakeAccepted = false;
@@ -230,6 +238,7 @@ public final class RelayBridge {
             }
 
             webSocket = ws;
+            startLatencyProbe(ws);
             return ws;
 
         } catch (Exception e) {
@@ -258,7 +267,7 @@ public final class RelayBridge {
                     ByteBuffer data =
                             ByteBuffer.wrap(buffer, 0, read);
 
-                    ws.sendBinary(data, true).join();
+                    ws.sendBinary(data, true);
                 }
 
             } catch (Exception e) {
@@ -300,7 +309,7 @@ public final class RelayBridge {
             copy.get(bytes);
 
             output.write(bytes);
-            output.flush();
+            // TCP_NODELAY keeps small Minecraft packets from waiting for a flush cycle.\n            output.flush();
 
         } catch (Exception e) {
             if (running) {
@@ -350,6 +359,24 @@ public final class RelayBridge {
         return running && connected;
     }
 
+    public static long getRttMillis() { return rttMillis; }
+
+    private static void startLatencyProbe(WebSocket ws) {
+        Thread t = new Thread(() -> {
+            while (running && webSocket == ws) {
+                try {
+                    lastPingAt = System.nanoTime();
+                    ws.sendPing(ByteBuffer.wrap(new byte[] { 87, 71, 80, 49 }));
+                    Thread.sleep(5000L);
+                } catch (Exception e) {
+                    return;
+                }
+            }
+        }, "WorldGate-Relay-Latency");
+        t.setDaemon(true);
+        t.start();
+    }
+
     public static boolean isRunning() {
         return running;
     }
@@ -364,6 +391,9 @@ public final class RelayBridge {
             connected = false;
             handshakeAccepted = false;
             handshakeRejected = false;
+            rttMillis = -1;
+            lastPingAt = 0;
+            lastPongAt = 0;
         }
 
         try {
@@ -443,7 +473,7 @@ public final class RelayBridge {
         }
 
         @Override
-        public CompletionStage<?> onBinary(
+        public CompletionStage<?> onPong(WebSocket webSocket, ByteBuffer message) {\n            long sent = lastPingAt;\n            if (sent > 0) rttMillis = Math.max(0L, (System.nanoTime() - sent) / 1_000_000L);\n            lastPongAt = System.currentTimeMillis();\n            webSocket.request(1);\n            return CompletableFuture.completedFuture(null);\n        }\n\n        @Override\n        public CompletionStage<?> onBinary(
                 WebSocket webSocket,
                 ByteBuffer data,
                 boolean last
