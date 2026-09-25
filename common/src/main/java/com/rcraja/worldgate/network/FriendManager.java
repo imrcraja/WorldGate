@@ -193,6 +193,10 @@ public class FriendManager {
         return value;
     }
 
+    public String resolvePublicId(String publicId) {
+        return uidFromPublicId(publicId);
+    }
+
     /** Send a friend request using the public numeric ID only. */
     public boolean sendRequestByCode(String publicId) {
         return sendRequest(publicId);
