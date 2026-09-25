@@ -11,6 +11,8 @@ import com.rcraja.worldgate.network.RoomManager;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.server.players.NameAndId;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -106,6 +108,40 @@ public class WorldGateModClient implements ClientModInitializer {
             });
 
     private static volatile boolean heartbeatRunning = false;
+
+    private static final ScheduledExecutorService HOST_PERMISSION_SYNC =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "WorldGate-Host-Permissions");
+                t.setDaemon(true);
+                return t;
+            });
+
+    private static volatile boolean hostPermissionSyncStarted = false;
+
+    private static synchronized void startHostPermissionSync() {
+        if (hostPermissionSyncStarted) return;
+        hostPermissionSyncStarted = true;
+        HOST_PERMISSION_SYNC.scheduleAtFixedRate(() -> {
+            try {
+                String room = HOSTING_ROOM_CODE;
+                if (room == null || room.isBlank()) return;
+
+                Minecraft mc = Minecraft.getInstance();
+                IntegratedServer server = mc.getSingleplayerServer();
+                if (server == null || !server.isPublished()) return;
+
+                for (var player : server.getPlayerList().getPlayers()) {
+                    if (!HostPermissionManager.contains(player.getUUID())) continue;
+                    if (!server.getPlayerList().isOp(player.getGameProfile())) {
+                        server.getPlayerList().op(new NameAndId(player.getGameProfile()));
+                    }
+                }
+            } catch (Exception e) {
+                WorldGateMod.LOGGER.debug("Host OP sync failed", e);
+            }
+        }, 1000, 1000, TimeUnit.MILLISECONDS);
+    }
+
     private static java.util.concurrent.ScheduledFuture<?> heartbeatTask;
 
     public static synchronized void startHeartbeat(boolean host) {
@@ -149,6 +185,8 @@ public class WorldGateModClient implements ClientModInitializer {
 
         WorldGateSounds.initialize();
         LocalWorldGateData.load();
+        HostPermissionManager.load();
+        startHostPermissionSync();
         networkMode = LocalWorldGateData.get("networkMode", "auto");
         registerVersionKeybinds();
 
