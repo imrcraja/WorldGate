@@ -132,7 +132,7 @@ public class WorldGateModClient implements ClientModInitializer {
 
                 for (var player : server.getPlayerList().getPlayers()) {
                     if (!HostPermissionManager.contains(player.getUUID())) continue;
-                    if (!server.getPlayerList().isOp(player.getGameProfile())) {
+                    if (!server.getPlayerList().isOp(new NameAndId(player.getGameProfile()))) {
                         server.getPlayerList().op(new NameAndId(player.getGameProfile()));
                     }
                 }
