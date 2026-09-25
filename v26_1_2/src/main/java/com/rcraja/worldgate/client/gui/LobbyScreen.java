@@ -181,8 +181,9 @@ public class LobbyScreen extends Screen {
         bindRoomRealtime(WorldGateModClient.CURRENT_ROOM_CODE);
 
         loading = false;
-        status = room != null && !room.isBlank()
-                ? "Connected • Room " + room
+        String currentRoom = WorldGateModClient.CURRENT_ROOM_CODE;
+        status = currentRoom != null && !currentRoom.isBlank()
+                ? "Connected • Room " + currentRoom
                 : "Connected • No active room";
     }
 
