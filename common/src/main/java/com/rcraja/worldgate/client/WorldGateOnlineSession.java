@@ -12,6 +12,7 @@ public final class WorldGateOnlineSession {
     private static final ScheduledExecutorService EXECUTOR=Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"WorldGate-Online-Session");t.setDaemon(true);return t;});
     private static volatile String sessionId;
     private static volatile boolean running;
+    private static volatile boolean registered;
 
     private WorldGateOnlineSession(){}
 
@@ -23,21 +24,32 @@ public final class WorldGateOnlineSession {
             LocalWorldGateData.set(KEY,sessionId);
         }
         running=true;
+        registered=false;
         EXECUTOR.execute(WorldGateOnlineSession::refresh);
         EXECUTOR.scheduleAtFixedRate(WorldGateOnlineSession::refresh,10,10,TimeUnit.SECONDS);
     }
 
     private static void refresh(){
         if(!running||!WorldGateModClient.SESSION.isReady())return;
-        String response=BackendClient.startOnlineSession(
-            WorldGateModClient.SESSION,sessionId,
-            "Minecraft "+net.minecraft.SharedConstants.getCurrentVersion().getName());
-        if(response==null)response=BackendClient.heartbeatOnlineSession(WorldGateModClient.SESSION,sessionId);
+        String response;
+        String device="Minecraft "+net.minecraft.SharedConstants.getCurrentVersion().getName();
+        if(!registered){
+            response=BackendClient.startOnlineSession(WorldGateModClient.SESSION,sessionId,device);
+            if(response!=null)registered=true;
+        }else{
+            response=BackendClient.heartbeatOnlineSession(WorldGateModClient.SESSION,sessionId);
+            if(response==null){
+                registered=false;
+                response=BackendClient.startOnlineSession(WorldGateModClient.SESSION,sessionId,device);
+                if(response!=null)registered=true;
+            }
+        }
         if(response==null)WorldGateMod.LOGGER.debug("WorldGate online-session heartbeat failed");
     }
 
     public static synchronized void stop(){
         running=false;
+        registered=false;
         String id=sessionId;
         if(id!=null&&WorldGateModClient.SESSION.isReady())
             WorldGateModClient.EXECUTOR.submit(()->BackendClient.endOnlineSession(WorldGateModClient.SESSION,id));
