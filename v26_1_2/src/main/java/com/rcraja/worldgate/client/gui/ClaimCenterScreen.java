@@ -42,10 +42,10 @@ public final class ClaimCenterScreen extends Screen {
     protected void init() {
         int cx = width / 2;
 
-        uidBox = new EditBox(font, cx - 145, 66, 290, 20, Component.literal("Recipient UID"));
-        uidBox.setMaxLength(128);
+        uidBox = new EditBox(font, cx - 145, 66, 290, 20, Component.literal("Recipient Public ID"));
+        uidBox.setMaxLength(12);
         uidBox.setValue(initialUid);
-        uidBox.setHint(Component.literal("UID of the player receiving Elite Coins"));
+        uidBox.setHint(Component.literal("7-12 digit Public ID"));
         addRenderableWidget(uidBox);
 
         amountBox = new EditBox(font, cx - 145, 105, 70, 20, Component.literal("Coins"));
@@ -183,6 +183,7 @@ public final class ClaimCenterScreen extends Screen {
 
     private void gift() {
         String uid = uidBox.getValue().trim();
+        if (!uid.matches("\\d{7,12}")) { status = "Enter a valid 7-12 digit Public ID."; return; }
         long coins;
         try {
             coins = Long.parseLong(amountBox.getValue().trim());
@@ -192,7 +193,7 @@ public final class ClaimCenterScreen extends Screen {
         }
 
         if (uid.isEmpty() || coins <= 0) {
-            status = "Enter a recipient UID and a positive amount.";
+            status = "Enter a recipient Public ID and a positive amount.";
             return;
         }
 
@@ -301,7 +302,7 @@ public final class ClaimCenterScreen extends Screen {
                 cx, 50, 0xFFFFD45A);
 
         g.text(font, "GIFT ELITE COINS", cx - 145, 56, 0xFFD8C7FF);
-        g.text(font, "Recipient UID", cx - 145, 60, 0xFF7E8994);
+        g.text(font, "Recipient Public ID", cx - 145, 60, 0xFF7E8994);
         g.text(font, "Coins", cx - 145, 99, 0xFF7E8994);
         g.text(font, "Message", cx - 65, 99, 0xFF7E8994);
 
