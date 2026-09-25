@@ -674,4 +674,10 @@ public class FriendsScreen extends Screen {
             String name,
             String code
     ) {}
+
+    private record InviteEntry(
+            String fromUid,
+            String fromName,
+            String roomCode
+    ) {}
 }
