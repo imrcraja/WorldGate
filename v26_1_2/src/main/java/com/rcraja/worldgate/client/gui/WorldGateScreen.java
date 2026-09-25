@@ -83,7 +83,6 @@ public class WorldGateScreen extends Screen {
                 Component.translatable("worldgate.roomcode.hint")
         );
         roomCodeBox.setMaxLength(10);
-        roomCodeBox.setFilter(value -> value.matches("\\d*"));
         roomCodeBox.setHint(Component.literal("Room Code"));
         addRenderableWidget(roomCodeBox);
 
@@ -417,7 +416,8 @@ public class WorldGateScreen extends Screen {
                 roomCodeBox
                         .getValue()
                         .trim()
-                        .toUpperCase();
+                        .replaceAll("\\D", "");
+        roomCodeBox.setValue(code);
 
         if (code.isEmpty()) {
             return;
