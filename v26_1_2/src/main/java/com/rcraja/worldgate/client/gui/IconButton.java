@@ -4,6 +4,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import com.rcraja.worldgate.network.EliteCoinManager;
 
 /**
  * A small square icon-only button, styled to sit quietly on top of the
@@ -41,6 +42,16 @@ public final class IconButton extends AbstractWidget {
         } else {
             drawBellIcon(graphics, cx, cy, color);
         }
+
+        int badge = unreadCount();
+        if (badge > 0) {
+            int bx = getRight() - 2;
+            int by = getY() + 2;
+            graphics.fill(bx - 10, by, bx + 1, by + 10, 0xFFE5484D);
+            String text = badge > 9 ? "9+" : Integer.toString(badge);
+            graphics.centeredText(net.minecraft.client.Minecraft.getInstance().font,
+                    Component.literal(text), bx - 4, by + 1, 0xFFFFFFFF);
+        }
     }
 
     private void drawMailIcon(GuiGraphicsExtractor g, int cx, int cy, int color) {
@@ -63,6 +74,18 @@ public final class IconButton extends AbstractWidget {
         g.fill(x + 1, y + 1, x + w - 1, y + h - 3, color);
         g.fill(x, y + h - 3, x + w, y + h - 2, color);
         g.fill(cx - 1, y + h - 1, cx + 1, y + h, color);
+    }
+
+    private int unreadCount() {
+        try {
+            int count = 0;
+            for (EliteCoinManager.Mail mail : EliteCoinManager.mailbox()) {
+                if (mail != null && "UNREAD".equalsIgnoreCase(mail.status())) count++;
+            }
+            return count;
+        } catch (Exception ignored) {
+            return 0;
+        }
     }
 
     @Override
