@@ -193,10 +193,10 @@ public final class WardrobeScreen extends Screen {
             int x = left + col * (cardW + gap);
             int y = top + row * (cardH + gap);
             boolean available = i < items.size();
-            g.fill(x, y, x + cardW, y + cardH, available ? 0xCC10161D : 0x8810161D);
+            g.fill(x, y, x + cardW, y + cardH, available ? 0x4A10161D : 0x2810161D);
             g.outline(x, y, cardW, cardH,
                     available && inv.equipped(items.get(i).type(), items.get(i).id())
-                            ? 0xFF7DE2FF : 0xFF2B3742);
+                            ? 0xFF7DE2FF : 0xFF65727F);
 
             if (!available) {
                 g.centeredText(font, Component.translatable("worldgate.coin.no_item").getString(), x + cardW / 2, y + 34, 0xFF59636D);
