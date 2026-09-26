@@ -192,7 +192,7 @@ public final class WardrobeScreen extends Screen {
                 width / 2, 38, 0xFF9AA7B4);
 
         int left = Math.max(20, width / 2 - 310);
-        int top = 92;
+        int top = 108;
         int gap = 10;
         int cardW = 148;
         int cardH = 92;
