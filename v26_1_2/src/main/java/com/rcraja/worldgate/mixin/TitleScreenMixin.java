@@ -99,13 +99,11 @@ public abstract class TitleScreenMixin extends Screen {
                 () -> minecraft.setScreen(new FriendsScreen(this)), 0xFF73E0A1, WorldGateButton.Icon.SOCIAL));
         addRenderableWidget(new WorldGateButton(x, y + 2 * (h + gap), w, h, Component.literal("Wardrobe"),
                 () -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)), 0xFFFFB86B, WorldGateButton.Icon.WARDROBE));
-        addRenderableWidget(new WorldGateButton(x, y + 3 * (h + gap), w, h, Component.literal("Features"),
-                () -> minecraft.setScreen(new ClaimCenterScreen(this)), 0xFFBDA6FF, WorldGateButton.Icon.FEATURES));
-        addRenderableWidget(new WorldGateButton(x, y + 4 * (h + gap), w, h, Component.literal("Pictures"),
+        addRenderableWidget(new WorldGateButton(x, y + 3 * (h + gap), w, h, Component.literal("Pictures"),
                 () -> minecraft.setScreen(new PicturesScreen(this)), 0xFFBDA6FF, WorldGateButton.Icon.PICTURES));
-        addRenderableWidget(new WorldGateButton(x, y + 5 * (h + gap), w, h, Component.literal("Settings"),
+        addRenderableWidget(new WorldGateButton(x, y + 4 * (h + gap), w, h, Component.literal("Settings"),
                 () -> minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8, WorldGateButton.Icon.SETTINGS));
-        addRenderableWidget(new WorldGateButton(x, y + 6 * (h + gap), w, h, Component.literal("Account"),
+        addRenderableWidget(new WorldGateButton(x, y + 5 * (h + gap), w, h, Component.literal("Account"),
                 () -> minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B, WorldGateButton.Icon.ACCOUNT));
     }
 
