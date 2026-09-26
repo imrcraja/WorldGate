@@ -18,6 +18,7 @@ public final class WardrobeScreen extends Screen {
     private final List<Button> itemButtons = new ArrayList<>();
     private String status = Component.translatable("worldgate.wardrobe.syncing").getString();
     private boolean loading = true;
+    private boolean ownedOnly = false;
 
     public WardrobeScreen(Screen parent, Tab tab) {
         super(Component.translatable(tab == Tab.EMOTES ? "worldgate.wardrobe.emotes" : "worldgate.wardrobe.cosmetics"));
@@ -33,12 +34,20 @@ public final class WardrobeScreen extends Screen {
         addRenderableWidget(Button.builder(Component.translatable("worldgate.wardrobe.emotes"),
                 b -> open(Tab.EMOTES))
                 .bounds(width / 2 - 52, 58, 100, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Owned: OFF"),
+                b -> {
+                    ownedOnly = !ownedOnly;
+                    b.setMessage(Component.literal("Owned: " + (ownedOnly ? "ON" : "OFF")));
+                    refresh();
+                })
+                .bounds(width / 2 + 156, 58, 92, 20).build());
+
         addRenderableWidget(Button.builder(Component.translatable("worldgate.coin.shop"),
                 b -> minecraft.setScreen(new EliteCoinScreen(this)))
                 .bounds(width / 2 + 52, 58, 100, 20).build());
 
         int left = Math.max(20, width / 2 - 310);
-        int top = 92;
+        int top = 108;
         int gap = 10;
         int cardW = 148;
         int cardH = 92;
@@ -72,7 +81,7 @@ public final class WardrobeScreen extends Screen {
             boolean match = tab == Tab.EMOTES
                     ? "emote".equalsIgnoreCase(item.type())
                     : "cosmetic".equalsIgnoreCase(item.type());
-            if (match) result.add(item);
+            if (match && (!ownedOnly || EliteCoinManager.inventory().owns(item.id()))) result.add(item);
         }
         return result;
     }
@@ -170,6 +179,9 @@ public final class WardrobeScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
         super.extractRenderState(g, mx, my, delta);
+
+        g.centeredText(font, Component.literal(ownedOnly ? "Owned items only" : "All available items"),
+                width / 2, 50, 0xFF7DE2FF);
 
         g.centeredText(font, tab == Tab.EMOTES ? Component.translatable("worldgate.wardrobe.emotes") : Component.translatable("worldgate.wardrobe.cosmetics"),
                 width / 2, 20, 0xFFFFFFFF);
