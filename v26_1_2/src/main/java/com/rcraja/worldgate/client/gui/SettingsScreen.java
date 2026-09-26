@@ -2,6 +2,7 @@ package com.rcraja.worldgate.client.gui;
 
 import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.network.RelayBridge;
+import com.rcraja.worldgate.client.gui.WorldGatePreferences;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -31,6 +32,14 @@ public final class SettingsScreen extends Screen {
                     WorldGateModClient.setNetworkMode(mode);
                     b.setMessage(Component.translatable("worldgate.settings.connection", label(mode)));
                 }).bounds(x, 76, 240, 20).build());
+
+        addRenderableWidget(Button.builder(Component.literal(
+                "WorldGate overlay: " + (WorldGatePreferences.overlayEnabled() ? "ON" : "OFF")),
+                b -> {
+                    boolean enabled = !WorldGatePreferences.overlayEnabled();
+                    WorldGatePreferences.setOverlayEnabled(enabled);
+                    b.setMessage(Component.literal("WorldGate overlay: " + (enabled ? "ON" : "OFF")));
+                }).bounds(x, 104, 240, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("worldgate.settings.test_relay"),
                 b -> sendMessage(RelayBridge.isConnected()
