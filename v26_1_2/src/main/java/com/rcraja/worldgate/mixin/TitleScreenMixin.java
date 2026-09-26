@@ -8,6 +8,8 @@ import com.rcraja.worldgate.client.gui.WardrobeScreen;
 import com.rcraja.worldgate.client.gui.EliteProfileScreen;
 import com.rcraja.worldgate.client.gui.ClaimCenterScreen;
 
+import java.util.ArrayList;
+
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.PlayerSkinWidget;
 import net.minecraft.world.item.component.ResolvableProfile;
@@ -34,7 +36,7 @@ public abstract class TitleScreenMixin extends Screen {
         int mainIndex = 0;
         int bottomIndex = 0;
 
-        for (var child : this.children()) {
+        for (var child : new ArrayList<>(this.children())) {
             if (!(child instanceof Button button)) continue;
             String label = button.getMessage().getString().trim();
             if (label.isEmpty()) continue;
