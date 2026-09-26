@@ -40,12 +40,12 @@ public abstract class PauseScreenMixin extends Screen {
         int top = b[1];
         int right = b[2];
 
-        int previewSize = Math.min(126, Math.max(104, height / 2));
+        int previewSize = Math.min(98, Math.max(82, height / 3));
         int previewX = Math.max(20, left - previewSize - 250);
         int previewY = Math.max(70, top - 8);
         if (previewX + previewSize <= left - 24) {
             PlayerSkinWidget playerWidget = new PlayerSkinWidget(
-                    previewSize, previewSize + 34, minecraft.getEntityModels(),
+                    previewSize, previewSize + 28, minecraft.getEntityModels(),
                     () -> minecraft.playerSkinRenderCache()
                             .getOrDefault(ResolvableProfile.createUnresolved(minecraft.getUser().getProfileId()))
                             .playerSkin());
@@ -53,22 +53,22 @@ public abstract class PauseScreenMixin extends Screen {
             addRenderableWidget(playerWidget);
 
             addRenderableWidget(new WorldGateButton(
-                    previewX + previewSize / 2 - 12, previewY + previewSize + 6, 24, 24,
+                    previewX + previewSize / 2 - 10, previewY + previewSize + 5, 20, 20,
                     Component.empty(), () -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)),
                     0xFFB8C4D0, WorldGateButton.Icon.WARDROBE));
         }
 
-        int railW = Math.min(280, Math.max(190, width / 5));
-        int railX = width - railW - 26;
+        int railW = Math.min(216, Math.max(184, width / 8));
+        int railX = width - railW - 24;
         if (railX < right + 12) railX = Math.max(right + 12, width - railW - 12);
-        int railY = Math.max(76, top + 4);
+        int railY = Math.max(68, top + 2);
         worldgate$addRail(railX, railY, railW);
 
         // Keep the original WorldGate entry point as a separate overlay button.
-        int worldGateY = Math.min(height - 38, b[3] + 14);
+        int worldGateY = Math.min(height - 34, b[3] + 8);
         if (worldGateY >= 8 && worldGateY + 28 <= height - 4) {
             addRenderableWidget(new WorldGateButton(
-                    Math.max(18, width / 2 - 100), worldGateY, 200, 28,
+                    Math.max(18, width / 2 - 96), worldGateY, 192, 26,
                     Component.literal("WorldGate"),
                     () -> minecraft.setScreen(new WorldGateScreen(this)),
                     0xFF67D8FF));
@@ -76,8 +76,8 @@ public abstract class PauseScreenMixin extends Screen {
     }
 
     private void worldgate$addRail(int x, int y, int width) {
-        int h = 24;
-        int gap = 5;
+        int h = 28;
+        int gap = 6;
 
         addRenderableWidget(new WorldGateButton(x, y, width, h, Component.literal("Host"),
                 () -> minecraft.setScreen(new WorldGateScreen(this)), 0xFF67D8FF, WorldGateButton.Icon.HOST));
