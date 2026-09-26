@@ -8,6 +8,8 @@ import com.rcraja.worldgate.client.gui.WardrobeScreen;
 import com.rcraja.worldgate.client.gui.EliteProfileScreen;
 import com.rcraja.worldgate.client.gui.ClaimCenterScreen;
 import com.rcraja.worldgate.client.gui.PicturesScreen;
+import com.rcraja.worldgate.client.gui.NotificationsScreen;
+import com.rcraja.worldgate.client.gui.IconButton;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.PlayerSkinWidget;
@@ -63,6 +65,13 @@ public abstract class PauseScreenMixin extends Screen {
         if (railX < right + 12) railX = Math.max(right + 12, width - railW - 12);
         int railY = Math.max(68, top + 2);
         worldgate$addRail(railX, railY, railW);
+
+        addRenderableWidget(new IconButton(width - 76, 18, 34,
+                IconButton.Icon.BELL,
+                () -> minecraft.setScreen(new NotificationsScreen(this))));
+        addRenderableWidget(new IconButton(width - 38, 18, 34,
+                IconButton.Icon.MAILBOX,
+                () -> minecraft.setScreen(new ClaimCenterScreen(this))));
 
         // Keep the original WorldGate entry point as a separate overlay button.
         int worldGateY = Math.min(height - 34, b[3] + 8);
