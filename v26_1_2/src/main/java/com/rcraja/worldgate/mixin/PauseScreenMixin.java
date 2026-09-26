@@ -41,7 +41,7 @@ public abstract class PauseScreenMixin extends Screen {
         for (var child : new ArrayList<>(this.children())) {
             if (!(child instanceof Button button)) continue;
             String label = button.getMessage().getString().trim();
-            if (label.isEmpty()) continue;
+            if (label.isEmpty() || !worldgate$isVanillaPauseButton(label)) continue;
 
             button.visible = false;
             int accent = 0xFF67D8FF;
@@ -99,5 +99,17 @@ public abstract class PauseScreenMixin extends Screen {
                 Component.literal("WorldGate"),
                 () -> this.minecraft.setScreen(new WorldGateScreen(this)),
                 0xFF67D8FF));
+    }
+
+    private static boolean worldgate$isVanillaPauseButton(String label) {
+        String lower = label.toLowerCase(java.util.Locale.ROOT);
+        return lower.contains("advancement")
+                || lower.contains("statistic")
+                || lower.contains("give feedback")
+                || lower.contains("report")
+                || lower.contains("open to lan")
+                || lower.contains("options")
+                || lower.contains("save and quit")
+                || lower.contains("disconnect");
     }
 }
