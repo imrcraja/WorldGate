@@ -60,8 +60,9 @@ function sendJson(ws, value) {
 function cleanup(roomCode, reason) {
   const room = rooms.get(roomCode);
   if (!room) return;
-  if (room.host && room.host.readyState === room.host.OPEN) room.host.close();
-  if (room.player && room.player.readyState === room.player.OPEN) room.player.close();
+  for (const ws of [room.host, room.player, room.voiceHost, room.voicePlayer]) {
+    if (ws && ws.readyState === ws.OPEN) ws.close();
+  }
   rooms.delete(roomCode);
   console.log(`Room closed: ${roomCode} (${reason})`);
 }
@@ -158,7 +159,9 @@ function register(ws, message) {
 
   if (channel === 'voice') {
     const key = role === 'host' ? 'voiceHost' : 'voicePlayer';
-    if (!room.host || !room.player) { sendJson(ws,{type:'error',code:'MINECRAFT_CHANNEL_REQUIRED'}); ws.close(); return; }
+    const peer = role === 'host' ? room.host : room.player;
+    if (!peer || peer.readyState !== peer.OPEN) { sendJson(ws,{type:'error',code:'MINECRAFT_CHANNEL_REQUIRED'}); ws.close(); return; }
+    if (peer.uid !== uid) { registerViolation(ip); sendJson(ws,{type:'error',code:'VOICE_IDENTITY_MISMATCH'}); ws.close(); return; }
     if (room[key]) { sendJson(ws,{type:'error',code:'VOICE_ALREADY_CONNECTED'}); ws.close(); return; }
     room[key]=ws; ws.roomCode=roomCode; ws.role=role; ws.channel='voice'; ws.uid=uid;
     sendJson(ws,{type:'voice-waiting',room:roomCode,protocol:REQUIRED_PROTOCOL});
@@ -167,6 +170,9 @@ function register(ws, message) {
       sendJson(room.voicePlayer,{type:'voice-connected',protocol:REQUIRED_PROTOCOL});
       room.voiceHost.on('message',(d,b)=>{if(room.voicePlayer.readyState===room.voicePlayer.OPEN)room.voicePlayer.send(d,{binary:b});});
       room.voicePlayer.on('message',(d,b)=>{if(room.voiceHost.readyState===room.voiceHost.OPEN)room.voiceHost.send(d,{binary:b});});
+      const closeVoice=reason=>{if(rooms.has(roomCode)) cleanup(roomCode,reason);};
+      room.voiceHost.once('close',()=>closeVoice('voice host disconnected'));
+      room.voicePlayer.once('close',()=>closeVoice('voice player disconnected'));
     }
     return;
   }
