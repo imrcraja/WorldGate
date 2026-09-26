@@ -3,6 +3,7 @@ package com.rcraja.worldgate.client;
 import com.mojang.blaze3d.platform.InputConstants;
 
 import com.rcraja.worldgate.network.EmoteManager;
+import com.rcraja.worldgate.client.gui.VoicePermissionScreen;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -24,6 +25,8 @@ public final class WorldGateKeybinds {
                             "worldgate"
                     )
             );
+
+    public static final KeyMapping VOICE = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.worldgate.voice", InputConstants.Type.KEYSYM, InputConstants.KEY_V, CATEGORY));
 
     public static final KeyMapping WORLDGATE =
             KeyMappingHelper.registerKeyMapping(
@@ -49,6 +52,13 @@ public final class WorldGateKeybinds {
     private static void onClientTick(
             Minecraft minecraft
     ) {
+
+        while (VOICE.consumeClick()) {
+            if (minecraft.player != null) {
+                if (!WorldGateModClient.VOICE_MANAGER.microphoneAvailable()) minecraft.setScreen(new VoicePermissionScreen(null, WorldGateModClient.VOICE_MANAGER));
+                else if (!WorldGateModClient.VOICE_MANAGER.isRunning()) WorldGateModClient.startVoice(); else WorldGateModClient.stopVoice();
+            }
+        }
 
         while (WORLDGATE.consumeClick()) {
 
