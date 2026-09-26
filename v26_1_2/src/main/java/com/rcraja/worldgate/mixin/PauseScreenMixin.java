@@ -8,8 +8,6 @@ import com.rcraja.worldgate.client.gui.WardrobeScreen;
 import com.rcraja.worldgate.client.gui.EliteProfileScreen;
 import com.rcraja.worldgate.client.gui.ClaimCenterScreen;
 
-import java.util.ArrayList;
-
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.PlayerSkinWidget;
 import net.minecraft.world.item.component.ResolvableProfile;
@@ -28,36 +26,33 @@ public abstract class PauseScreenMixin extends Screen {
         super(title);
     }
 
+    /**
+     * WorldGate is an independent overlay layer.
+     * Vanilla pause buttons remain untouched and keep their original widget,
+     * coordinates, size and click action.
+     */
     @Inject(method = "init", at = @At("TAIL"))
     private void worldgate$modernize(CallbackInfo ci) {
         if (this.minecraft == null) return;
 
-        int mainW = Math.max(300, Math.min(520, width / 2));
-        int mainX = Math.max(18, width / 2 - mainW / 2 - (width >= 760 ? 100 : 0));
-        int top = Math.max(64, height / 2 - 128);
-        int step = 34;
-        int index = 0;
+        int[] vanillaBounds = worldgate$vanillaBounds();
 
-        for (var child : new ArrayList<>(this.children())) {
-            if (!(child instanceof Button button)) continue;
-            String label = button.getMessage().getString().trim();
-            if (label.isEmpty() || !worldgate$isVanillaPauseButton(label)) continue;
-
-            button.visible = false;
-            int accent = 0xFF67D8FF;
-            String lower = label.toLowerCase();
-            if (lower.contains("option")) accent = 0xFF9CA9B8;
-            else if (lower.contains("save") || lower.contains("disconnect")) accent = 0xFFFF7D91;
-            else if (lower.contains("lan")) accent = 0xFF73E0A1;
-            else if (lower.contains("advancement") || lower.contains("statistic")) accent = 0xFFBDA6FF;
-
-            addRenderableWidget(new WorldGateButton(mainX, top + index++ * step, mainW, 30,
-                    button.getMessage(), event -> button.onClick(event, false), accent));
+        if (width >= 760) {
+            int railW = Math.min(196, Math.max(176, width / 6));
+            int railX = Math.min(width - railW - 18, vanillaBounds[2] + 28);
+            int railY = Math.max(70, vanillaBounds[1] - 4);
+            if (railX + railW <= width - 8) {
+                worldgate$addRail(railX, railY, railW);
+            }
         }
 
-        int previewSize = width >= 760 ? 150 : 110;
-        int previewX = Math.min(width - previewSize - 18, mainX + mainW + 24);
-        if (previewX >= 8) {
+        int previewSize = width >= 900 ? 148 : 116;
+        int previewX = width >= 760
+                ? Math.max(8, Math.min(width - previewSize - 12, vanillaBounds[0] - previewSize - 26))
+                : Math.max(8, width - previewSize - 12);
+        int previewY = Math.max(44, vanillaBounds[1] - 18);
+
+        if (previewX >= 8 && previewX + previewSize <= width - 8 && previewY + previewSize + 34 <= height - 8) {
             PlayerSkinWidget playerWidget = new PlayerSkinWidget(
                     previewSize,
                     previewSize + 34,
@@ -66,50 +61,59 @@ public abstract class PauseScreenMixin extends Screen {
                             .getOrDefault(ResolvableProfile.createUnresolved(this.minecraft.getUser().getProfileId()))
                             .playerSkin()
             );
-            playerWidget.setPosition(previewX, Math.max(46, top - 12));
+            playerWidget.setPosition(previewX, previewY);
             this.addRenderableWidget(playerWidget);
         }
 
-        if (width >= 720) {
-            int sideW = Math.min(190, width / 5);
-            int sideX = width - sideW - 18;
-            int sideY = Math.max(110, top + 10);
-            addRenderableWidget(new WorldGateButton(sideX, sideY, sideW, 32,
-                    Component.literal("Host"),
-                    () -> this.minecraft.setScreen(new WorldGateScreen(this)), 0xFF67D8FF));
-            addRenderableWidget(new WorldGateButton(sideX, sideY + 40, sideW, 32,
-                    Component.literal("Social"),
-                    () -> this.minecraft.setScreen(new FriendsScreen(this)), 0xFF73E0A1));
-            addRenderableWidget(new WorldGateButton(sideX, sideY + 80, sideW, 32,
-                    Component.literal("Wardrobe"),
-                    () -> this.minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)), 0xFFFFB86B));
-            addRenderableWidget(new WorldGateButton(sideX, sideY + 120, sideW, 32,
-                    Component.literal("Features"),
-                    () -> this.minecraft.setScreen(new ClaimCenterScreen(this)), 0xFFBDA6FF));
-            addRenderableWidget(new WorldGateButton(sideX, sideY + 160, sideW, 32,
-                    Component.literal("Settings"),
-                    () -> this.minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8));
-            addRenderableWidget(new WorldGateButton(sideX, sideY + 200, sideW, 32,
-                    Component.literal("Account"),
-                    () -> this.minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B));
+        int worldGateY = Math.min(height - 38, vanillaBounds[3] + 14);
+        if (worldGateY >= 8 && worldGateY + 28 <= height - 4) {
+            addRenderableWidget(new WorldGateButton(
+                    Math.max(18, width / 2 - 100), worldGateY, 200, 28,
+                    Component.literal("WorldGate"),
+                    () -> this.minecraft.setScreen(new WorldGateScreen(this)),
+                    0xFF67D8FF));
         }
-
-        addRenderableWidget(new WorldGateButton(
-                Math.max(18, width / 2 - 100), height - 38, 200, 28,
-                Component.literal("WorldGate"),
-                () -> this.minecraft.setScreen(new WorldGateScreen(this)),
-                0xFF67D8FF));
     }
 
-    private static boolean worldgate$isVanillaPauseButton(String label) {
-        String lower = label.toLowerCase(java.util.Locale.ROOT);
-        return lower.contains("advancement")
-                || lower.contains("statistic")
-                || lower.contains("give feedback")
-                || lower.contains("report")
-                || lower.contains("open to lan")
-                || lower.contains("options")
-                || lower.contains("save and quit")
-                || lower.contains("disconnect");
+    private void worldgate$addRail(int x, int y, int width) {
+        int buttonW = width - 16;
+        int buttonH = 30;
+        int gap = 7;
+
+        addRenderableWidget(new WorldGateButton(x + 8, y, buttonW, buttonH,
+                Component.literal("Host"),
+                () -> this.minecraft.setScreen(new WorldGateScreen(this)), 0xFF67D8FF));
+        addRenderableWidget(new WorldGateButton(x + 8, y + (buttonH + gap), buttonW, buttonH,
+                Component.literal("Social"),
+                () -> this.minecraft.setScreen(new FriendsScreen(this)), 0xFF73E0A1));
+        addRenderableWidget(new WorldGateButton(x + 8, y + 2 * (buttonH + gap), buttonW, buttonH,
+                Component.literal("Wardrobe"),
+                () -> this.minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)), 0xFFFFB86B));
+        addRenderableWidget(new WorldGateButton(x + 8, y + 3 * (buttonH + gap), buttonW, buttonH,
+                Component.literal("Features"),
+                () -> this.minecraft.setScreen(new ClaimCenterScreen(this)), 0xFFBDA6FF));
+        addRenderableWidget(new WorldGateButton(x + 8, y + 4 * (buttonH + gap), buttonW, buttonH,
+                Component.literal("Settings"),
+                () -> this.minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8));
+        addRenderableWidget(new WorldGateButton(x + 8, y + 5 * (buttonH + gap), buttonW, buttonH,
+                Component.literal("Account"),
+                () -> this.minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B));
+    }
+
+    private int[] worldgate$vanillaBounds() {
+        int left = width / 2 - 100;
+        int top = Math.max(54, height / 2 - 110);
+        int right = width / 2 + 100;
+        int bottom = top + 30;
+
+        for (var child : this.children()) {
+            if (child instanceof Button button && button.visible) {
+                left = Math.min(left, button.getX());
+                top = Math.min(top, button.getY());
+                right = Math.max(right, button.getRight());
+                bottom = Math.max(bottom, button.getBottom());
+            }
+        }
+        return new int[] { left, top, right, bottom };
     }
 }
