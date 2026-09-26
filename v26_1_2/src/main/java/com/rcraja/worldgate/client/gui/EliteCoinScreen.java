@@ -188,9 +188,9 @@ public final class EliteCoinScreen extends Screen {
             int row = i / 4;
             int x = left + col * (cardW + gap);
             int y = top + row * (cardH + gap);
-            g.fill(x, y, x + cardW, y + cardH, 0xCC10161D);
+            g.fill(x, y, x + cardW, y + cardH, 0x4A10161D);
             if (i >= items.size()) {
-                g.outline(x, y, cardW, cardH, 0xFF2B3742);
+                g.outline(x, y, cardW, cardH, 0xFF65727F);
                 g.centeredText(font, Component.translatable("worldgate.coin.no_item").getString(), x + cardW / 2, y + 34, 0xFF59636D);
                 continue;
             }
