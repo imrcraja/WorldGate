@@ -39,7 +39,7 @@ public final class VoiceManager {
             VoiceListener listener=new VoiceListener();
             socket=client.newWebSocketBuilder().buildAsync(URI.create(Constants.RELAY_WS_URL),listener).get(5,TimeUnit.SECONDS);
             String uid=WorldGateModClient.SESSION.uid();
-            String hs="{"protocol":2,"channel":"voice","role":""+escape(role)+"","room":""+escape(room)+"","uid":""+escape(uid==null?"":uid)+""}";
+            String hs="{\"protocol\":2,\"channel\":\"voice\",\"role\":\""+escape(role)+"\",\"room\":\""+escape(room)+"\",\"uid\":\""+escape(uid==null?"":uid)+"\"}";
             socket.sendText(hs,true);
             io.submit(()->capture(f));
             return true;
@@ -67,5 +67,5 @@ public final class VoiceManager {
         public void onOpen(WebSocket ws){ws.request(1);}
         private CompletionStage<?> done(){return null;}
     }
-    private static String escape(String s){return s.replace("\\","\\\\").replace(""","\\"");}
+    private static String escape(String s){return s.replace("\\","\\\\").replace("\"","\\\"");}
 }
