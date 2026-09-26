@@ -143,7 +143,7 @@ public class FriendManager {
         if (uid == null || uid.isBlank()) return;
         session.db().patch(
                 "/profiles/" + uid,
-                "{\"online\":true,\"lastSeen\":" + System.currentTimeMillis() + "}"
+                "{\"online\":true,\"lastSeen\":" + System.currentTimeMillis() + ",\"onlineUntil\":" + (System.currentTimeMillis() + 30000L) + "}"
         );
     }
 
