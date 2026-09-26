@@ -14,6 +14,8 @@ import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Semaphore;
+import java.util.Arrays;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
@@ -33,6 +35,7 @@ public final class RelayBridge {
     private static volatile long lastPongAt;
     private static volatile long lastPingAt;
     private static volatile long rttMillis = -1;
+    private static final Semaphore WS_SEND_PERMITS = new Semaphore(128);
 
 
     public static boolean startHost(String roomCode, int minecraftPort) {
@@ -265,10 +268,21 @@ public final class RelayBridge {
                 int read;
 
                 while (running && (read = input.read(buffer)) != -1) {
-                    ByteBuffer data =
-                            ByteBuffer.wrap(buffer, 0, read);
+                    if (!WS_SEND_PERMITS.tryAcquire()) {
+                        WorldGateMod.LOGGER.warn("WorldGate relay send queue saturated; closing bridge.");
+                        stop();
+                        break;
+                    }
 
-                    ws.sendBinary(data, true);
+                    byte[] copy = Arrays.copyOf(buffer, read);
+                    ByteBuffer data = ByteBuffer.wrap(copy);
+                    ws.sendBinary(data, true).whenComplete((ignored, error) -> {
+                        WS_SEND_PERMITS.release();
+                        if (error != null && running) {
+                            WorldGateMod.LOGGER.warn("WorldGate TCP -> WebSocket send failed", error);
+                            stop();
+                        }
+                    });
                 }
 
             } catch (Exception e) {
