@@ -58,14 +58,17 @@ public final class WorldGateOnlineSession {
             }
         }
         if(response==null)WorldGateMod.LOGGER.debug("WorldGate online-session heartbeat failed");
+        WorldGateModClient.FRIEND_MANAGER.refreshOnlinePresence();
     }
 
     public static synchronized void stop(){
         running=false;
         registered=false;
         String id=sessionId;
-        if(id!=null&&WorldGateModClient.SESSION.isReady())
+        if(id!=null&&WorldGateModClient.SESSION.isReady()) {
+            WorldGateModClient.FRIEND_MANAGER.setOffline();
             WorldGateModClient.EXECUTOR.submit(()->BackendClient.endOnlineSession(WorldGateModClient.SESSION,id));
+        }
     }
 
     public static String id(){return sessionId;}
