@@ -99,21 +99,9 @@ public class WorldGateScreen extends Screen {
         addRenderableWidget(new WorldGateButton(mainX + 16, roomY + 80, compact ? mainW - 32 : mainW - 190, 28,
                 Component.translatable("worldgate.button.create"), this::onCreate, 0xFF73E0A1));
 
-        int actionsY = roomY + 162;
-        int cols = mainW >= 520 ? 2 : 1;
-        int buttonGap = 8;
-        int buttonW = cols == 2 ? (mainW - 32 - buttonGap) / 2 : mainW - 32;
-        int buttonH = 32;
-        for (int i = 0; i < nav.length; i++) {
-            final int index = i;
-            int col = i % cols;
-            int row = i / cols;
-            int x = mainX + 16 + col * (buttonW + buttonGap);
-            int y = actionsY + row * (buttonH + buttonGap);
-            if (y + buttonH > height - 42) continue;
-            addRenderableWidget(new WorldGateButton(x, y, buttonW, buttonH,
-                    Component.translatable(nav[i]), () -> openDashboardAction(index)));
-        }
+        // Sidebar navigation is the single dashboard navigation layer.
+        // Do not duplicate the same actions in a second quick-access grid.
+
 
         if (minecraft != null && !compact) {
             int previewSize = 92;
@@ -164,7 +152,7 @@ public class WorldGateScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         super.extractRenderState(g, mouseX, mouseY, delta);
-        g.fill(0, 0, width, height, 0xD9080C12);
+        g.fill(0, 0, width, height, 0xB90A1018);
 
         int margin = Math.max(12, Math.min(24, width / 28));
         int gap = 10;
@@ -182,13 +170,13 @@ public class WorldGateScreen extends Screen {
                 margin, 31, 0xFF7C8997);
 
         if (!compact) {
-            g.fill(margin, 52, margin + sidebarW, height - 38, 0xE50C121A);
+            g.fill(margin, 52, margin + sidebarW, height - 38, 0x661B2633);
             g.outline(margin, 52, sidebarW, height - 90, 0xFF293541);
             g.text(font, Component.literal("WORLDGATE"), margin + 12, 58, 0xFF72DFFF);
             g.text(font, Component.literal("Navigation"), margin + 12, 73, 0xFF71808F);
         }
 
-        g.fill(mainX, roomY, mainX + mainW, roomY + 150, 0xE50C121A);
+        g.fill(mainX, roomY, mainX + mainW, roomY + 150, 0x54223140);
         g.outline(mainX, roomY, mainW, 150, 0xFF293541);
         g.text(font, Component.literal("ROOM"), mainX + 16, roomY + 13, 0xFF72DFFF);
         g.text(font, Component.literal("Private multiplayer, LAN discovery and relay."),
@@ -202,17 +190,7 @@ public class WorldGateScreen extends Screen {
         }
 
         int actionsY = roomY + 126;
-        int cols = mainW >= 520 ? 2 : 1;
-        int buttonGap = 8;
-        int buttonW = cols == 2 ? (mainW - 32 - buttonGap) / 2 : mainW - 32;
-        int buttonH = 32;
-        int rows = (12 + cols - 1) / cols;
-        int panelH = Math.min(height - actionsY - 38, rows * (buttonH + buttonGap) + 18);
-        if (panelH > 0) {
-            g.fill(mainX, actionsY - 8, mainX + mainW, actionsY - 8 + panelH, 0xE50C121A);
-            g.outline(mainX, actionsY - 8, mainW, panelH, 0xFF293541);
-            g.text(font, Component.literal("QUICK ACCESS"), mainX + 16, actionsY + 2, 0xFFBDA6FF);
-        }
+        g.text(font, Component.literal("WORLDGATE TOOLS"), mainX + 16, actionsY + 4, 0xFFB9DFFF);
     }
 
     private void onCreate() {
