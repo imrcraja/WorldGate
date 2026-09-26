@@ -26,6 +26,12 @@ public abstract class PlayerInfoMixin {
         if (skinUrl == null || skinUrl.isBlank()) return;
 
         try {
+            // Respect an existing textures property supplied by Minecraft or
+            // another skin/profile mod. WorldGate only supplies a texture when
+            // the profile does not already have one, avoiding unnecessary
+            // profile mutation and reducing mixin conflicts.
+            if (!profile.properties().get("textures").isEmpty()) return;
+
             String payload = "{\"textures\":{\"SKIN\":{\"url\":\"" +
                     skinUrl.replace("\\", "\\\\").replace("\"", "\\\"") +
                     "\"}}}";
