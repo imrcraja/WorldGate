@@ -322,9 +322,17 @@ public class FriendManager {
             return null;
         }
 
-        return session.db().get(
-                "/profiles/" + uid
-        );
+        String profile = session.db().get("/profiles/" + uid);
+        if (profile == null || profile.isBlank() || "null".equals(profile)) return profile;
+        try {
+            JsonObject object = JsonParser.parseString(profile).getAsJsonObject();
+            if (object.has("onlineUntil") && object.get("onlineUntil").getAsLong() < System.currentTimeMillis()) {
+                object.addProperty("online", false);
+            }
+            return object.toString();
+        } catch (Exception ignored) {
+            return profile;
+        }
     }
 
     public boolean updateMySkin(String skinUrl) {
