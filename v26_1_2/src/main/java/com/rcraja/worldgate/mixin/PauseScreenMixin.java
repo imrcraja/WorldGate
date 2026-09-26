@@ -7,6 +7,7 @@ import com.rcraja.worldgate.client.gui.SettingsScreen;
 import com.rcraja.worldgate.client.gui.WardrobeScreen;
 import com.rcraja.worldgate.client.gui.EliteProfileScreen;
 import com.rcraja.worldgate.client.gui.ClaimCenterScreen;
+import com.rcraja.worldgate.client.gui.PicturesScreen;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.PlayerSkinWidget;
@@ -75,7 +76,7 @@ public abstract class PauseScreenMixin extends Screen {
         addRenderableWidget(new WorldGateButton(x, y + 2 * (h + gap), width, h, Component.literal("Wardrobe"),
                 () -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)), 0xFFFFB86B, WorldGateButton.Icon.WARDROBE));
         addRenderableWidget(new WorldGateButton(x, y + 3 * (h + gap), width, h, Component.literal("Pictures"),
-                () -> minecraft.setScreen(new ClaimCenterScreen(this)), 0xFFBDA6FF, WorldGateButton.Icon.PICTURES));
+                () -> minecraft.setScreen(new PicturesScreen(this)), 0xFFBDA6FF, WorldGateButton.Icon.PICTURES));
         addRenderableWidget(new WorldGateButton(x, y + 4 * (h + gap), width, h, Component.literal("Settings"),
                 () -> minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8, WorldGateButton.Icon.SETTINGS));
         addRenderableWidget(new WorldGateButton(x, y + 5 * (h + gap), width, h, Component.literal("Account"),
