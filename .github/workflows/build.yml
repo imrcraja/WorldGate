@@ -33,21 +33,10 @@ jobs:
       - name: Build all versions
         run: gradle build --stacktrace --no-daemon
 
-      - name: Verify built JARs
+      - name: Verify built JAR
         run: |
-          test -n "$(find v1_21_1/build/libs -maxdepth 1 -type f -name '*.jar' -print -quit)"
           test -n "$(find v26_1_2/build/libs -maxdepth 1 -type f -name '*.jar' -print -quit)"
-          echo "1.21.1 artifacts:"
-          find v1_21_1/build/libs -maxdepth 1 -type f -name '*.jar' -print
-          echo "26.1.2 artifacts:"
           find v26_1_2/build/libs -maxdepth 1 -type f -name '*.jar' -print
-
-      - name: Upload 1.21.1 jar
-        uses: actions/upload-artifact@v4
-        with:
-          name: WorldGate-1.21.1
-          path: v1_21_1/build/libs/*.jar
-          if-no-files-found: error
 
       - name: Upload 26.1.2 jar
         uses: actions/upload-artifact@v4
