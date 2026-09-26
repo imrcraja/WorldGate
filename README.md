@@ -17,40 +17,25 @@ world — no dedicated server required. Built by **RC RAJA GAMER 2.0**.
   loader version *range*, not a single pinned version, so Loader updates
   won't break it
 
-## Why this repo has more than one folder
+## Current Minecraft target
 
-A single mod jar cannot run on every Minecraft version — each release changes
-internal class names, and 26.1+ switched to a completely different (unobfuscated,
-Mojang-mapped) system than the 1.21.x/Yarn-mapped era before it. There is no
-way around building **one module per target version**; anyone who claims
-otherwise is not being straight with you. What *can* be shared is all the
-non-Minecraft logic (Firebase, networking, room codes) — that lives once in
-`common/` and every version module reuses it as-is.
+The active production target is **Minecraft 26.1.2**. The repository intentionally builds only
+the 26.1.2 module right now; older version modules are not part of the current production
+release and can be added back later without changing the shared backend/network architecture.
 
 ```
 WorldGate/
-├── common/        <- Firebase client, RoomManager, mod init, ping-color logic
-│                     (plain Java, zero Minecraft dependency, shared by all)
-├── v26_1_2/       <- Minecraft 26.1.2, Mojang mappings   (the version you play)
-└── v1_21_1/       <- Minecraft 1.21.1, Yarn mappings     (most-played version
-                       across servers/YouTubers right now, ~21% share)
+├── common/        <- shared Firebase, networking, room, chat and account logic
+└── v26_1_2/       <- Minecraft 26.1.2, Mojang mappings
 ```
 
-`gradle build` at the repo root builds the active 26.1.2 jar. GitHub Actions uploads the `WorldGate-26.1.2` artifact.
+`gradle build` at the repo root builds the active 26.1.2 jar. GitHub Actions uploads the
+`WorldGate-26.1.2` artifact.
 
-### Adding another version (e.g. 1.20.1, 1.21.4)
+New Minecraft-version modules should be added only after the 26.1.2 production checklist is
+complete.
 
-The pattern is always the same:
-1. Copy `v1_21_1/` to a new folder (e.g. `v1_20_1/`)
-2. Update `gradle.properties` with that version's Minecraft/Yarn/Loader/Fabric
-   API numbers (check https://fabricmc.net/develop for current ones)
-3. Fix any class names in `WorldGateScreen.java` / the mixins that changed
-   between versions (usually minor)
-4. Add the folder name to the root `settings.gradle`
-
-Tell me which version to add next and I'll build that module the same way.
-
-## Status: WorldGate 26.1.2 integration
+## Status: WorldGate 26.1.2 production integration
 
 | Feature | Status |
 |---|---|
@@ -66,10 +51,10 @@ Tell me which version to add next and I'll build that module the same way.
 | Claim Center, daily/activity rewards and mailbox | Integrated |
 | Elite Coin gifting by UID or friend-row selection | Integrated |
 | Red-dot claim/mail notification refresh | Integrated |
-| Real-money Elite Coin checkout | Coming Soon; no gateway is treated as a completed payment |
+| Real-money Elite Coin checkout | Pending by design; payment gateway is intentionally deferred |
 | Live skin/cape replacement and full body emote animation | Separate version-specific work remains |
 
-The current ecosystem integration is intentionally scoped to Minecraft 26.1.2. Other Minecraft-version modules are intentionally removed for now and can be added later.
+The current ecosystem integration is intentionally scoped to Minecraft 26.1.2. Other Minecraft-version modules are intentionally deferred until the 26.1.2 production checklist is complete.
 
 ## Building
 
