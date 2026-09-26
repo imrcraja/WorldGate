@@ -55,8 +55,15 @@ public final class WorldGateKeybinds {
 
         while (VOICE.consumeClick()) {
             if (minecraft.player != null) {
-                if (!WorldGateModClient.VOICE_MANAGER.microphoneAvailable()) minecraft.setScreen(new VoicePermissionScreen(null, WorldGateModClient.VOICE_MANAGER));
-                else if (!WorldGateModClient.VOICE_MANAGER.isRunning()) WorldGateModClient.startVoice(); else WorldGateModClient.stopVoice();
+                if (!WorldGateModClient.VOICE_MANAGER.microphoneAvailable()) {
+                if (VoicePermissionScreen.shouldShow()) {
+                    minecraft.setScreen(new VoicePermissionScreen(minecraft.screen, WorldGateModClient.VOICE_MANAGER));
+                }
+            } else if (!WorldGateModClient.VOICE_MANAGER.isRunning()) {
+                WorldGateModClient.startVoice();
+            } else {
+                WorldGateModClient.stopVoice();
+            }
             }
         }
 
