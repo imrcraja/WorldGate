@@ -108,6 +108,7 @@ function startPair(roomCode, room) {
 function register(ws, message) {
   const ip = clientIp(ws);
   const role = message && message.role;
+  const channel = String(message && message.channel || 'minecraft');
   const protocol = Number(message && message.protocol || 0);
   const uid = String(message && message.uid || '').trim();
   const modSha256 = String(message && message.modSha256 || '').trim().toLowerCase();
@@ -151,10 +152,24 @@ function register(ws, message) {
 
   let room = rooms.get(roomCode);
   if (!room) {
-    room = { host: null, player: null, createdAt: Date.now() };
+    room = { host: null, player: null, voiceHost: null, voicePlayer: null, createdAt: Date.now() };
     rooms.set(roomCode, room);
   }
 
+  if (channel === 'voice') {
+    const key = role === 'host' ? 'voiceHost' : 'voicePlayer';
+    if (!room.host || !room.player) { sendJson(ws,{type:'error',code:'MINECRAFT_CHANNEL_REQUIRED'}); ws.close(); return; }
+    if (room[key]) { sendJson(ws,{type:'error',code:'VOICE_ALREADY_CONNECTED'}); ws.close(); return; }
+    room[key]=ws; ws.roomCode=roomCode; ws.role=role; ws.channel='voice'; ws.uid=uid;
+    sendJson(ws,{type:'voice-waiting',room:roomCode,protocol:REQUIRED_PROTOCOL});
+    if(room.voiceHost&&room.voicePlayer){
+      sendJson(room.voiceHost,{type:'voice-connected',protocol:REQUIRED_PROTOCOL});
+      sendJson(room.voicePlayer,{type:'voice-connected',protocol:REQUIRED_PROTOCOL});
+      room.voiceHost.on('message',(d,b)=>{if(room.voicePlayer.readyState===room.voicePlayer.OPEN)room.voicePlayer.send(d,{binary:b});});
+      room.voicePlayer.on('message',(d,b)=>{if(room.voiceHost.readyState===room.voiceHost.OPEN)room.voiceHost.send(d,{binary:b});});
+    }
+    return;
+  }
   if (role === 'host') {
     if (room.host && room.host.readyState === room.host.OPEN) {
       registerViolation(ip);
