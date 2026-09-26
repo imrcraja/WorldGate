@@ -2,6 +2,7 @@ package com.rcraja.worldgate.client;
 
 import com.rcraja.worldgate.WorldGateMod;
 import com.rcraja.worldgate.network.ChatManager;
+import com.rcraja.worldgate.network.DynamicAssetManager;
 import com.rcraja.worldgate.network.EmoteManager;
 import com.rcraja.worldgate.network.FirebaseSession;
 import com.rcraja.worldgate.network.FriendManager;
@@ -200,6 +201,7 @@ public class WorldGateModClient implements ClientModInitializer {
         startHostPermissionSync();
         networkMode = LocalWorldGateData.get("networkMode", "auto");
         registerVersionKeybinds();
+        EXECUTOR.submit(DynamicAssetManager::refresh);
 
         EXECUTOR.submit(() -> {
             boolean connected = SESSION.connect();
