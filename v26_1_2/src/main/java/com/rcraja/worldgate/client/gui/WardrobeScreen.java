@@ -9,13 +9,14 @@ import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public final class WardrobeScreen extends Screen {
     public enum Tab { COSMETICS, EMOTES }
 
     private final Screen parent;
     private final Tab tab;
-    private final List<Button> itemButtons = new ArrayList<>();
+    private final List<WorldGateButton> itemButtons = new ArrayList<>();
     private String status = Component.translatable("worldgate.wardrobe.syncing").getString();
     private boolean loading = true;
     private boolean ownedOnly = false;
@@ -28,23 +29,20 @@ public final class WardrobeScreen extends Screen {
 
     @Override
     protected void init() {
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.wardrobe.cosmetics"),
-                b -> open(Tab.COSMETICS))
-                .bounds(width / 2 - 156, 58, 100, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.wardrobe.emotes"),
-                b -> open(Tab.EMOTES))
-                .bounds(width / 2 - 52, 58, 100, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Owned: OFF"),
-                b -> {
+        addRenderableWidget(new WorldGateButton(width / 2 - 156, 58, 100, 22,
+                caps(Component.translatable("worldgate.wardrobe.cosmetics")), () -> open(Tab.COSMETICS)));
+        addRenderableWidget(new WorldGateButton(width / 2 - 52, 58, 100, 22,
+                caps(Component.translatable("worldgate.wardrobe.emotes")), () -> open(Tab.EMOTES)));
+        final WorldGateButton ownedButton = new WorldGateButton(width / 2 + 156, 58, 108, 22,
+                Component.literal("OWNED ONLY: OFF"), () -> {
                     ownedOnly = !ownedOnly;
-                    b.setMessage(Component.literal("Owned: " + (ownedOnly ? "ON" : "OFF")));
+                    ownedButton.setMessage(Component.literal("OWNED ONLY: " + (ownedOnly ? "ON" : "OFF")));
                     refresh();
-                })
-                .bounds(width / 2 + 156, 58, 92, 20).build());
+                });
+        addRenderableWidget(ownedButton);
 
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.coin.shop"),
-                b -> minecraft.setScreen(new EliteCoinScreen(this)))
-                .bounds(width / 2 + 52, 58, 100, 20).build());
+        addRenderableWidget(new WorldGateButton(width / 2 + 52, 58, 100, 22,
+                caps(Component.translatable("worldgate.coin.shop")), () -> minecraft.setScreen(new EliteCoinScreen(this))));
 
         int left = Math.max(20, width / 2 - 310);
         int top = 108;
@@ -58,19 +56,16 @@ public final class WardrobeScreen extends Screen {
             int row = i / 4;
             int x = left + col * (cardW + gap);
             int y = top + row * (cardH + gap);
-            Button button = Button.builder(Component.translatable("worldgate.loading"),
-                    b -> action(index))
-                    .bounds(x + 10, y + 66, cardW - 20, 20).build();
+            WorldGateButton button = new WorldGateButton(x + 10, y + 66, cardW - 20, 20,
+                    Component.literal("LOADING"), () -> action(index));
             itemButtons.add(button);
             addRenderableWidget(button);
         }
 
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.refresh"),
-                b -> refresh())
-                .bounds(width / 2 - 155, height - 30, 97, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.back"),
-                b -> onClose())
-                .bounds(width / 2 - 52, height - 30, 207, 20).build());
+        addRenderableWidget(new WorldGateButton(width / 2 - 155, height - 30, 100, 22,
+                Component.literal("REFRESH"), this::refresh));
+        addRenderableWidget(new WorldGateButton(width / 2 - 50, height - 30, 150, 22,
+                Component.literal("BACK"), this::onClose, 0xFF9CA9B8));
 
         refresh();
     }
@@ -105,9 +100,9 @@ public final class WardrobeScreen extends Screen {
         List<EliteCoinManager.Item> items = items();
         EliteCoinManager.Inventory inv = EliteCoinManager.inventory();
         for (int i = 0; i < itemButtons.size(); i++) {
-            Button button = itemButtons.get(i);
+            WorldGateButton button = itemButtons.get(i);
             if (i >= items.size()) {
-                button.setMessage(Component.translatable("worldgate.coin.unavailable"));
+                button.setMessage(Component.literal("UNAVAILABLE"));
                 button.active = false;
                 continue;
             }
@@ -115,12 +110,12 @@ public final class WardrobeScreen extends Screen {
             button.active = true;
             if (!inv.owns(item.id())) {
                 button.setMessage(Component.literal(item.priceCoins() == 0
-                        ? Component.translatable("worldgate.coin.unlock").getString()
-                        : Component.translatable("worldgate.coin.buy_item_price", item.priceCoins()).getString()));
+                        ? "UNLOCK"
+                        : ("BUY • " + item.priceCoins() + " EC")));
             } else if (inv.equipped(item.type(), item.id())) {
-                button.setMessage(Component.translatable("worldgate.wardrobe.equipped"));
+                button.setMessage(Component.literal("EQUIPPED"));
             } else {
-                button.setMessage(Component.translatable(item.type().equals("emote") ? "worldgate.wardrobe.equip_use" : "worldgate.wardrobe.equip"));
+                button.setMessage(Component.literal(item.type().equals("emote") ? "USE" : "EQUIP"));
             }
         }
     }
@@ -178,7 +173,6 @@ public final class WardrobeScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
-        super.extractRenderState(g, mx, my, delta);
 
         g.centeredText(font, Component.literal(ownedOnly ? "Owned items only" : "All available items"),
                 width / 2, 50, 0xFF7DE2FF);
@@ -231,6 +225,12 @@ public final class WardrobeScreen extends Screen {
         g.centeredText(font, Component.literal(status),
                 width / 2, height - 48, 0xFF8E9AA6);
         if (loading) WorldGateLoadingAnimation.draw(g, font, width / 2, height - 62);
+        // Widgets render last, so controls remain above the card layer.
+        super.extractRenderState(g, mx, my, delta);
+    }
+
+    private static Component caps(Component value) {
+        return Component.literal(value.getString().toUpperCase(Locale.ROOT));
     }
 
     @Override
