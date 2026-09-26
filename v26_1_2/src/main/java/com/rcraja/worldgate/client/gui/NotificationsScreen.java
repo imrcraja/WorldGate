@@ -14,6 +14,7 @@ import java.util.List;
 public final class NotificationsScreen extends Screen {
     private final Screen parent;
     private String status = "Syncing notifications...";
+    private final java.util.ArrayList<WorldGateButton> readButtons = new java.util.ArrayList<>();
 
     public NotificationsScreen(Screen parent) {
         super(Component.literal("Notifications"));
@@ -29,6 +30,19 @@ public final class NotificationsScreen extends Screen {
                 Component.literal("Refresh"), this::refresh, 0xFF73E0A1));
         addRenderableWidget(new WorldGateButton(16, height - 34, 100, 24,
                 Component.literal("Back"), this::onClose, 0xFF9CA9B8));
+
+        // Read buttons are created once during init. Never mutate the screen's
+        // widget list from extractRenderState/render; doing so can cause
+        // ConcurrentModificationException and duplicate buttons every frame.
+        for (int i = 0; i < 6; i++) {
+            final int index = i;
+            WorldGateButton read = new WorldGateButton(0, 0, 72, 24,
+                    Component.literal("Read"), () -> markReadAt(index), 0xFFFFD36B);
+            read.visible = false;
+            readButtons.add(read);
+            addRenderableWidget(read);
+        }
+
         refresh();
     }
 
@@ -36,18 +50,59 @@ public final class NotificationsScreen extends Screen {
         status = "Syncing notifications...";
         EliteCoinManager.refresh(() -> {
             if (minecraft != null) {
-                minecraft.execute(() -> status = EliteCoinManager.hasNotification()
-                        ? "You have new WorldGate activity."
-                        : "You're all caught up.");
+                minecraft.execute(() -> {
+                    status = EliteCoinManager.hasNotification()
+                            ? "You have new WorldGate activity."
+                            : "You're all caught up.";
+                    layoutReadButtons();
+                });
             }
         });
     }
 
-    private void markRead(String id) {
+    private void markReadAt(int index) {
+        List<EliteCoinManager.Mail> mail = EliteCoinManager.mailbox();
+        if (index < 0 || index >= mail.size()) return;
+        EliteCoinManager.Mail message = mail.get(index);
+        if (message == null || message.id() == null || message.id().isBlank()) return;
+
         WorldGateModClient.EXECUTOR.submit(() -> {
-            String response = EliteCoinManager.markRead(id);
+            EliteCoinManager.markRead(message.id());
             if (minecraft != null) minecraft.execute(this::refresh);
         });
+    }
+
+    private void layoutReadButtons() {
+        if (minecraft == null) return;
+
+        EliteCoinManager.RewardStatus rewards = EliteCoinManager.rewardStatus();
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        boolean daily = !today.toString().equals(rewards.lastClaimDate())
+                && rewards.cycleCoins() < rewards.maxCycleCoins();
+        boolean activity = rewards.activityEnabled()
+                && rewards.activityUsedToday() < rewards.activityDailyCap();
+
+        int margin = Math.max(16, Math.min(36, width / 24));
+        int panelW = Math.min(640, width - margin * 2);
+        int left = (width - panelW) / 2;
+        int y = 36 + 56;
+        int rowH = 54;
+
+        if (daily) y += rowH + 8;
+        if (activity) y += rowH + 8;
+
+        List<EliteCoinManager.Mail> mail = EliteCoinManager.mailbox();
+        for (int i = 0; i < readButtons.size(); i++) {
+            WorldGateButton button = readButtons.get(i);
+            if (i < mail.size()) {
+                EliteCoinManager.Mail m = mail.get(i);
+                boolean unread = m != null && "UNREAD".equalsIgnoreCase(m.status());
+                button.visible = unread;
+                button.setPosition(left + panelW - 108, y + i * (rowH + 8) + 14);
+            } else {
+                button.visible = false;
+            }
+        }
     }
 
     @Override
@@ -105,10 +160,8 @@ public final class NotificationsScreen extends Screen {
                 if (body.length() > 62) body = body.substring(0, 62) + "...";
                 drawNotice(g, left + 18, ry, rowW, rowH, title, body,
                         "UNREAD".equalsIgnoreCase(m.status()) ? 0xFFFFD36B : 0xFF52606D);
-                if ("UNREAD".equalsIgnoreCase(m.status())) {
-                    addRenderableWidget(new WorldGateButton(left + panelW - 108, ry + 14, 72, 24,
-                            Component.literal("Read"), () -> markRead(m.id()), 0xFFFFD36B));
-                }
+                // The corresponding Read widget is laid out once from init/refresh;
+                // no widget mutation is performed during rendering.
             }
         }
     }
