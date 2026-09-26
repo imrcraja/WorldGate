@@ -136,6 +136,17 @@ public class FriendManager {
         return result != null;
     }
 
+    /** Refresh the profile presence lease without changing profile identity fields. */
+    public void refreshOnlinePresence() {
+        if (!session.isReady()) return;
+        String uid = session.uid();
+        if (uid == null || uid.isBlank()) return;
+        session.db().patch(
+                "/profiles/" + uid,
+                "{\"online\":true,\"lastSeen\":" + System.currentTimeMillis() + "}"
+        );
+    }
+
     /**
      * Mark this player online.
      */
@@ -146,6 +157,7 @@ public class FriendManager {
         }
 
         updateMyProfile(displayName);
+        refreshOnlinePresence();
 
         String uid = session.uid();
 
