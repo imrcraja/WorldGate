@@ -33,7 +33,7 @@ public abstract class PauseScreenMixin extends Screen {
      */
     @Inject(method = "init", at = @At("TAIL"))
     private void worldgate$modernize(CallbackInfo ci) {
-        if (minecraft == null) return;
+        if (minecraft == null || !com.rcraja.worldgate.client.gui.WorldGatePreferences.overlayEnabled()) return;
 
         int[] b = worldgate$vanillaBounds();
         int left = b[0];
