@@ -164,7 +164,6 @@ public class WorldGateScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
         super.extractRenderState(g, mouseX, mouseY, delta);
-        g.blurBeforeThisStratum();
         g.fill(0, 0, width, height, 0xD9080C12);
 
         int margin = Math.max(12, Math.min(24, width / 28));
