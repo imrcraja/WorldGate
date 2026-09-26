@@ -1,11 +1,14 @@
 package com.rcraja.worldgate.mixin;
 
+import com.rcraja.worldgate.client.gui.WorldGateButton;
 import com.rcraja.worldgate.client.gui.WorldGateScreen;
 import com.rcraja.worldgate.client.gui.FriendsScreen;
 import com.rcraja.worldgate.client.gui.SettingsScreen;
 import com.rcraja.worldgate.client.gui.WardrobeScreen;
 import com.rcraja.worldgate.client.gui.EliteProfileScreen;
 import com.rcraja.worldgate.client.gui.ClaimCenterScreen;
+
+import java.util.ArrayList;
 
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.PlayerSkinWidget;
@@ -19,12 +22,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * Same fix as TitleScreenMixin: leave the vanilla pause menu buttons
- * (Back to Game, Advancements, Statistics, Options, Open to LAN,
- * Save and Quit to Title) in their default position and style, and only
- * add WorldGate's side panel with a clean, vanilla-matching button look.
- */
 @Mixin(PauseScreen.class)
 public abstract class PauseScreenMixin extends Screen {
     protected PauseScreenMixin(Component title) {
@@ -33,48 +30,74 @@ public abstract class PauseScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void worldgate$modernize(CallbackInfo ci) {
-        if (this.minecraft == null || width < 720) return;
+        if (this.minecraft == null) return;
 
-        // Vanilla pause menu buttons are left completely untouched here.
+        int mainW = Math.max(300, Math.min(520, width / 2));
+        int mainX = Math.max(18, width / 2 - mainW / 2 - (width >= 760 ? 100 : 0));
+        int top = Math.max(64, height / 2 - 128);
+        int step = 34;
+        int index = 0;
 
-        int previewSize = 110;
-        int previewX = Math.max(8, width - previewSize - 18);
-        int previewY = 40;
+        for (var child : new ArrayList<>(this.children())) {
+            if (!(child instanceof Button button)) continue;
+            String label = button.getMessage().getString().trim();
+            if (label.isEmpty()) continue;
 
-        PlayerSkinWidget playerWidget = new PlayerSkinWidget(
-                previewSize,
-                previewSize + 30,
-                this.minecraft.getEntityModels(),
-                () -> this.minecraft.playerSkinRenderCache()
-                        .getOrDefault(ResolvableProfile.createUnresolved(this.minecraft.getUser().getProfileId()))
-                        .playerSkin()
-        );
-        playerWidget.setPosition(previewX, previewY);
-        this.addRenderableWidget(playerWidget);
+            button.visible = false;
+            int accent = 0xFF67D8FF;
+            String lower = label.toLowerCase();
+            if (lower.contains("option")) accent = 0xFF9CA9B8;
+            else if (lower.contains("save") || lower.contains("disconnect")) accent = 0xFFFF7D91;
+            else if (lower.contains("lan")) accent = 0xFF73E0A1;
+            else if (lower.contains("advancement") || lower.contains("statistic")) accent = 0xFFBDA6FF;
 
-        int sideW = Math.min(150, width / 6);
-        int sideX = width - sideW - 18;
-        int bh = 20;
-        int gap = 4;
-        int sideY = previewY + previewSize + 30 + 14;
+            addRenderableWidget(new WorldGateButton(mainX, top + index++ * step, mainW, 30,
+                    button.getMessage(), event -> button.onClick(event, false), accent));
+        }
 
-        addRenderableWidget(Button.builder(Component.literal("Host"),
-                b -> this.minecraft.setScreen(new WorldGateScreen(this)))
-                .bounds(sideX, sideY, sideW, bh).build());
-        addRenderableWidget(Button.builder(Component.literal("Social"),
-                b -> this.minecraft.setScreen(new FriendsScreen(this)))
-                .bounds(sideX, sideY + (bh + gap), sideW, bh).build());
-        addRenderableWidget(Button.builder(Component.literal("Wardrobe"),
-                b -> this.minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)))
-                .bounds(sideX, sideY + (bh + gap) * 2, sideW, bh).build());
-        addRenderableWidget(Button.builder(Component.literal("Features"),
-                b -> this.minecraft.setScreen(new ClaimCenterScreen(this)))
-                .bounds(sideX, sideY + (bh + gap) * 3, sideW, bh).build());
-        addRenderableWidget(Button.builder(Component.literal("Settings"),
-                b -> this.minecraft.setScreen(new SettingsScreen(this)))
-                .bounds(sideX, sideY + (bh + gap) * 4, sideW, bh).build());
-        addRenderableWidget(Button.builder(Component.literal("Account"),
-                b -> this.minecraft.setScreen(new EliteProfileScreen(this)))
-                .bounds(sideX, sideY + (bh + gap) * 5, sideW, bh).build());
+        int previewSize = width >= 760 ? 150 : 110;
+        int previewX = Math.min(width - previewSize - 18, mainX + mainW + 24);
+        if (previewX >= 8) {
+            PlayerSkinWidget playerWidget = new PlayerSkinWidget(
+                    previewSize,
+                    previewSize + 34,
+                    this.minecraft.getEntityModels(),
+                    () -> this.minecraft.playerSkinRenderCache()
+                            .getOrDefault(ResolvableProfile.createUnresolved(this.minecraft.getUser().getProfileId()))
+                            .playerSkin()
+            );
+            playerWidget.setPosition(previewX, Math.max(46, top - 12));
+            this.addRenderableWidget(playerWidget);
+        }
+
+        if (width >= 720) {
+            int sideW = Math.min(190, width / 5);
+            int sideX = width - sideW - 18;
+            int sideY = Math.max(110, top + 10);
+            addRenderableWidget(new WorldGateButton(sideX, sideY, sideW, 32,
+                    Component.literal("Host"),
+                    () -> this.minecraft.setScreen(new WorldGateScreen(this)), 0xFF67D8FF));
+            addRenderableWidget(new WorldGateButton(sideX, sideY + 40, sideW, 32,
+                    Component.literal("Social"),
+                    () -> this.minecraft.setScreen(new FriendsScreen(this)), 0xFF73E0A1));
+            addRenderableWidget(new WorldGateButton(sideX, sideY + 80, sideW, 32,
+                    Component.literal("Wardrobe"),
+                    () -> this.minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)), 0xFFFFB86B));
+            addRenderableWidget(new WorldGateButton(sideX, sideY + 120, sideW, 32,
+                    Component.literal("Features"),
+                    () -> this.minecraft.setScreen(new ClaimCenterScreen(this)), 0xFFBDA6FF));
+            addRenderableWidget(new WorldGateButton(sideX, sideY + 160, sideW, 32,
+                    Component.literal("Settings"),
+                    () -> this.minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8));
+            addRenderableWidget(new WorldGateButton(sideX, sideY + 200, sideW, 32,
+                    Component.literal("Account"),
+                    () -> this.minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B));
+        }
+
+        addRenderableWidget(new WorldGateButton(
+                Math.max(18, width / 2 - 100), height - 38, 200, 28,
+                Component.literal("WorldGate"),
+                () -> this.minecraft.setScreen(new WorldGateScreen(this)),
+                0xFF67D8FF));
     }
 }
