@@ -44,7 +44,7 @@ public abstract class TitleScreenMixin extends Screen {
         for (var child : new ArrayList<>(this.children())) {
             if (!(child instanceof Button button)) continue;
             String label = button.getMessage().getString().trim();
-            if (label.isEmpty()) continue;
+            if (label.isEmpty() || !worldgate$isVanillaTitleButton(label)) continue;
 
             button.visible = false;
             String lower = label.toLowerCase();
@@ -130,4 +130,17 @@ public abstract class TitleScreenMixin extends Screen {
                 () -> this.minecraft.setScreen(new WorldGateScreen(this)),
                 0xFF67D8FF));
     }
+
+    private static boolean worldgate$isVanillaTitleButton(String label) {
+        String lower = label.toLowerCase(java.util.Locale.ROOT);
+        return lower.contains("singleplayer")
+                || lower.contains("multiplayer")
+                || lower.contains("realms")
+                || lower.contains("mods")
+                || lower.contains("options")
+                || lower.contains("quit")
+                || lower.contains("accessibility")
+                || lower.contains("language");
+    }
+
 }
