@@ -13,7 +13,7 @@ public final class WorldGateButton extends AbstractWidget {
     private final int accent;
     private final Icon icon;
 
-    public enum Icon { NONE, HOST, SOCIAL, WARDROBE, PICTURES, SETTINGS, ACCOUNT }
+    public enum Icon { NONE, HOST, SOCIAL, WARDROBE, FEATURES, PICTURES, SETTINGS, ACCOUNT }
 
     public WorldGateButton(int x, int y, int width, int height, Component message, Runnable action) {
         this(x, y, width, height, message, event -> action.run(), 0xFF67D8FF, Icon.NONE);
@@ -91,6 +91,11 @@ public final class WorldGateButton extends AbstractWidget {
             case WARDROBE -> {
                 g.fill(cx - 4, cy - 5, cx + 4, cy - 3, color);
                 g.fill(cx - 5, cy - 2, cx + 5, cy + 5, color);
+            }
+            case FEATURES -> {
+                g.fill(cx - 6, cy - 5, cx + 6, cy - 3, color);
+                g.fill(cx - 4, cy - 1, cx + 4, cy + 1, color);
+                g.fill(cx - 2, cy + 3, cx + 2, cy + 5, color);
             }
             case PICTURES -> {
                 g.outline(cx - 6, cy - 5, 12, 10, color);
