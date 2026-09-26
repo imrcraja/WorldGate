@@ -367,7 +367,7 @@ public final class RelayBridge {
                 socket.setBroadcast(true);
                 byte[] data = ("WORLDGATE-LAN-2|" + roomCode.trim().toUpperCase() + "|" + minecraftPort)
                         .getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                while (running && Thread.currentThread() == t) {
+                while (running) {
                     socket.send(new java.net.DatagramPacket(data, data.length,
                             java.net.InetAddress.getByName("255.255.255.255"), 38921));
                     Thread.sleep(1500L);
