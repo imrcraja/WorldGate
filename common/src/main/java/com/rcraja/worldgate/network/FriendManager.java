@@ -168,6 +168,8 @@ public class FriendManager {
                             + "\"online\":true,"
                             + "\"lastSeen\":"
                             + System.currentTimeMillis()
+                            + ",\"onlineUntil\":"
+                            + (System.currentTimeMillis() + 30000L)
                             + "}"
             );
         }
@@ -191,6 +193,7 @@ public class FriendManager {
                             + "\"online\":false,"
                             + "\"lastSeen\":"
                             + System.currentTimeMillis()
+                            + ",\"onlineUntil\":0"
                             + "}"
             );
         }
