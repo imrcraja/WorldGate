@@ -78,7 +78,7 @@ public class WorldGateScreen extends Screen {
                         Component.translatable(nav[i]), () -> openDashboardAction(index)));
             }
         } else {
-            int y = 70;
+            int y = 82;
             for (int i = 0; i < nav.length; i++) {
                 final int index = i;
                 addRenderableWidget(new WorldGateButton(margin + 8, y, sidebarW - 16, 27,
@@ -88,7 +88,7 @@ public class WorldGateScreen extends Screen {
         }
 
         int roomY = top + 6;
-        int inputW = Math.max(110, mainW - 104);
+        int inputW = Math.max(110, mainW - (compact ? 104 : 210));
         roomCodeBox = new EditBox(font, mainX + 16, roomY + 52, inputW, 20,
                 Component.translatable("worldgate.roomcode.hint"));
         roomCodeBox.setMaxLength(10);
@@ -96,10 +96,10 @@ public class WorldGateScreen extends Screen {
         addRenderableWidget(roomCodeBox);
         addRenderableWidget(new WorldGateButton(mainX + mainW - 80, roomY + 48, 64, 28,
                 Component.translatable("worldgate.button.join"), this::onJoin));
-        addRenderableWidget(new WorldGateButton(mainX + 16, roomY + 80, mainW - 32, 28,
+        addRenderableWidget(new WorldGateButton(mainX + 16, roomY + 80, compact ? mainW - 32 : mainW - 190, 28,
                 Component.translatable("worldgate.button.create"), this::onCreate, 0xFF73E0A1));
 
-        int actionsY = roomY + 126;
+        int actionsY = roomY + 162;
         int cols = mainW >= 520 ? 2 : 1;
         int buttonGap = 8;
         int buttonW = cols == 2 ? (mainW - 32 - buttonGap) / 2 : mainW - 32;
@@ -116,11 +116,11 @@ public class WorldGateScreen extends Screen {
         }
 
         if (minecraft != null && !compact) {
-            int previewSize = Math.min(118, Math.max(86, sidebarW - 24));
-            int previewX = margin + (sidebarW - previewSize) / 2;
-            int previewY = Math.max(6, top - 46);
+            int previewSize = 92;
+            int previewX = mainX + mainW - previewSize - 14;
+            int previewY = roomY + 10;
             PlayerSkinWidget playerWidget = new PlayerSkinWidget(
-                    previewSize, previewSize + 28, this.minecraft.getEntityModels(),
+                    previewSize, previewSize + 22, this.minecraft.getEntityModels(),
                     () -> this.minecraft.playerSkinRenderCache()
                             .getOrDefault(ResolvableProfile.createUnresolved(this.minecraft.getUser().getProfileId()))
                             .playerSkin());
@@ -189,8 +189,8 @@ public class WorldGateScreen extends Screen {
             g.text(font, Component.literal("Navigation"), margin + 12, 73, 0xFF71808F);
         }
 
-        g.fill(mainX, roomY, mainX + mainW, roomY + 114, 0xE50C121A);
-        g.outline(mainX, roomY, mainW, 114, 0xFF293541);
+        g.fill(mainX, roomY, mainX + mainW, roomY + 150, 0xE50C121A);
+        g.outline(mainX, roomY, mainW, 150, 0xFF293541);
         g.text(font, Component.literal("ROOM"), mainX + 16, roomY + 13, 0xFF72DFFF);
         g.text(font, Component.literal("Private multiplayer, LAN discovery and relay."),
                 mainX + 16, roomY + 29, 0xFF7C8997);
