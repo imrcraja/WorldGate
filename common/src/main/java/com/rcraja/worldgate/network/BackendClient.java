@@ -38,6 +38,14 @@ public final class BackendClient {
     public static String giftCoins(FirebaseSession s,String toUid,long coins,String message){return post(Constants.BACKEND_BASE_URL+"/v1/coins/gift",s,"{\"toUid\":\""+escape(toUid)+"\",\"coins\":"+coins+",\"message\":\""+escape(message)+"\"}");}
     public static String markMailboxRead(FirebaseSession s,String messageId){return post(Constants.BACKEND_BASE_URL+"/v1/coins/mailbox/read",s,"{\"messageId\":\""+escape(messageId)+"\"}");}
     public static String purchaseCoinPackage(FirebaseSession s,String packageId){return post(Constants.BACKEND_BASE_URL+"/v1/coins/purchase-intent",s,"{\"packageId\":\""+escape(packageId)+"\"}");}
+    public static String paymentPackages(){return getPublic(Constants.BACKEND_BASE_URL+"/v1/payments/packages");}
+    public static String paymentStatus(String eventId){return getPublic(Constants.BACKEND_BASE_URL+"/v1/payments/status/"+escape(eventId));}
+    public static String supportTickets(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/support/tickets",s);}
+    public static String createSupportTicket(FirebaseSession s,String subject,String category,String body){return post(Constants.BACKEND_BASE_URL+"/v1/support/tickets",s,"{\"subject\":\""+escape(subject)+"\",\"category\":\""+escape(category)+"\",\"body\":\""+escape(body)+"\"}");}
+    public static String supportTicketMessage(FirebaseSession s,String ticketId,String body){return post(Constants.BACKEND_BASE_URL+"/v1/support/tickets/message",s,"{\"ticketId\":\""+escape(ticketId)+"\",\"body\":\""+escape(body)+"\"}");}
+    public static String closeSupportTicket(FirebaseSession s,String ticketId){return post(Constants.BACKEND_BASE_URL+"/v1/support/tickets/close",s,"{\"ticketId\":\""+escape(ticketId)+"\"}");}
+    public static String giveaways(){return getPublic(Constants.BACKEND_BASE_URL+"/v1/giveaways");}
+    public static String enterGiveaway(FirebaseSession s,String slug){return post(Constants.BACKEND_BASE_URL+"/v1/giveaways/enter",s,"{\"slug\":\""+escape(slug)+"\"}");}
     public static String purchaseItem(FirebaseSession s,String itemId,String idempotencyKey){return post(Constants.BACKEND_BASE_URL+"/v1/coins/shop/purchase",s,"{\"itemId\":\""+escape(itemId)+"\",\"idempotencyKey\":\""+escape(idempotencyKey)+"\"}");}
     public static String equipItem(FirebaseSession s,String itemId){return post(Constants.BACKEND_BASE_URL+"/v1/coins/shop/equip",s,"{\"itemId\":\""+escape(itemId)+"\"}");}
 
