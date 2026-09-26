@@ -112,6 +112,13 @@ public class WorldGateModClient implements ClientModInitializer {
         });
     }
 
+    private static final ScheduledExecutorService ASSET_REFRESH =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "WorldGate-Asset-Refresh");
+                t.setDaemon(true);
+                return t;
+            });
+
     private static final ScheduledExecutorService HEARTBEAT =
             Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = new Thread(r, "WorldGate-Heartbeat");
@@ -202,6 +209,12 @@ public class WorldGateModClient implements ClientModInitializer {
         networkMode = LocalWorldGateData.get("networkMode", "auto");
         registerVersionKeybinds();
         EXECUTOR.submit(DynamicAssetManager::refresh);
+        ASSET_REFRESH.scheduleAtFixedRate(
+                () -> EXECUTOR.submit(DynamicAssetManager::refresh),
+                10,
+                10,
+                TimeUnit.MINUTES
+        );
 
         EXECUTOR.submit(() -> {
             boolean connected = SESSION.connect();
