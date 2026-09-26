@@ -27,77 +27,59 @@ public abstract class PauseScreenMixin extends Screen {
     }
 
     /**
-     * WorldGate is an independent overlay layer.
-     * Vanilla pause buttons remain untouched and keep their original widget,
-     * coordinates, size and click action.
+     * Essential-style independent WorldGate overlay.
+     * Vanilla pause controls are only measured, never replaced or modified.
      */
     @Inject(method = "init", at = @At("TAIL"))
     private void worldgate$modernize(CallbackInfo ci) {
-        if (this.minecraft == null) return;
+        if (minecraft == null) return;
 
-        int[] vanillaBounds = worldgate$vanillaBounds();
+        int[] b = worldgate$vanillaBounds();
+        int left = b[0];
+        int top = b[1];
+        int right = b[2];
 
-        if (width >= 760) {
-            int railW = Math.min(196, Math.max(176, width / 6));
-            int railX = Math.min(width - railW - 18, vanillaBounds[2] + 28);
-            int railY = Math.max(70, vanillaBounds[1] - 4);
-            if (railX + railW <= width - 8) {
-                worldgate$addRail(railX, railY, railW);
-            }
-        }
-
-        int previewSize = width >= 900 ? 148 : 116;
-        int previewX = width >= 760
-                ? Math.max(8, Math.min(width - previewSize - 12, vanillaBounds[0] - previewSize - 26))
-                : Math.max(8, width - previewSize - 12);
-        int previewY = Math.max(44, vanillaBounds[1] - 18);
-
-        if (previewX >= 8 && previewX + previewSize <= width - 8 && previewY + previewSize + 34 <= height - 8) {
+        int previewSize = Math.min(148, Math.max(110, height / 2));
+        int previewX = Math.max(20, left - previewSize - 250);
+        int previewY = Math.max(70, top - 8);
+        if (previewX + previewSize <= left - 24) {
             PlayerSkinWidget playerWidget = new PlayerSkinWidget(
-                    previewSize,
-                    previewSize + 34,
-                    this.minecraft.getEntityModels(),
-                    () -> this.minecraft.playerSkinRenderCache()
-                            .getOrDefault(ResolvableProfile.createUnresolved(this.minecraft.getUser().getProfileId()))
-                            .playerSkin()
-            );
+                    previewSize, previewSize + 34, minecraft.getEntityModels(),
+                    () -> minecraft.playerSkinRenderCache()
+                            .getOrDefault(ResolvableProfile.createUnresolved(minecraft.getUser().getProfileId()))
+                            .playerSkin());
             playerWidget.setPosition(previewX, previewY);
-            this.addRenderableWidget(playerWidget);
+            addRenderableWidget(playerWidget);
+
+            addRenderableWidget(new WorldGateButton(
+                    previewX + previewSize / 2 - 14, previewY + previewSize + 8, 28, 28,
+                    Component.empty(), () -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)),
+                    0xFFB8C4D0, WorldGateButton.Icon.WARDROBE));
         }
 
-        int worldGateY = Math.min(height - 38, vanillaBounds[3] + 14);
-        if (worldGateY >= 8 && worldGateY + 28 <= height - 4) {
-            addRenderableWidget(new WorldGateButton(
-                    Math.max(18, width / 2 - 100), worldGateY, 200, 28,
-                    Component.literal("WorldGate"),
-                    () -> this.minecraft.setScreen(new WorldGateScreen(this)),
-                    0xFF67D8FF));
-        }
+        int railW = 118;
+        int railX = Math.min(width - railW - 20, right + 82);
+        if (railX < right + 12) railX = width - railW - 12;
+        int railY = Math.max(76, top + 4);
+        worldgate$addRail(railX, railY, railW);
     }
 
     private void worldgate$addRail(int x, int y, int width) {
-        int buttonW = width - 16;
-        int buttonH = 30;
-        int gap = 7;
+        int h = 24;
+        int gap = 5;
 
-        addRenderableWidget(new WorldGateButton(x + 8, y, buttonW, buttonH,
-                Component.literal("Host"),
-                () -> this.minecraft.setScreen(new WorldGateScreen(this)), 0xFF67D8FF));
-        addRenderableWidget(new WorldGateButton(x + 8, y + (buttonH + gap), buttonW, buttonH,
-                Component.literal("Social"),
-                () -> this.minecraft.setScreen(new FriendsScreen(this)), 0xFF73E0A1));
-        addRenderableWidget(new WorldGateButton(x + 8, y + 2 * (buttonH + gap), buttonW, buttonH,
-                Component.literal("Wardrobe"),
-                () -> this.minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)), 0xFFFFB86B));
-        addRenderableWidget(new WorldGateButton(x + 8, y + 3 * (buttonH + gap), buttonW, buttonH,
-                Component.literal("Features"),
-                () -> this.minecraft.setScreen(new ClaimCenterScreen(this)), 0xFFBDA6FF));
-        addRenderableWidget(new WorldGateButton(x + 8, y + 4 * (buttonH + gap), buttonW, buttonH,
-                Component.literal("Settings"),
-                () -> this.minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8));
-        addRenderableWidget(new WorldGateButton(x + 8, y + 5 * (buttonH + gap), buttonW, buttonH,
-                Component.literal("Account"),
-                () -> this.minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B));
+        addRenderableWidget(new WorldGateButton(x, y, width, h, Component.literal("Host"),
+                () -> minecraft.setScreen(new WorldGateScreen(this)), 0xFF67D8FF, WorldGateButton.Icon.HOST));
+        addRenderableWidget(new WorldGateButton(x, y + (h + gap), width, h, Component.literal("Social"),
+                () -> minecraft.setScreen(new FriendsScreen(this)), 0xFF73E0A1, WorldGateButton.Icon.SOCIAL));
+        addRenderableWidget(new WorldGateButton(x, y + 2 * (h + gap), width, h, Component.literal("Wardrobe"),
+                () -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)), 0xFFFFB86B, WorldGateButton.Icon.WARDROBE));
+        addRenderableWidget(new WorldGateButton(x, y + 3 * (h + gap), width, h, Component.literal("Pictures"),
+                () -> minecraft.setScreen(new ClaimCenterScreen(this)), 0xFFBDA6FF, WorldGateButton.Icon.PICTURES));
+        addRenderableWidget(new WorldGateButton(x, y + 4 * (h + gap), width, h, Component.literal("Settings"),
+                () -> minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8, WorldGateButton.Icon.SETTINGS));
+        addRenderableWidget(new WorldGateButton(x, y + 5 * (h + gap), width, h, Component.literal("Account"),
+                () -> minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B, WorldGateButton.Icon.ACCOUNT));
     }
 
     private int[] worldgate$vanillaBounds() {
@@ -106,7 +88,7 @@ public abstract class PauseScreenMixin extends Screen {
         int right = width / 2 + 100;
         int bottom = top + 30;
 
-        for (var child : this.children()) {
+        for (var child : children()) {
             if (child instanceof Button button && button.visible) {
                 left = Math.min(left, button.getX());
                 top = Math.min(top, button.getY());
