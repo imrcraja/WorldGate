@@ -36,9 +36,7 @@ WorldGate/
                        across servers/YouTubers right now, ~21% share)
 ```
 
-`gradle build` at the repo root builds **both** jars in one pass; the GitHub
-Actions workflow does the same and uploads each as a separate artifact
-(`WorldGate-26.1.2`, `WorldGate-1.21.1`).
+`gradle build` at the repo root builds the active 26.1.2 jar. GitHub Actions uploads the `WorldGate-26.1.2` artifact.
 
 ### Adding another version (e.g. 1.20.1, 1.21.4)
 
@@ -52,26 +50,30 @@ The pattern is always the same:
 
 Tell me which version to add next and I'll build that module the same way.
 
-## Status: work in progress
+## Status: WorldGate 26.1.2 integration
 
 | Feature | Status |
 |---|---|
-| Mod skeleton, Escape-menu button | Done (both versions) |
-| Firebase anonymous auth + Realtime Database client | Done (shared) |
-| Room create/join (Firebase bookkeeping: room codes, lookup) | Done (shared) |
-| Real-time chat (Firebase-backed, appears in your normal chat) | Done (shared logic + wired into both versions) |
-| Friends (send/accept/reject by pasting a WorldGate ID, list) | Done (shared logic + a simple screen in both versions) |
-| Emotes (broadcast + received by everyone in the room) | Plumbing done; only a placeholder emote list (wave/dance/sit/cheer) with no animation yet — RC RAJA is adding the real emote set |
-| Tab list with color-coded real-time ping | Best-effort — verify mixin target against each version's actual mappings |
-| Actually connecting a joining player into the host's world (UPnP/relay/socket) | **TODO** — this is the one core piece still missing. Right now "Join" only fetches the room's info from Firebase; it does not yet open the game connection |
-| Real-time skins, capes, animations | TODO — UI field exists in the Lobby screen, applying it is not wired up |
-| Chat clickable links, delete/reply, sound effects | TODO — needs version-specific Style/ClickEvent handling |
+| Mod skeleton and Escape-menu WorldGate button | Integrated |
+| Firebase anonymous auth + Realtime Database | Integrated |
+| Room creation/join bookkeeping | Integrated |
+| Host-to-player relay bridge | Integrated |
+| WebSocket relay service under `relay/` | Integrated and hardened with protocol/integrity/rate-limit checks |
+| Friends, presence and realtime room state | Integrated |
+| Realtime chat and emote state | Integrated |
+| Elite profile and server-authoritative Elite badges | Integrated |
+| Elite Coin wallet, catalog and shop | Integrated |
+| Claim Center, daily/activity rewards and mailbox | Integrated |
+| Elite Coin gifting by UID or friend-row selection | Integrated |
+| Red-dot claim/mail notification refresh | Integrated |
+| Real-money Elite Coin checkout | Coming Soon; no gateway is treated as a completed payment |
+| Live skin/cape replacement and full body emote animation | Separate version-specific work remains |
 
+The current ecosystem integration is intentionally scoped to Minecraft 26.1.2. Other Minecraft-version modules are intentionally removed for now and can be added later.
 
 ## Building
 
-Requires JDK 25 (for the 26.1.2 module) and JDK 21 (for the 1.21.1 module) —
-the included GitHub Actions workflow installs both automatically, so pushing
+Requires JDK 25 for Minecraft 26.1.2 — the included GitHub Actions workflow installs it automatically, so pushing
 to `main` or opening a PR is enough; no local dev environment needed.
 
 ```bash
@@ -92,3 +94,17 @@ gradle build
 
 - **Author:** RC RAJA GAMER 2.0
 - License: MIT (see `LICENSE`)
+
+
+## Elite Coin (Minecraft 26.1.2)
+
+WorldGate 26.1.2 now includes the Elite Coin client read model and shop screen. Coin balances, catalog data and item purchases are server-authoritative through the WorldGate backend. The included Elite Coin artwork is stored at `assets/worldgate/elite/elite-coin.png`. Real-money coin top-ups remain provider-neutral until a legitimate payment gateway is configured; the client never treats a payment intent as a completed purchase.
+
+
+## Security hardening
+
+The 26.1.2 release now includes a relay-side integrity gate, protocol versioning, payload limits, room expiry, per-IP connection throttling and automatic temporary blocking for repeated invalid handshakes. The client also locks WorldGate multiplayer features when the relay rejects the official artifact hash. This is defense in depth, not an unbreakable guarantee: a modified client can always alter local code, so the relay/backend remain the enforcement boundary.
+
+The backend adds rate limiting, temporary IP bans, security-event logging, hardened response headers and a continuous watchdog. A scheduled GitHub Actions security workflow also runs dependency auditing, regression tests and credential-pattern checks.
+
+For production integrity enforcement, configure the relay with `WORLDGATE_ALLOWED_MOD_SHA256` set to the SHA-256 of the exact official 26.1.2 jar. Never put a secret signing key in the mod.

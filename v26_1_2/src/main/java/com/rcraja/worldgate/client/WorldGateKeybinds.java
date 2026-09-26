@@ -2,6 +2,8 @@ package com.rcraja.worldgate.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 
+import com.rcraja.worldgate.network.EmoteManager;
+
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 
@@ -33,12 +35,7 @@ public final class WorldGateKeybinds {
                     )
             );
 
-    private static final String[] EMOTES = {
-            "wave",
-            "dance",
-            "sit",
-            "cheer"
-    };
+    private static final String[] EMOTES = EmoteManager.DEFAULT_EMOTES;
 
     private static int emoteIndex = 0;
 
@@ -66,9 +63,7 @@ public final class WorldGateKeybinds {
                     || room.isBlank()) {
 
                 minecraft.player.sendSystemMessage(
-                        Component.literal(
-                                "WorldGate: join a room first."
-                        )
+                        Component.translatable("worldgate.lobby.no_room")
                 );
 
                 return;

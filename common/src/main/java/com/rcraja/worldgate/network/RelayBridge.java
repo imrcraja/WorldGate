@@ -2,6 +2,7 @@ package com.rcraja.worldgate.network;
 
 import com.rcraja.worldgate.Constants;
 import com.rcraja.worldgate.WorldGateMod;
+import com.rcraja.worldgate.client.WorldGateModClient;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -27,12 +28,21 @@ public final class RelayBridge {
     private static volatile ServerSocket playerServer;
     private static volatile boolean running;
     private static volatile boolean connected;
+    private static volatile boolean handshakeAccepted;
+    private static volatile boolean handshakeRejected;
+    private static volatile long lastPongAt;
+    private static volatile long lastPingAt;
+    private static volatile long rttMillis = -1;
 
 
     public static boolean startHost(String roomCode, int minecraftPort) {
         synchronized (LOCK) {
             if (running) {
                 return connected;
+            }
+
+            if (!IntegrityGuard.verifyLocalRelease()) {
+                return false;
             }
 
             if (roomCode == null || roomCode.isBlank()) {
@@ -60,15 +70,28 @@ public final class RelayBridge {
                         roomCode
                 );
 
-                if (!waitForConnection(15)) {
+                if (!waitForHandshake(15)) {
                     WorldGateMod.LOGGER.error(
-                            "WorldGate relay host connection timed out."
+                            "WorldGate relay host handshake timed out."
+                    );
+                    stop();
+                    return;
+                }
+
+                // The relay may acknowledge the host with "waiting" before the
+                // player arrives. Keep the host bridge alive while waiting for
+                // the actual pair; only then does Minecraft traffic flow.
+                if (!waitForConnection(30 * 60)) {
+                    WorldGateMod.LOGGER.error(
+                            "WorldGate relay host pairing timed out."
                     );
                     stop();
                     return;
                 }
 
                 Socket socket = new Socket("127.0.0.1", minecraftPort);
+                socket.setTcpNoDelay(true);
+                socket.setKeepAlive(true);
                 tcpSocket = socket;
 
                 bridge(socket, ws);
@@ -93,6 +116,10 @@ public final class RelayBridge {
                 return playerServer != null ? playerServer.getLocalPort() : -1;
             }
 
+            if (!IntegrityGuard.verifyLocalRelease()) {
+                return -1;
+            }
+
             if (roomCode == null || roomCode.isBlank()) {
                 return -1;
             }
@@ -101,12 +128,19 @@ public final class RelayBridge {
                 ServerSocket server = new ServerSocket(0, 1,
                         java.net.InetAddress.getLoopbackAddress());
 
+                server.setReuseAddress(true);
                 playerServer = server;
                 running = true;
                 connected = false;
 
+                WebSocket ws = connectWebSocket("player", roomCode);
+                if (ws == null) {
+                    stop();
+                    return -1;
+                }
+
                 Thread thread = new Thread(
-                        () -> playerThread(roomCode, server),
+                        () -> playerThread(roomCode, server, ws),
                         "WorldGate-Relay-Player"
                 );
 
@@ -127,22 +161,18 @@ public final class RelayBridge {
 
     private static void playerThread(
             String roomCode,
-            ServerSocket server
+            ServerSocket server,
+            WebSocket ws
     ) {
         try {
-            WebSocket ws = connectWebSocket("player", roomCode);
-
-            if (ws == null) {
-                stop();
-                return;
-            }
-
             WorldGateMod.LOGGER.info(
                     "WorldGate relay player connected for room {}",
                     roomCode
             );
 
             Socket socket = server.accept();
+            socket.setTcpNoDelay(true);
+            socket.setKeepAlive(true);
             tcpSocket = socket;
 
             if (!waitForConnection(15)) {
@@ -168,25 +198,47 @@ public final class RelayBridge {
             String roomCode
     ) {
         try {
-            HttpClient client = HttpClient.newHttpClient();
+            HttpClient client = HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(3)).build();
 
             RelayListener listener = new RelayListener();
+            handshakeAccepted = false;
+            handshakeRejected = false;
 
             WebSocket ws = client.newWebSocketBuilder()
                     .buildAsync(
                             URI.create(Constants.RELAY_WS_URL),
                             listener
                     )
-                    .join();
+                    .get(5, TimeUnit.SECONDS);
 
+            String uid = WorldGateModClient.SESSION.uid();
+            String modSha256 = IntegrityGuard.currentArtifactSha256();
             String handshake =
-                    "{\"role\":\"" + role +
-                    "\",\"room\":\"" + escape(roomCode) + "\"}";
+                    "{\"protocol\":2,\"role\":\"" + role +
+                    "\",\"room\":\"" + escape(roomCode) +
+                    "\",\"uid\":\"" + escape(uid == null ? "" : uid) +
+                    "\",\"modSha256\":\"" + escape(modSha256) + "\"}";
 
             ws.sendText(handshake, true);
 
-            webSocket = ws;
+            long deadline = System.currentTimeMillis() + 5000L;
+            while (running
+                    && !handshakeAccepted
+                    && !handshakeRejected
+                    && System.currentTimeMillis() < deadline) {
+                Thread.sleep(25);
+            }
 
+            if (!running || handshakeRejected || !handshakeAccepted) {
+                try {
+                    ws.sendClose(WebSocket.NORMAL_CLOSURE, "handshake timeout");
+                } catch (Exception ignored) {
+                }
+                return null;
+            }
+
+            webSocket = ws;
+            startLatencyProbe(ws);
             return ws;
 
         } catch (Exception e) {
@@ -215,7 +267,7 @@ public final class RelayBridge {
                     ByteBuffer data =
                             ByteBuffer.wrap(buffer, 0, read);
 
-                    ws.sendBinary(data, true).join();
+                    ws.sendBinary(data, true);
                 }
 
             } catch (Exception e) {
@@ -257,6 +309,7 @@ public final class RelayBridge {
             copy.get(bytes);
 
             output.write(bytes);
+            // TCP_NODELAY keeps small Minecraft packets from waiting for a flush cycle.
             output.flush();
 
         } catch (Exception e) {
@@ -268,6 +321,25 @@ public final class RelayBridge {
 
             stop();
         }
+    }
+
+    private static boolean waitForHandshake(int seconds) {
+        long deadline = System.currentTimeMillis()
+                + (seconds * 1000L);
+
+        while (running
+                && !handshakeAccepted
+                && !handshakeRejected
+                && System.currentTimeMillis() < deadline) {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+
+        return running && handshakeAccepted && !handshakeRejected;
     }
 
     private static boolean waitForConnection(int seconds) {
@@ -288,6 +360,24 @@ public final class RelayBridge {
         return running && connected;
     }
 
+    public static long getRttMillis() { return rttMillis; }
+
+    private static void startLatencyProbe(WebSocket ws) {
+        Thread t = new Thread(() -> {
+            while (running && webSocket == ws) {
+                try {
+                    lastPingAt = System.nanoTime();
+                    ws.sendPing(ByteBuffer.wrap(new byte[] { 87, 71, 80, 49 }));
+                    Thread.sleep(5000L);
+                } catch (Exception e) {
+                    return;
+                }
+            }
+        }, "WorldGate-Relay-Latency");
+        t.setDaemon(true);
+        t.start();
+    }
+
     public static boolean isRunning() {
         return running;
     }
@@ -300,6 +390,11 @@ public final class RelayBridge {
         synchronized (LOCK) {
             running = false;
             connected = false;
+            handshakeAccepted = false;
+            handshakeRejected = false;
+            rttMillis = -1;
+            lastPingAt = 0;
+            lastPongAt = 0;
         }
 
         try {
@@ -348,6 +443,24 @@ public final class RelayBridge {
         ) {
             String message = data.toString();
 
+            if (message.contains("\"type\":\"error\"")
+                    || message.contains("\"type\":\"full\"")) {
+                handshakeRejected = true;
+            }
+
+            if (message.contains("\"code\":\"MOD_INTEGRITY_REJECTED\"")) {
+                IntegrityGuard.disable("official mod integrity hash was rejected by the relay");
+                handshakeRejected = true;
+                stop();
+                webSocket.request(1);
+                return CompletableFuture.completedFuture(null);
+            }
+
+            if (message.contains("\"type\":\"waiting\"")
+                    || message.contains("\"type\":\"connected\"")) {
+                handshakeAccepted = true;
+            }
+
             if (message.contains("\"type\":\"connected\"")) {
                 connected = true;
 
@@ -356,6 +469,15 @@ public final class RelayBridge {
                 );
             }
 
+            webSocket.request(1);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public CompletionStage<?> onPong(WebSocket webSocket, ByteBuffer message) {
+            long sent = lastPingAt;
+            if (sent > 0) rttMillis = Math.max(0L, (System.nanoTime() - sent) / 1_000_000L);
+            lastPongAt = System.currentTimeMillis();
             webSocket.request(1);
             return CompletableFuture.completedFuture(null);
         }

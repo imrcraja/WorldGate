@@ -1,0 +1,11 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "worldgate:icon.png",
+      "ascent": 13,
+      "height": 16,
+      "chars": ["\uE000"]
+    }
+  ]
+}

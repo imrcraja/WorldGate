@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "durationMs": 1800,
+  "emotes": [
+    {"id":"wave","label":"worldgate.emote.wave","icon":"worldgate:emotes/wave","animation":"wave"},
+    {"id":"dance","label":"worldgate.emote.dance","icon":"worldgate:emotes/dance","animation":"dance"},
+    {"id":"sit","label":"worldgate.emote.sit","icon":"worldgate:emotes/sit","animation":"sit"},
+    {"id":"cheer","label":"worldgate.emote.cheer","icon":"worldgate:emotes/cheer","animation":"cheer"}
+  ]
+}

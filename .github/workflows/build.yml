@@ -2,7 +2,7 @@ name: Build WorldGate
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, worldgate-essential-style-ui ]
   pull_request:
   workflow_dispatch:
 
@@ -14,8 +14,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Minecraft 26.1.x requires Java 25.
-      # Gradle 9.1+ is required to run Gradle on Java 25.
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
@@ -35,14 +33,14 @@ jobs:
       - name: Build all versions
         run: gradle build --stacktrace --no-daemon
 
+      - name: Verify built JAR
+        run: |
+          test -n "$(find v26_1_2/build/libs -maxdepth 1 -type f -name '*.jar' -print -quit)"
+          find v26_1_2/build/libs -maxdepth 1 -type f -name '*.jar' -print
+
       - name: Upload 26.1.2 jar
         uses: actions/upload-artifact@v4
         with:
           name: WorldGate-26.1.2
           path: v26_1_2/build/libs/*.jar
-
-      - name: Upload 1.21.1 jar
-        uses: actions/upload-artifact@v4
-        with:
-          name: WorldGate-1.21.1
-          path: v1_21_1/build/libs/*.jar
+          if-no-files-found: error

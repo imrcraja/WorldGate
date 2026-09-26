@@ -3,12 +3,15 @@ package com.rcraja.worldgate.client.gui;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.client.WorldGateModClient;
+import com.rcraja.worldgate.client.HostPermissionManager;
 import com.rcraja.worldgate.client.elite.EliteBadgeRenderer;
 import com.rcraja.worldgate.client.elite.EliteManager;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.server.players.NameAndId;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -21,6 +24,7 @@ public class LobbyScreen extends Screen {
 
     private final Screen parent;
     private EditBox chatBox;
+    private EditBox opPlayerBox;
 
     private final Map<String, FriendProfile> friendProfiles =
             new ConcurrentHashMap<>();
@@ -30,14 +34,16 @@ public class LobbyScreen extends Screen {
 
     private volatile String friendsJson = null;
     private volatile String roomJson = null;
+    private volatile String boundRoom = "";
 
     private final List<String> chatMessages =
             new ArrayList<>();
 
     private volatile boolean loading = true;
+    private volatile String status = "Connecting to WorldGate...";
 
     public LobbyScreen(Screen parent) {
-        super(Component.literal("WorldGate Lobby"));
+        super(Component.translatable("worldgate.lobby.title"));
         this.parent = parent;
     }
 
@@ -74,22 +80,29 @@ public class LobbyScreen extends Screen {
                         chatY,
                         this.width - 110,
                         20,
-                        Component.literal("Chat")
+                        Component.translatable("worldgate.chat.input")
                 );
 
         chatBox.setMaxLength(200);
 
+        opPlayerBox = new EditBox(this.font, 20, 58, 170, 20, Component.literal("Player IGN"));
+        opPlayerBox.setMaxLength(16);
+        opPlayerBox.setHint(Component.literal("Player IGN"));
+        addRenderableWidget(opPlayerBox);
+        addRenderableWidget(Button.builder(Component.literal("Grant OP"), btn -> setPlayerOp(true))
+                .bounds(195, 58, 75, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Revoke OP"), btn -> setPlayerOp(false))
+                .bounds(275, 58, 82, 20).build());
+
         chatBox.setHint(
-                Component.literal(
-                        "Type a message..."
-                )
+                Component.translatable("worldgate.chat.hint")
         );
 
         addRenderableWidget(chatBox);
 
         addRenderableWidget(
                 Button.builder(
-                        Component.literal("Send"),
+                        Component.translatable("worldgate.chat.send"),
                         btn -> sendChat()
                 )
                 .bounds(
@@ -102,20 +115,72 @@ public class LobbyScreen extends Screen {
         );
 
         addRenderableWidget(
+                Button.builder(Component.literal("Refresh"),
+                        btn -> refreshNow())
+                .bounds(centerX - 155, this.height - 20, 75, 20)
+                .build()
+        );
+
+        addRenderableWidget(
+                Button.builder(Component.literal("Friends"),
+                        btn -> openFriends())
+                .bounds(centerX - 75, this.height - 20, 75, 20)
+                .build()
+        );
+
+        addRenderableWidget(
+                Button.builder(Component.literal("Elite Store"),
+                        btn -> minecraft.setScreen(new EliteCoinScreen(this)))
+                .bounds(centerX + 5, this.height - 20, 90, 20)
+                .build()
+        );
+
+        addRenderableWidget(
                 Button.builder(
-                        Component.literal("Back"),
+                        Component.translatable("worldgate.button.back"),
                         btn -> goBack()
                 )
-                .bounds(
-                        centerX - 70,
-                        this.height - 20,
-                        140,
-                        20
-                )
+                .bounds(centerX + 100, this.height - 20, 70, 20)
                 .build()
         );
 
         startRealtime();
+    }
+
+    private void setPlayerOp(boolean grant) {
+        if (minecraft == null || minecraft.getSingleplayerServer() == null) {
+            status = "OP control is host-only.";
+            return;
+        }
+        IntegratedServer server = minecraft.getSingleplayerServer();
+        if (!server.isPublished() || !WorldGateModClient.CURRENT_ROOM_CODE.equals(boundRoom)) {
+            status = "Only the active WorldGate host can manage OP.";
+            return;
+        }
+        String name = opPlayerBox == null ? "" : opPlayerBox.getValue().trim();
+        if (name.isBlank()) {
+            status = "Enter a player IGN first.";
+            return;
+        }
+        var player = server.getPlayerList().getPlayerByName(name);
+        if (player == null) {
+            status = "Player is not currently connected.";
+            return;
+        }
+        try {
+            NameAndId target = new NameAndId(player.getGameProfile());
+            if (grant) {
+                server.getPlayerList().op(target);
+                HostPermissionManager.grant(player.getUUID());
+                status = "OP granted to " + name + " and saved on the host.";
+            } else {
+                server.getPlayerList().deop(target);
+                HostPermissionManager.revoke(player.getUUID());
+                status = "OP revoked from " + name + " and removed from host storage.";
+            }
+        } catch (Exception e) {
+            status = "Could not change OP for " + name + ".";
+        }
     }
 
     private void startRealtime() {
@@ -163,38 +228,88 @@ public class LobbyScreen extends Screen {
                 }
         );
 
-        String room =
-                WorldGateModClient
-                        .CURRENT_ROOM_CODE;
-
-        if (room != null
-                && !room.isBlank()) {
-
-            WorldGateModClient.ROOM_MANAGER
-                    .setRoomChangedListener(
-                            json -> roomJson = json
-                    );
-
-            WorldGateModClient.ROOM_MANAGER
-                    .startRealtime(room);
-
-            WorldGateModClient.CHAT_MANAGER
-                    .listen(
-                            room,
-                            (uid, text) ->
-                                    this.minecraft.execute(
-                                            () ->
-                                                    addChatMessage(
-                                                            "<"
-                                                                    + displayName(uid)
-                                                                    + "> "
-                                                                    + text
-                                                    )
-                                    )
-                    );
-        }
+        bindRoomRealtime(WorldGateModClient.CURRENT_ROOM_CODE);
 
         loading = false;
+        String currentRoom = WorldGateModClient.CURRENT_ROOM_CODE;
+        status = currentRoom != null && !currentRoom.isBlank()
+                ? "Connected • Room " + currentRoom
+                : "Connected • No active room";
+    }
+
+    private void refreshNow() {
+        status = "Refreshing...";
+        loading = true;
+        WorldGateModClient.EXECUTOR.submit(() -> {
+            String json = WorldGateModClient.FRIEND_MANAGER.getFriends();
+            String room = WorldGateModClient.CURRENT_ROOM_CODE;
+            String roomData = room == null || room.isBlank()
+                    ? null
+                    : WorldGateModClient.ROOM_MANAGER.getRoom(room);
+            if (minecraft != null) minecraft.execute(() -> {
+                String previousRoom = boundRoom;
+                friendsJson = json;
+                roomJson = roomData;
+                refreshFriendProfiles();
+
+                if (!sameRoom(previousRoom, room)) {
+                    bindRoomRealtime(room);
+                }
+
+                loading = false;
+                status = room == null || room.isBlank()
+                        ? "Refreshed • No active room"
+                        : "Refreshed • Room " + room;
+            });
+        });
+    }
+
+    private static boolean sameRoom(String first, String second) {
+        String a = first == null ? "" : first.trim();
+        String b = second == null ? "" : second.trim();
+        return a.equals(b);
+    }
+
+    private void bindRoomRealtime(String room) {
+        WorldGateModClient.ROOM_MANAGER.stopRealtime();
+        WorldGateModClient.CHAT_MANAGER.stopListening();
+        roomJson = null;
+        synchronized (chatMessages) {
+            chatMessages.clear();
+        }
+        boundRoom = room == null ? "" : room.trim();
+
+        if (room == null || room.isBlank()) {
+            status = "Connected • No active room";
+            return;
+        }
+
+        WorldGateModClient.ROOM_MANAGER.setRoomChangedListener(json -> {
+            roomJson = json;
+            if (minecraft != null) {
+                minecraft.execute(() -> {
+                    if (sameRoom(boundRoom, room)) {
+                        status = "Connected • Room " + room;
+                    }
+                });
+            }
+        });
+        WorldGateModClient.ROOM_MANAGER.startRealtime(room);
+
+        WorldGateModClient.CHAT_MANAGER.listen(
+                room,
+                (uid, text) -> {
+                    if (minecraft != null) {
+                        minecraft.execute(() ->
+                                addChatMessage("<" + displayName(uid) + "> " + text));
+                    }
+                }
+        );
+        status = "Connected • Room " + room;
+    }
+
+    private void openFriends() {
+        if (minecraft != null) minecraft.setScreen(new FriendsScreen(this));
     }
 
     private void refreshFriendProfiles() {
@@ -533,7 +648,7 @@ public class LobbyScreen extends Screen {
                 this.width / 2;
 
         int panelTop =
-                38;
+                84;
 
         int bottom =
                 this.height - 58;
@@ -546,13 +661,8 @@ public class LobbyScreen extends Screen {
                 0xFFFFFF
         );
 
-        graphics.centeredText(
-                font,
-                "Friends • Players • Realtime Chat",
-                centerX,
-                27,
-                0xAAAAAA
-        );
+        graphics.centeredText(font, "Friends • Players • Realtime Chat", centerX, 27, 0xAAAAAA);
+        graphics.centeredText(font, status, centerX, 36, 0x8F9BA8);
 
         int leftX =
                 12;

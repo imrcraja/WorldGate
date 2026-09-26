@@ -3,17 +3,17 @@ package com.rcraja.worldgate.network;
 import com.rcraja.worldgate.Constants;
 import com.rcraja.worldgate.WorldGateMod;
 
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 public class RoomManager {
 
     private final FirebaseSession session;
 
-    private final FirebaseStreamClient roomStream =
-            new FirebaseStreamClient();
-
+    private final FirebaseStreamClient roomStream = new FirebaseStreamClient();
+    private final FirebaseStreamClient inviteStream = new FirebaseStreamClient();
     private volatile Consumer<String> roomChanged;
+    private volatile Consumer<String> inviteChanged;
 
     public RoomManager(FirebaseSession session) {
         this.session = session;
@@ -29,6 +29,11 @@ public class RoomManager {
 
         String roomCode =
                 generateRoomCode();
+
+        if (roomCode == null || roomCode.isBlank()) {
+            WorldGateMod.LOGGER.error("WorldGate room creation aborted: no free room code.");
+            return null;
+        }
 
         long now =
                 System.currentTimeMillis();
@@ -76,6 +81,39 @@ public class RoomManager {
         );
 
         return roomCode;
+    }
+
+    public boolean inviteFriend(String roomCode, String friendUid, String hostName) {
+        if (!session.isReady() || roomCode == null || roomCode.isBlank()
+                || friendUid == null || friendUid.isBlank() || friendUid.equals(session.uid())) return false;
+        String safeName = hostName == null || hostName.isBlank() ? "Player" : escape(hostName.trim());
+        String json = "{"
+                + "\"roomCode\":\"" + escape(roomCode.trim().toUpperCase()) + "\","
+                + "\"fromUid\":\"" + escape(session.uid()) + "\","
+                + "\"fromName\":\"" + safeName + "\","
+                + "\"sentAt\":" + System.currentTimeMillis() + "}";
+        return session.db().put("/room_invites/" + friendUid.trim() + "/" + session.uid(), json) != null;
+    }
+
+    public String getIncomingInvites() {
+        return session.isReady() ? session.db().get("/room_invites/" + session.uid()) : null;
+    }
+
+    public boolean removeInvite(String fromUid) {
+        if (!session.isReady() || fromUid == null || fromUid.isBlank()) return false;
+        session.db().delete("/room_invites/" + session.uid() + "/" + fromUid.trim());
+        return true;
+    }
+
+    public void setInviteChangedListener(Consumer<String> listener) { inviteChanged = listener; }
+
+    public void startInviteRealtime() {
+        if (!session.isReady()) return;
+        inviteStream.stop();
+        inviteStream.listen(Constants.FIREBASE_DATABASE_URL, "/room_invites/" + session.uid(), session.idToken(), data -> {
+            Consumer<String> listener = inviteChanged;
+            if (listener != null) listener.accept(data);
+        });
     }
 
     public String getRoom(
@@ -132,6 +170,11 @@ public class RoomManager {
         if (!session.isReady()
                 || roomCode == null
                 || roomCode.isBlank()) {
+            return false;
+        }
+
+        String roomJson = session.db().get("/rooms/" + roomCode);
+        if (roomJson == null || roomJson.isBlank() || "null".equals(roomJson)) {
             return false;
         }
 
@@ -251,10 +294,21 @@ public class RoomManager {
             return false;
         }
 
-        session.db().delete(
-                "/rooms/" + roomCode
-        );
+        String roomJson = session.db().get("/rooms/" + roomCode);
+        if (roomJson == null || roomJson.isBlank() || "null".equals(roomJson)) {
+            return false;
+        }
 
+        String expectedHost = "\"hostUid\":\"" + escape(session.uid()) + "\"";
+        if (!roomJson.contains(expectedHost)) {
+            WorldGateMod.LOGGER.warn(
+                    "WorldGate rejected non-host room deletion for {}",
+                    roomCode
+            );
+            return false;
+        }
+
+        session.db().delete("/rooms/" + roomCode);
         return true;
     }
 
@@ -291,8 +345,13 @@ public class RoomManager {
         );
     }
 
+    public void stopInviteRealtime() {
+        inviteStream.stop();
+    }
+
     public void stopRealtime() {
         roomStream.stop();
+        inviteStream.stop();
     }
 
     private static String escape(
@@ -307,25 +366,41 @@ public class RoomManager {
                 .replace("\"", "\\\"");
     }
 
+    /**
+     * Generates a numeric room code and avoids an already-existing room.
+     *
+     * The code starts at 5 digits and can grow through 6, 7, 8, 9 and finally
+     * 10 digits when the shorter namespaces are exhausted. Existing rooms are
+     * checked in Firebase before a code is returned.
+     */
     private String generateRoomCode() {
+        for (int length = 5; length <= 10; length++) {
+            int attempts = length <= 8 ? 80 : 160;
 
-        String chars =
-                "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            for (int attempt = 0; attempt < attempts; attempt++) {
+                String code = randomNumericCode(length);
 
-        Random random =
-                new Random();
+                String existing = session.db().get("/rooms/" + code);
+                if (existing == null || existing.isBlank() || "null".equals(existing)) {
+                    return code;
+                }
+            }
+        }
 
-        StringBuilder code =
-                new StringBuilder(6);
+        WorldGateMod.LOGGER.error("WorldGate could not find a free numeric room code.");
+        return null;
+    }
 
-        for (int i = 0; i < 6; i++) {
-            code.append(
-                    chars.charAt(
-                            random.nextInt(
-                                    chars.length()
-                            )
-                    )
-            );
+    public String createLocalLanRoomCode() {
+        return randomNumericCode(5);
+    }
+
+    private static String randomNumericCode(int length) {
+        StringBuilder code = new StringBuilder(length);
+
+        for (int i = 0; i < length; i++) {
+            int digit = ThreadLocalRandom.current().nextInt(i == 0 ? 1 : 0, 10);
+            code.append(digit);
         }
 
         return code.toString();

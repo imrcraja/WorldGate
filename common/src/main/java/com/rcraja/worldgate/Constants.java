@@ -15,6 +15,7 @@ public final class Constants {
     public static final String GITHUB_ISSUES = GITHUB_REPO + "/issues";
     public static final String YOUTUBE_CHANNEL = "https://youtube.com/@RCRAJAGAMER2.0";
 
+    public static final String BACKEND_BASE_URL = "https://api.worldgate.ryzn.pro";
     public static final String RELAY_WS_URL = "wss://worldgate-relay.onrender.com/ws";
 
     // Firebase web app config (project: worldgate-be4a0)
