@@ -145,7 +145,6 @@ public class FriendsScreen extends Screen {
             String publicId = WorldGateModClient.FRIEND_MANAGER.myPublicId();
             String name = minecraft != null ? minecraft.getUser().getName() : "Player";
 
-            WorldGateModClient.FRIEND_MANAGER.setOnline(name);
             String profile = WorldGateModClient.FRIEND_MANAGER.getProfile(uid);
 
             String resolvedName = name;
@@ -371,6 +370,10 @@ public class FriendsScreen extends Screen {
                                 ? p.get("publicId").getAsString()
                                 : "--------";
                         boolean online = p.has("online") && p.get("online").getAsBoolean();
+                        if (p.has("lastSeen") && p.get("lastSeen").isJsonPrimitive()) {
+                            long lastSeen = p.get("lastSeen").getAsLong();
+                            online = online && (System.currentTimeMillis() - lastSeen <= 30_000L);
+                        }
                         int eliteLevel = EliteManager.loadProfile(uid).level();
 
                         result.add(new FriendEntry(uid, name, code, online, eliteLevel));
@@ -685,8 +688,6 @@ public class FriendsScreen extends Screen {
         WorldGateModClient.FRIEND_MANAGER.stopRealtime();
         WorldGateModClient.ROOM_MANAGER.setInviteChangedListener(null);
         WorldGateModClient.ROOM_MANAGER.stopInviteRealtime();
-        WorldGateModClient.FRIEND_MANAGER.setOffline();
-
         if (minecraft != null) {
             minecraft.setScreen(parent);
         }
