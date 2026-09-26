@@ -8,6 +8,7 @@ import com.rcraja.worldgate.network.FriendManager;
 import com.rcraja.worldgate.network.HostBridge;
 import com.rcraja.worldgate.network.RelayBridge;
 import com.rcraja.worldgate.network.RoomManager;
+import com.rcraja.worldgate.network.VoiceManager;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.Minecraft;
@@ -26,6 +27,7 @@ public class WorldGateModClient implements ClientModInitializer {
     public static final FriendManager FRIEND_MANAGER = new FriendManager(SESSION);
     public static final ChatManager CHAT_MANAGER = new ChatManager(SESSION);
     public static final EmoteManager EMOTE_MANAGER = new EmoteManager(SESSION);
+    public static final VoiceManager VOICE_MANAGER = new VoiceManager(SESSION);
 
     public static final ExecutorService EXECUTOR =
             Executors.newCachedThreadPool(r -> {
@@ -65,7 +67,7 @@ public class WorldGateModClient implements ClientModInitializer {
      * connection is closing. Opening/closing WorldGate screens must not change
      * the room code or make the host leave.
      */
-    public static void leaveCurrentRoomOnWorldDisconnect() {
+    public static void stopVoice(){ VOICE_MANAGER.stop(); }\n    public static boolean startVoice(){ String room=CURRENT_ROOM_CODE; if(room==null||room.isBlank())return false; String role=HOSTING_ROOM_CODE!=null&&HOSTING_ROOM_CODE.equals(room)?"host":"player"; return VOICE_MANAGER.start(room,role); }\n\n    public static void leaveCurrentRoomOnWorldDisconnect() {
         final String room = CURRENT_ROOM_CODE;
         final boolean host = HOSTING_ROOM_CODE != null
                 && HOSTING_ROOM_CODE.equals(room);
@@ -80,6 +82,7 @@ public class WorldGateModClient implements ClientModInitializer {
         }
 
         stopHeartbeat();
+        VOICE_MANAGER.stop();
         HOSTING_ROOM_CODE = null;
         CURRENT_ROOM_CODE = null;
 
