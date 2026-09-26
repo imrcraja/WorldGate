@@ -48,11 +48,11 @@ public final class WorldGateButton extends AbstractWidget {
         boolean hovered = isHoveredOrFocused();
         boolean pressed = isFocused() && hovered;
 
-        int shadow = hovered ? 0x52000000 : 0x46000000;
-        int glass = hovered ? 0xD51D2935 : 0xC9121A25;
-        int glassInner = hovered ? 0xA92D3946 : 0x8F202A35;
-        int edge = hovered ? accent : 0x6F9AA9B8;
-        int shine = hovered ? 0x3FFFFFFF : 0x24FFFFFF;
+        int shadow = hovered ? 0x2C000000 : 0x18000000;
+        int glass = hovered ? 0x684C667A : 0x402C3A4A;
+        int glassInner = hovered ? 0x3DFFFFFF : 0x24FFFFFF;
+        int edge = hovered ? accent : 0x6B9FB3C5;
+        int shine = hovered ? 0x66FFFFFF : 0x3DFFFFFF;
         int textColor = !active ? 0xFF687583 : hovered ? 0xFFFFFFFF : 0xFFE8EEF4;
 
         graphics.fill(getX() + 2, getY() + 3, getRight() + 2, getBottom() + 4, shadow);
