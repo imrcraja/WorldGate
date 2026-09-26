@@ -16,9 +16,16 @@ public final class VoiceManager {
     private volatile SourceDataLine speaker;
     private volatile boolean running;
     private volatile boolean microphoneDenied;
+    private volatile boolean muted;
+    private volatile float speakerVolume = 1.0f;
     private ExecutorService io;
     public VoiceManager(FirebaseSession session){this.session=session;}
     public boolean isRunning(){return running;}
+    public boolean isMuted(){return muted;}
+    public void setMuted(boolean value){muted=value;}
+    public void toggleMute(){muted=!muted;}
+    public float getSpeakerVolume(){return speakerVolume;}
+    public void setSpeakerVolume(float value){speakerVolume=Math.max(0.0f,Math.min(1.0f,value));}
     public boolean microphoneAvailable(){
         try{
             AudioFormat f=new AudioFormat(16000f,16,1,true,false);
@@ -47,10 +54,10 @@ public final class VoiceManager {
     }
     private void capture(AudioFormat f){
         byte[] buf=new byte[640];
-        try{while(running&&microphone!=null){int n=microphone.read(buf,0,buf.length);if(n>0&&socket!=null)socket.sendBinary(ByteBuffer.wrap(java.util.Arrays.copyOf(buf,n)),true);}}catch(Exception e){if(running)WorldGateMod.LOGGER.debug("Voice capture stopped",e);}
+        try{while(running&&microphone!=null){int n=microphone.read(buf,0,buf.length);if(n>0&&socket!=null&&!muted)socket.sendBinary(ByteBuffer.wrap(java.util.Arrays.copyOf(buf,n)),true);}}catch(Exception e){if(running)WorldGateMod.LOGGER.debug("Voice capture stopped",e);}
     }
     public void stop(){
-        running=false;
+        running=false;muted=false;
         try{if(socket!=null)socket.sendClose(WebSocket.NORMAL_CLOSURE,"voice stop");}catch(Exception ignored){}
         try{if(microphone!=null)microphone.stop();}catch(Exception ignored){}
         try{if(microphone!=null)microphone.close();}catch(Exception ignored){}
@@ -60,7 +67,7 @@ public final class VoiceManager {
     }
     private final class VoiceListener implements WebSocket.Listener{
         public CompletionStage<?> onBinary(WebSocket ws,ByteBuffer data,boolean last){
-            try{if(speaker!=null){byte[] b=new byte[data.remaining()];data.get(b);speaker.write(b,0,b.length);}}catch(Exception ignored){}
+            try{if(speaker!=null){byte[] b=new byte[data.remaining()];data.get(b);if(speaker.getControl(FloatControl.Type.MASTER_GAIN) instanceof FloatControl gain){float min=gain.getMinimum();float max=gain.getMaximum();float normalized=Math.max(0.0001f,speakerVolume);gain.setValue(Math.max(min,Math.min(max,(float)(20.0*Math.log10(normalized)))));}speaker.write(b,0,b.length);}}catch(Exception ignored){}
             ws.request(1);return null;
         }
         public CompletionStage<?> onText(WebSocket ws,String data,boolean last){ws.request(1);return null;}
