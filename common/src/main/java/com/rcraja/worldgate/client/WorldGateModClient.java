@@ -67,7 +67,15 @@ public class WorldGateModClient implements ClientModInitializer {
      * connection is closing. Opening/closing WorldGate screens must not change
      * the room code or make the host leave.
      */
-    public static void stopVoice(){ VOICE_MANAGER.stop(); }\n    public static boolean startVoice(){ String room=CURRENT_ROOM_CODE; if(room==null||room.isBlank())return false; String role=HOSTING_ROOM_CODE!=null&&HOSTING_ROOM_CODE.equals(room)?"host":"player"; return VOICE_MANAGER.start(room,role); }\n\n    public static void leaveCurrentRoomOnWorldDisconnect() {
+    public static void stopVoice(){ VOICE_MANAGER.stop(); }
+    public static boolean startVoice(){
+        String room = CURRENT_ROOM_CODE;
+        if (room == null || room.isBlank()) return false;
+        String role = HOSTING_ROOM_CODE != null && HOSTING_ROOM_CODE.equals(room) ? "host" : "player";
+        return VOICE_MANAGER.start(room, role);
+    }
+
+    public static void leaveCurrentRoomOnWorldDisconnect() {
         final String room = CURRENT_ROOM_CODE;
         final boolean host = HOSTING_ROOM_CODE != null
                 && HOSTING_ROOM_CODE.equals(room);

@@ -89,6 +89,7 @@ public final class RelayBridge {
                     return;
                 }
 
+                advertiseLan(roomCode, minecraftPort);
                 Socket socket = new Socket("127.0.0.1", minecraftPort);
                 socket.setTcpNoDelay(true);
                 socket.setKeepAlive(true);
@@ -358,6 +359,54 @@ public final class RelayBridge {
         }
 
         return running && connected;
+    }
+
+    public static void advertiseLan(String roomCode, int minecraftPort) {
+        if (roomCode == null || roomCode.isBlank() || minecraftPort < 1 || minecraftPort > 65535) return;
+        Thread t = new Thread(() -> {
+            try (java.net.DatagramSocket socket = new java.net.DatagramSocket()) {
+                socket.setBroadcast(true);
+                byte[] data = ("WORLDGATE-LAN-2|" + roomCode.trim().toUpperCase() + "|" + minecraftPort)
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                while (running) {
+                    socket.send(new java.net.DatagramPacket(data, data.length,
+                            java.net.InetAddress.getByName("255.255.255.255"), 38921));
+                    Thread.sleep(1500L);
+                }
+            } catch (Exception ignored) {}
+        }, "WorldGate-LAN-Advertiser");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    public static void discoverLan(long durationMs, java.util.function.Consumer<java.util.List<String>> callback) {
+        Thread t = new Thread(() -> {
+            java.util.LinkedHashSet<String> found = new java.util.LinkedHashSet<>();
+            long deadline = System.currentTimeMillis() + Math.max(250L, Math.min(durationMs, 10000L));
+            try (java.net.DatagramSocket socket = new java.net.DatagramSocket(38921)) {
+                socket.setSoTimeout(300);
+                byte[] buffer = new byte[1024];
+                while (System.currentTimeMillis() < deadline) {
+                    java.net.DatagramPacket packet = new java.net.DatagramPacket(buffer, buffer.length);
+                    try {
+                        socket.receive(packet);
+                        String value = new String(packet.getData(), packet.getOffset(), packet.getLength(),
+                                java.nio.charset.StandardCharsets.UTF_8);
+                        String[] parts = value.split("\\|", 3);
+                        if (parts.length == 3 && "WORLDGATE-LAN-2".equals(parts[0])
+                                && parts[1].matches("[A-Z0-9_-]{4,64}")) {
+                            int port = Integer.parseInt(parts[2]);
+                            if (port > 0 && port <= 65535) {
+                                found.add(parts[1] + "@" + packet.getAddress().getHostAddress() + ":" + port);
+                            }
+                        }
+                    } catch (java.net.SocketTimeoutException ignored) {}
+                }
+            } catch (Exception ignored) {}
+            callback.accept(java.util.List.copyOf(found));
+        }, "WorldGate-LAN-Discovery");
+        t.setDaemon(true);
+        t.start();
     }
 
     public static long getRttMillis() { return rttMillis; }
