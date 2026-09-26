@@ -33,13 +33,14 @@ public final class WardrobeScreen extends Screen {
                 caps(Component.translatable("worldgate.wardrobe.cosmetics")), () -> open(Tab.COSMETICS)));
         addRenderableWidget(new WorldGateButton(width / 2 - 52, 58, 100, 22,
                 caps(Component.translatable("worldgate.wardrobe.emotes")), () -> open(Tab.EMOTES)));
-        final WorldGateButton ownedButton = new WorldGateButton(width / 2 + 156, 58, 108, 22,
+        final WorldGateButton[] ownedButtonRef = new WorldGateButton[1];
+        ownedButtonRef[0] = new WorldGateButton(width / 2 + 156, 58, 108, 22,
                 Component.literal("OWNED ONLY: OFF"), () -> {
                     ownedOnly = !ownedOnly;
-                    ownedButton.setMessage(Component.literal("OWNED ONLY: " + (ownedOnly ? "ON" : "OFF")));
+                    ownedButtonRef[0].setMessage(Component.literal("OWNED ONLY: " + (ownedOnly ? "ON" : "OFF")));
                     refresh();
                 });
-        addRenderableWidget(ownedButton);
+        addRenderableWidget(ownedButtonRef[0]);
 
         addRenderableWidget(new WorldGateButton(width / 2 + 52, 58, 100, 22,
                 caps(Component.translatable("worldgate.coin.shop")), () -> minecraft.setScreen(new EliteCoinScreen(this))));
