@@ -89,6 +89,7 @@ public final class RelayBridge {
                     return;
                 }
 
+                advertiseLan(roomCode, minecraftPort);
                 Socket socket = new Socket("127.0.0.1", minecraftPort);
                 socket.setTcpNoDelay(true);
                 socket.setKeepAlive(true);
