@@ -69,10 +69,10 @@ public abstract class TitleScreenMixin extends Screen {
         worldgate$addRail(railX, railY, railW);
 
         // Notification + mailbox remain independent top-right controls.
-        addRenderableWidget(new IconButton(width - 54, 18, 34,
+        addRenderableWidget(new IconButton(width - 76, 18, 34,
                 IconButton.Icon.BELL,
                 () -> minecraft.setScreen(new NotificationsScreen(this))));
-        addRenderableWidget(new IconButton(width - 14 - 34, 18, 34,
+        addRenderableWidget(new IconButton(width - 38, 18, 34,
                 IconButton.Icon.MAILBOX,
                 () -> minecraft.setScreen(new ClaimCenterScreen(this))));
     }
