@@ -8,29 +8,37 @@ import net.minecraft.network.chat.Component;
 
 import java.util.function.Consumer;
 
-/**
- * WorldGate's glass/proxy button.
- *
- * This class is only used by WorldGate widgets. Minecraft's own Button widgets
- * are never wrapped or restyled by this renderer.
- */
 public final class WorldGateButton extends AbstractWidget {
     private final Consumer<MouseButtonEvent> action;
     private final int accent;
+    private final Icon icon;
+
+    public enum Icon { NONE, HOST, SOCIAL, WARDROBE, PICTURES, SETTINGS, ACCOUNT }
 
     public WorldGateButton(int x, int y, int width, int height, Component message, Runnable action) {
-        this(x, y, width, height, message, event -> action.run(), 0xFF67D8FF);
+        this(x, y, width, height, message, event -> action.run(), 0xFF67D8FF, Icon.NONE);
     }
 
     public WorldGateButton(int x, int y, int width, int height, Component message, Runnable action, int accent) {
-        this(x, y, width, height, message, event -> action.run(), accent);
+        this(x, y, width, height, message, event -> action.run(), accent, Icon.NONE);
+    }
+
+    public WorldGateButton(int x, int y, int width, int height, Component message,
+                           Runnable action, int accent, Icon icon) {
+        this(x, y, width, height, message, event -> action.run(), accent, icon);
     }
 
     public WorldGateButton(int x, int y, int width, int height, Component message,
                            Consumer<MouseButtonEvent> action, int accent) {
+        this(x, y, width, height, message, action, accent, Icon.NONE);
+    }
+
+    public WorldGateButton(int x, int y, int width, int height, Component message,
+                           Consumer<MouseButtonEvent> action, int accent, Icon icon) {
         super(x, y, width, height, message);
         this.action = action;
         this.accent = accent;
+        this.icon = icon == null ? Icon.NONE : icon;
     }
 
     @Override
@@ -40,8 +48,6 @@ public final class WorldGateButton extends AbstractWidget {
         boolean hovered = isHoveredOrFocused();
         boolean pressed = isFocused() && hovered;
 
-        // Layered translucent surfaces give WorldGate its liquid/frosted-glass look
-        // without touching Minecraft's own rendering pipeline or OpenGL state.
         int shadow = hovered ? 0x52000000 : 0x46000000;
         int glass = hovered ? 0xD51D2935 : 0xC9121A25;
         int glassInner = hovered ? 0xA92D3946 : 0x8F202A35;
@@ -49,29 +55,59 @@ public final class WorldGateButton extends AbstractWidget {
         int shine = hovered ? 0x3FFFFFFF : 0x24FFFFFF;
         int textColor = !active ? 0xFF687583 : hovered ? 0xFFFFFFFF : 0xFFE8EEF4;
 
-        // Soft drop shadow.
         graphics.fill(getX() + 2, getY() + 3, getRight() + 2, getBottom() + 4, shadow);
-
-        // Glass body with a slightly inset inner pane.
         graphics.fill(getX(), getY(), getRight(), getBottom(), glass);
         graphics.fill(getX() + 1, getY() + 1, getRight() - 1, getBottom() - 1, glassInner);
-
-        // Thin accent edge and top glass reflection.
         graphics.outline(getX(), getY(), getWidth(), getHeight(), edge);
         graphics.fill(getX() + 3, getY() + 2, getRight() - 3, getY() + 3, shine);
 
-        // Small vertical reflection keeps the panel looking like translucent glass.
-        graphics.fill(getX() + 2, getY() + 5, getX() + 3, getBottom() - 5, 0x30FFFFFF);
-
-        // Pressed state gets a restrained inner highlight rather than changing layout.
         if (pressed) {
             graphics.fill(getX() + 2, getBottom() - 3, getRight() - 2, getBottom() - 2, accent);
         }
 
+        int textX = getX() + getWidth() / 2;
+        if (icon != Icon.NONE) {
+            int iconX = getRight() - 13;
+            drawIcon(graphics, iconX, getY() + getHeight() / 2, icon, textColor);
+            textX = getX() + (getWidth() - 20) / 2;
+        }
+
         graphics.centeredText(Minecraft.getInstance().font, getMessage(),
-                getX() + getWidth() / 2,
-                getY() + (getHeight() - 9) / 2,
-                textColor);
+                textX, getY() + (getHeight() - 9) / 2, textColor);
+    }
+
+    private static void drawIcon(GuiGraphicsExtractor g, int cx, int cy, Icon icon, int color) {
+        switch (icon) {
+            case HOST -> {
+                g.fill(cx - 5, cy - 1, cx + 5, cy + 1, color);
+                g.fill(cx - 3, cy + 2, cx + 3, cy + 4, color);
+                g.fill(cx - 1, cy - 5, cx + 1, cy - 3, color);
+            }
+            case SOCIAL -> {
+                g.fill(cx - 5, cy - 4, cx - 1, cy, color);
+                g.fill(cx + 1, cy - 1, cx + 5, cy + 3, color);
+                g.fill(cx - 6, cy + 2, cx - 2, cy + 5, color);
+            }
+            case WARDROBE -> {
+                g.fill(cx - 4, cy - 5, cx + 4, cy - 3, color);
+                g.fill(cx - 5, cy - 2, cx + 5, cy + 5, color);
+            }
+            case PICTURES -> {
+                g.outline(cx - 6, cy - 5, 12, 10, color);
+                g.fill(cx - 4, cy + 1, cx - 1, cy + 3, color);
+                g.fill(cx - 1, cy - 1, cx + 4, cy + 3, color);
+            }
+            case SETTINGS -> {
+                g.fill(cx - 5, cy - 1, cx + 5, cy + 1, color);
+                g.fill(cx - 1, cy - 5, cx + 1, cy + 5, color);
+                g.fill(cx - 3, cy - 3, cx + 3, cy + 3, color);
+            }
+            case ACCOUNT -> {
+                g.fill(cx - 3, cy - 5, cx + 3, cy + 1, color);
+                g.fill(cx - 5, cy + 2, cx + 5, cy + 5, color);
+            }
+            default -> { }
+        }
     }
 
     @Override
