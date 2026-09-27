@@ -10,10 +10,9 @@ import com.rcraja.worldgate.client.gui.PicturesScreen;
 import com.rcraja.worldgate.client.gui.NotificationsScreen;
 import com.rcraja.worldgate.client.gui.IconButton;
 import com.rcraja.worldgate.client.gui.WorldGateScreen;
+import com.rcraja.worldgate.client.gui.WorldGateMenuProfile;
 
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.PlayerSkinWidget;
-import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
@@ -38,41 +37,40 @@ public abstract class TitleScreenMixin extends Screen {
         if (minecraft == null) return;
 
         int[] b = worldgate$vanillaBounds();
-        int left = b[0];
         int top = b[1];
-        int right = b[2];
 
-        int previewSize = Math.min(98, Math.max(82, height / 3));
-        int previewX = Math.max(20, Math.min(width - previewSize - 20, width / 2 - previewSize / 2));
-        int previewY = Math.max(48, top - previewSize - 26);
-        if (previewY + previewSize + 28 < top - 6 && previewX + previewSize < width - 20) {
-            PlayerSkinWidget playerWidget = new PlayerSkinWidget(
-                    previewSize, previewSize + 28, minecraft.getEntityModels(),
-                    () -> minecraft.getSkinManager().createLookup(minecraft.getGameProfile(), false).get());
-            playerWidget.setPosition(previewX, previewY);
-            addRenderableWidget(playerWidget);
-            addRenderableWidget(new WorldGateButton(
-                    previewX + previewSize / 2 - 10, previewY + previewSize + 5, 20, 20,
-                    Component.empty(), () -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)),
-                    0xFFB8C4D0, WorldGateButton.Icon.WARDROBE));
-        }
+        // Keep vanilla controls untouched; WorldGate owns the two side panels.
+        int panelW = Math.min(278, Math.max(238, width / 5));
+        int panelH = Math.min(470, Math.max(360, height - 180));
+        int panelX = 18;
+        int panelY = Math.max(74, (height - panelH) / 2 + 20);
+        addRenderableWidget(new WorldGateMenuProfile(panelX, panelY, panelW, panelH, minecraft));
+        WorldGateMenuProfile.addPreview(this::addRenderableWidget, minecraft, panelX, panelY, panelW, 142,
+                () -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)));
+        WorldGateMenuProfile.refreshOwned();
 
-        int railW = Math.min(214, Math.max(190, width / 8));
-        int railX = width >= 760 ? width - railW - 14 : 12;
-        int railY = Math.max(46, Math.min(top - 8, height - (8 * 36) - 18));
+        int railW = Math.min(156, Math.max(138, width / 9));
+        int railX = width - railW - 18;
+        int railHeight = 8 * 25 + 7 * 4;
+        int railY = Math.max(120, Math.min(height - railHeight - 34, height / 2 - railHeight / 2));
         worldgate$addRail(railX, railY, railW);
 
+        addRenderableWidget(new IconButton(width - 114, 18, 34,
+                IconButton.Icon.SETTINGS,
+                () -> minecraft.setScreen(new SettingsScreen(this))));
         addRenderableWidget(new IconButton(width - 76, 18, 34,
                 IconButton.Icon.BELL,
                 () -> minecraft.setScreen(new NotificationsScreen(this))));
         addRenderableWidget(new IconButton(width - 38, 18, 34,
                 IconButton.Icon.MAILBOX,
                 () -> minecraft.setScreen(new ClaimCenterScreen(this))));
+
+        worldgate$replaceModsIcon(top);
     }
 
     private void worldgate$addRail(int x, int y, int width) {
-        int h = 30;
-        int gap = 6;
+        int h = 25;
+        int gap = 4;
         addRenderableWidget(new WorldGateButton(x, y, width, h, Component.literal("WorldGate"),
                 () -> minecraft.setScreen(new WorldGateScreen(this)), 0xFF67D8FF, WorldGateButton.Icon.FEATURES));
         addRenderableWidget(new WorldGateButton(x, y + (h + gap), width, h, Component.literal("Host"),
@@ -89,6 +87,25 @@ public abstract class TitleScreenMixin extends Screen {
                 () -> minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8, WorldGateButton.Icon.SETTINGS));
         addRenderableWidget(new WorldGateButton(x, y + 7 * (h + gap), width, h, Component.literal("Account"),
                 () -> minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B, WorldGateButton.Icon.ACCOUNT));
+    }
+
+    private void worldgate$replaceModsIcon(int top) {
+        Button mods = null;
+        for (var child : children()) {
+            if (child instanceof Button button && button.visible
+                    && "Mods".equalsIgnoreCase(button.getMessage().getString())) {
+                mods = button;
+                break;
+            }
+        }
+        if (mods == null) return;
+
+        int size = Math.max(28, Math.min(44, mods.getHeight()));
+        int x = mods.getRight() + 8;
+        if (x + size > width - 12) x = Math.max(12, width - size - 12);
+        int y = mods.getY() + Math.max(0, (mods.getHeight() - size) / 2);
+        addRenderableWidget(new IconButton(x, y, size, IconButton.Icon.SETTINGS,
+                () -> minecraft.setScreen(new SettingsScreen(this))));
     }
 
     private int[] worldgate$vanillaBounds() {
