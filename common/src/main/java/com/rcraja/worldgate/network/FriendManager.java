@@ -231,7 +231,7 @@ public class FriendManager {
                 + "\"fromName\":\"" + escapeJson(senderName) + "\","
                 + "\"sentAt\":" + System.currentTimeMillis() + "}";
         String response = BackendClient.sendFriendRequest(session, publicId.trim());
-        return response != null && response.contains(""ok":true");
+        return response != null && response.contains("\"ok\":true");
     }
 
     public String getIncomingRequests() {
