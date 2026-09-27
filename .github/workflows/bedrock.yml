@@ -38,7 +38,7 @@ jobs:
       - name: Validate JavaScript
         run: node --check bedrock/behavior_packs/worldgate_bp/scripts/main.js
 
-      - name: Package Bedrock packs
+      - name: Package single Bedrock add-on
         shell: bash
         run: |
           set -euo pipefail
@@ -61,12 +61,9 @@ jobs:
           cd ..
           unzip -l WorldGate-Bedrock-1.26.52.3.mcaddon | grep -E '\.mcpack$' >/dev/null
 
-      - name: Upload Bedrock Add-On
+      - name: Upload single Bedrock Add-On
         uses: actions/upload-artifact@v4
         with:
           name: WorldGate-Bedrock-1.26.52.3
-          path: |
-            dist/WorldGate-Bedrock-1.26.52.3.mcaddon
-            dist/WorldGate-Behavior-1.26.52.3.mcpack
-            dist/WorldGate-Resources-1.26.52.3.mcpack
+          path: dist/WorldGate-Bedrock-1.26.52.3.mcaddon
           if-no-files-found: error
