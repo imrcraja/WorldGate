@@ -1,6 +1,7 @@
 package com.rcraja.worldgate.client.gui;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import com.rcraja.worldgate.WorldGateMod;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -90,7 +91,10 @@ public final class IconButton extends AbstractWidget {
 
     @Override
     public void onClick(MouseButtonEvent event, boolean doubleClick) {
-        if (active && visible) action.run();
+        if (active && visible) {
+            try { action.run(); }
+            catch (Throwable t) { WorldGateMod.LOGGER.error("WorldGate icon action failed safely", t); }
+        }
     }
 
     @Override
