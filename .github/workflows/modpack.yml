@@ -1,0 +1,152 @@
+name: Build WorldGate Modpack
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'common/**'
+      - 'v26_1_2/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - 'gradle/**'
+      - 'modpack/**'
+      - '.github/workflows/modpack.yml'
+  pull_request:
+    paths:
+      - 'common/**'
+      - 'v26_1_2/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - 'gradle/**'
+      - 'modpack/**'
+      - '.github/workflows/modpack.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  modpack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.7.1'
+
+      - name: Build WorldGate
+        run: gradle :v26_1_2:build --stacktrace --no-daemon
+
+      - name: Prepare modpack
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="26.1.2"
+          LOADER_VERSION="0.19.3"
+          FABRIC_API_VERSION="0.155.3+26.1.2"
+          FABRIC_API_URL="https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/${FABRIC_API_VERSION]]/fabric-api-${FABRIC_API_VERSION]].jar"
+
+          rm -rf modpack-build
+          mkdir -p modpack-build/overrides/mods
+
+          WORLDGATE_JAR="$(find v26_1_2/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' | head -n 1)"
+          test -n "${WORLDGATE_JAR]]"
+
+          cp "${WORLDGATE_JAR]]" "modpack-build/overrides/mods/$(basename "${WORLDGATE_JAR]]")"
+          curl -fsSL "${FABRIC_API_URL]]" -o "modpack-build/overrides/mods/fabric-api-${FABRIC_API_VERSION]].jar"
+
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path("modpack-build/overrides/mods")
+          files = []
+
+          for path in sorted(root.glob("*.jar")):
+              data = path.read_bytes()
+              files.append({
+                  "path": f"overrides/mods/{path.name}",
+                  "hashes": {
+                      "sha1": hashlib.sha1(data).hexdigest(),
+                      "sha512": hashlib.sha512(data).hexdigest(),
+                  },
+                  "env": {
+                      "client": "required",
+                      "server": "required",
+                  },
+                  "downloads": [],
+                  "fileSize": len(data),
+              })
+
+          worldgate = next(p for p in root.glob("worldgate-*.jar"))
+          fabric_api = next(p for p in root.glob("fabric-api-*.jar"))
+
+          def add_download(path, url):
+              for item in files:
+                  if item["path"] == f"overrides/mods/{path.name}":
+                      item["downloads"] = [url]
+                      return
+
+          add_download(
+              worldgate,
+              "https://github.com/imrcraja/WorldGate/releases/latest/download/" + worldgate.name,
+          )
+          add_download(
+              fabric_api,
+              "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/0.155.3%2B26.1.2/fabric-api-0.155.3%2B26.1.2.jar",
+          )
+
+          index = {
+              "formatVersion": 1,
+              "game": "minecraft",
+              "versionId": "worldgate-26.1.2",
+              "name": "WorldGate 26.1.2",
+              "summary": "Official WorldGate Fabric modpack for Minecraft 26.1.2",
+              "files": files,
+              "dependencies": {
+                  "minecraft": "26.1.2",
+                  "fabric-loader": "0.19.3",
+              },
+          }
+
+          Path("modpack-build/modrinth.index.json").write_text(
+              json.dumps(index, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python3 -m json.tool modpack-build/modrinth.index.json >/dev/null
+          test -f modpack-build/modrinth.index.json
+          test -n "$(find modpack-build/overrides/mods -type f -name 'worldgate-*.jar' -print -quit)"
+          test -n "$(find modpack-build/overrides/mods -type f -name 'fabric-api-*.jar' -print -quit)"
+
+          cd modpack-build
+          zip -9 -r "../WorldGate-26.1.2-Modpack.mrpack" modrinth.index.json overrides >/dev/null
+
+      - name: Validate modpack archive
+        run: |
+          set -euo pipefail
+          unzip -t WorldGate-26.1.2-Modpack.mrpack
+          unzip -l WorldGate-26.1.2-Modpack.mrpack
+          unzip -p WorldGate-26.1.2-Modpack.mrpack modrinth.index.json | python3 -m json.tool >/dev/null
+
+      - name: Upload modpack
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorldGate-26.1.2-Modpack
+          path: WorldGate-26.1.2-Modpack.mrpack
+          if-no-files-found: error
