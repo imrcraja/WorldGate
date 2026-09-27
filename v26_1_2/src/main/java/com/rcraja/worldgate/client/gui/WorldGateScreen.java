@@ -112,8 +112,8 @@ public class WorldGateScreen extends Screen {
 
         if (minecraft != null && !compact) {
             int previewSize = 92;
-            int previewX = mainX + mainW - previewSize - 14;
-            int previewY = roomY + 10;
+            int previewX = mainX + Math.max(18, (mainW - previewSize) / 2);
+            int previewY = roomY + 42;
             PlayerSkinWidget playerWidget = new PlayerSkinWidget(
                     previewSize, previewSize + 22, this.minecraft.getEntityModels(),
                     () -> this.minecraft.getSkinManager().getInsecureSkin(this.minecraft.getGameProfile()));
@@ -282,7 +282,7 @@ public class WorldGateScreen extends Screen {
                         : -1;
 
                 if (!lanDirect && WorldGateModClient.useInternetRelay()) {
-                    long deadline = System.currentTimeMillis() + 12000L;
+                    long deadline = System.currentTimeMillis() + 45000L;
                     while (relayPort > 0 && !RelayBridge.isConnected() && System.currentTimeMillis() < deadline) {
                         try {
                             Thread.sleep(100L);
