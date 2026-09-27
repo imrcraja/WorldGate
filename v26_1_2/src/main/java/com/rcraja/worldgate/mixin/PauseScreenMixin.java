@@ -60,10 +60,10 @@ public abstract class PauseScreenMixin extends Screen {
                     0xFFB8C4D0, WorldGateButton.Icon.WARDROBE));
         }
 
-        int railW = Math.min(216, Math.max(184, width / 8));
-        int railX = width - railW - 24;
-        if (railX < right + 12) railX = Math.max(right + 12, width - railW - 12);
-        int railY = Math.max(68, top + 2);
+        int railW = Math.min(214, Math.max(190, width / 8));
+        int railX = right + 64;
+        if (railX + railW > width - 18) railX = Math.max(right + 12, width - railW - 18);
+        int railY = Math.max(54, top - 8);
         worldgate$addRail(railX, railY, railW);
 
         addRenderableWidget(new IconButton(width - 76, 18, 34,
@@ -99,6 +99,10 @@ public abstract class PauseScreenMixin extends Screen {
         addRenderableWidget(new WorldGateButton(x, y + 4 * (h + gap), width, h, Component.literal("Settings"),
                 () -> minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8, WorldGateButton.Icon.SETTINGS));
         addRenderableWidget(new WorldGateButton(x, y + 5 * (h + gap), width, h, Component.literal("Account"),
+                () -> minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B, WorldGateButton.Icon.ACCOUNT));
+        addRenderableWidget(new WorldGateButton(x, y + 6 * (h + gap), w, h, Component.literal("Settings"),
+                () -> minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8, WorldGateButton.Icon.SETTINGS));
+        addRenderableWidget(new WorldGateButton(x, y + 7 * (h + gap), w, h, Component.literal("Account"),
                 () -> minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B, WorldGateButton.Icon.ACCOUNT));
     }
 
