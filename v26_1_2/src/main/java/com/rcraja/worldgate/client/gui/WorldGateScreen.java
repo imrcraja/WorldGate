@@ -150,9 +150,7 @@ public class WorldGateScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        super.extractRenderState(g, mouseX, mouseY, delta);
-        g.fill(0, 0, width, height, 0xB90A1018);
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {g.fill(0, 0, width, height, 0xB90A1018);
 
         int margin = Math.max(12, Math.min(24, width / 28));
         int gap = 10;
@@ -191,6 +189,7 @@ public class WorldGateScreen extends Screen {
 
         int actionsY = roomY + 126;
         g.text(font, Component.literal("WORLDGATE TOOLS"), mainX + 16, actionsY + 4, 0xFFB9DFFF);
+        super.extractRenderState(g, mouseX, mouseY, delta);
     }
 
     private void onCreate() {
