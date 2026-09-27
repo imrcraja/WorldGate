@@ -14,7 +14,7 @@ import com.rcraja.worldgate.network.EliteCoinManager;
  */
 public final class IconButton extends AbstractWidget {
 
-    public enum Icon { MAILBOX, BELL }
+    public enum Icon { MAILBOX, BELL, SETTINGS }
 
     private final Icon icon;
     private final Runnable action;
@@ -40,11 +40,13 @@ public final class IconButton extends AbstractWidget {
 
         if (icon == Icon.MAILBOX) {
             drawMailIcon(graphics, cx, cy, color);
-        } else {
+        } else if (icon == Icon.BELL) {
             drawBellIcon(graphics, cx, cy, color);
+        } else {
+            drawSettingsIcon(graphics, cx, cy, color);
         }
 
-        int badge = unreadCount();
+        int badge = icon == Icon.SETTINGS ? 0 : unreadCount();
         if (badge > 0) {
             int bx = getRight() - 2;
             int by = getY() + 2;
@@ -75,6 +77,20 @@ public final class IconButton extends AbstractWidget {
         g.fill(x + 1, y + 1, x + w - 1, y + h - 3, color);
         g.fill(x, y + h - 3, x + w, y + h - 2, color);
         g.fill(cx - 1, y + h - 1, cx + 1, y + h, color);
+    }
+
+    private void drawSettingsIcon(GuiGraphicsExtractor g, int cx, int cy, int color) {
+        int r = 6;
+        g.outline(cx - r, cy - r, r * 2, r * 2, color);
+        g.fill(cx - 2, cy - 2, cx + 2, cy + 2, color);
+        g.fill(cx - 1, cy - 8, cx + 1, cy - 5, color);
+        g.fill(cx - 1, cy + 5, cx + 1, cy + 8, color);
+        g.fill(cx - 8, cy - 1, cx - 5, cy + 1, color);
+        g.fill(cx + 5, cy - 1, cx + 8, cy + 1, color);
+        g.fill(cx - 6, cy - 6, cx - 4, cy - 4, color);
+        g.fill(cx + 4, cy + 4, cx + 6, cy + 6, color);
+        g.fill(cx + 4, cy - 6, cx + 6, cy - 4, color);
+        g.fill(cx - 6, cy + 4, cx - 4, cy + 6, color);
     }
 
     private int unreadCount() {
