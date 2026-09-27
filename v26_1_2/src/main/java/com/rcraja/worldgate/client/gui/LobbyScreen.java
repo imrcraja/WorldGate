@@ -635,16 +635,7 @@ public class LobbyScreen extends Screen {
             int mouseX,
             int mouseY,
             float delta
-    ) {
-
-        super.extractRenderState(
-                graphics,
-                mouseX,
-                mouseY,
-                delta
-        );
-
-        int centerX =
+    ) {int centerX =
                 this.width / 2;
 
         int panelTop =
@@ -758,6 +749,12 @@ public class LobbyScreen extends Screen {
                     0xAAAAAA
             );
         }
+        super.extractRenderState(
+                graphics,
+                mouseX,
+                mouseY,
+                delta
+        );
     }
 
     private void drawPanel(
