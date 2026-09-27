@@ -130,7 +130,7 @@ public final class RelayBridge {
 
             try {
                 ServerSocket server = new ServerSocket(0, 1,
-                        java.net.InetAddress.getLoopbackAddress());
+                        java.net.InetAddress.getByName("127.0.0.1"));
 
                 server.setReuseAddress(true);
                 playerServer = server;
