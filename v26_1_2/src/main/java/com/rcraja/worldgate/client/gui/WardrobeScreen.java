@@ -3,7 +3,7 @@ package com.rcraja.worldgate.client.gui;
 import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.network.EliteCoinManager;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Screen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.client.renderer.RenderPipelines;
