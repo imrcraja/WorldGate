@@ -8,9 +8,13 @@ import com.rcraja.worldgate.client.elite.EliteManager;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.PlayerSkinWidget;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.component.ResolvableProfile;
+
+import java.util.UUID;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -41,6 +45,7 @@ public class FriendsScreen extends Screen {
     private String pendingInviteFromUid;
     private String pendingInviteRoom;
     private final List<InviteEntry> invites = new ArrayList<>();
+    private final List<PlayerSkinWidget> friendAvatarWidgets = new ArrayList<>();
     private String selectedInviteFromUid;
 
     private final Set<String> knownRequestUids = new HashSet<>();
@@ -174,6 +179,22 @@ public class FriendsScreen extends Screen {
                 });
             }
         });
+    }
+
+    private void layoutFriendAvatars() {
+        int margin = Math.max(12, width / 20);
+        int right = profileLeft + panelWidth * 2 + margin * 2;
+        int friendY = contentTop + 30;
+        for (int i = 0; i < friendAvatarWidgets.size(); i++) {
+            PlayerSkinWidget avatar = friendAvatarWidgets.get(i);
+            if (i < friends.size()) {
+                avatar.visible = true;
+                avatar.setPosition(right + 12, friendY - 2);
+            } else {
+                avatar.visible = false;
+            }
+            friendY += 38;
+        }
     }
 
     private void updateButtons() {
@@ -386,6 +407,7 @@ public class FriendsScreen extends Screen {
                 minecraft.execute(() -> {
                     friends.clear();
                     friends.addAll(result);
+                    layoutFriendAvatars();
                     if (selectedFriendUid != null
                             && friends.stream().noneMatch(f -> f.uid().equals(selectedFriendUid))) {
                         selectedFriendUid = null;
