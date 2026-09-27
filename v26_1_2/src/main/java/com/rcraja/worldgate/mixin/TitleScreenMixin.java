@@ -48,7 +48,7 @@ public abstract class TitleScreenMixin extends Screen {
         if (previewY + previewSize + 28 < top - 6 && previewX + previewSize < width - 20) {
             PlayerSkinWidget playerWidget = new PlayerSkinWidget(
                     previewSize, previewSize + 28, minecraft.getEntityModels(),
-                    () -> minecraft.getSkinManager().getInsecureSkin(minecraft.getGameProfile()));
+                    () -> minecraft.getSkinManager().createLookup(minecraft.getGameProfile(), false).get());
             playerWidget.setPosition(previewX, previewY);
             addRenderableWidget(playerWidget);
             addRenderableWidget(new WorldGateButton(
