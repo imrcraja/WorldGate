@@ -256,7 +256,7 @@ public class FriendManager {
         fromUid = fromUid.trim();
 
         String response = BackendClient.acceptFriendRequest(session, fromUid);
-        boolean ok = response != null && response.contains(""ok":true");
+        boolean ok = response != null && response.contains("\"ok\":true");
         if (ok) notifyFriendListChanged();
         return ok;
     }
