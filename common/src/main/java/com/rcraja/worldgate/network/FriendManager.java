@@ -29,6 +29,8 @@ public class FriendManager {
 
     private volatile Consumer<String> friendListChanged;
     private volatile String myPublicId;
+    private volatile boolean requestPolling;
+    private Thread requestPoller;
 
     public FriendManager(FirebaseSession session) {
         this.session = session;
@@ -417,6 +419,32 @@ public class FriendManager {
         );
 
         refreshProfileStreams();
+        startRequestPoller();
+    }
+
+    private synchronized void startRequestPoller() {
+        if (requestPolling) return;
+        requestPolling = true;
+        requestPoller = new Thread(() -> {
+            String last = null;
+            while (requestPolling && session.isReady()) {
+                try {
+                    String current = getIncomingRequests();
+                    if (current != null && !current.equals(last)) {
+                        last = current;
+                        notifyFriendListChanged();
+                    }
+                    Thread.sleep(3000L);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                } catch (Exception ignored) {
+                    try { Thread.sleep(3000L); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
+                }
+            }
+        }, "WorldGate-Friend-Request-Poller");
+        requestPoller.setDaemon(true);
+        requestPoller.start();
     }
 
     private void refreshProfileStreams() {
@@ -509,7 +537,12 @@ public class FriendManager {
         }
     }
 
-    public void stopRealtime() {
+    public synchronized void stopRealtime() {
+        requestPolling = false;
+        if (requestPoller != null) {
+            requestPoller.interrupt();
+            requestPoller = null;
+        }
 
         requestStream.stop();
 
