@@ -106,9 +106,7 @@ public final class NotificationsScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
-        super.extractRenderState(g, mx, my, delta);
-        g.blurBeforeThisStratum();
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {g.blurBeforeThisStratum();
         g.fill(0, 0, width, height, 0xD9080C12);
 
         int margin = Math.max(16, Math.min(36, width / 24));
@@ -164,6 +162,7 @@ public final class NotificationsScreen extends Screen {
                 // no widget mutation is performed during rendering.
             }
         }
+        super.extractRenderState(g, mx, my, delta);
     }
 
     private void drawNotice(GuiGraphicsExtractor g, int x, int y, int w, int h,
