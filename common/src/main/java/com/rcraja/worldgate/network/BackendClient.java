@@ -38,6 +38,11 @@ public final class BackendClient {
     public static String giftCoins(FirebaseSession s,String toUid,long coins,String message){return post(Constants.BACKEND_BASE_URL+"/v1/coins/gift",s,"{\"toUid\":\""+escape(toUid)+"\",\"coins\":"+coins+",\"message\":\""+escape(message)+"\"}");}
     public static String markMailboxRead(FirebaseSession s,String messageId){return post(Constants.BACKEND_BASE_URL+"/v1/coins/mailbox/read",s,"{\"messageId\":\""+escape(messageId)+"\"}");}
     public static String purchaseCoinPackage(FirebaseSession s,String packageId){return post(Constants.BACKEND_BASE_URL+"/v1/coins/purchase-intent",s,"{\"packageId\":\""+escape(packageId)+"\"}");}
+    public static String sendFriendRequest(FirebaseSession s,String publicId){return post(Constants.BACKEND_BASE_URL+"/v1/social/friends/request",s,"{\"publicId\":\""+escape(publicId)+"\"}");}
+    public static String friendRequests(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/social/friends/requests",s);}
+    public static String acceptFriendRequest(FirebaseSession s,String fromUid){return post(Constants.BACKEND_BASE_URL+"/v1/social/friends/accept",s,"{\"fromUid\":\""+escape(fromUid)+"\"}");}
+    public static String rejectFriendRequest(FirebaseSession s,String fromUid){return post(Constants.BACKEND_BASE_URL+"/v1/social/friends/reject",s,"{\"fromUid\":\""+escape(fromUid)+"\"}");}
+    public static String friends(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/social/friends",s);}
     public static String compatibilityConfig(){return getPublic(Constants.BACKEND_BASE_URL+"/v1/public/compatibility");}
 
     public static String paymentPackages(){return getPublic(Constants.BACKEND_BASE_URL+"/v1/payments/packages");}
