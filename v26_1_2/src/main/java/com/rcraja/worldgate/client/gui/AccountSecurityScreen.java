@@ -18,6 +18,7 @@ public final class AccountSecurityScreen extends Screen {
     private JsonArray sessions=new JsonArray();
     private static final int MAX_VISIBLE_SESSIONS=12;
     private final Button[] revokeButtons=new Button[MAX_VISIBLE_SESSIONS];
+    private final Button[] copyButtons=new Button[MAX_VISIBLE_SESSIONS];
     private final String[] revokeIds=new String[MAX_VISIBLE_SESSIONS];
 
     public AccountSecurityScreen(Screen parent){super(Component.translatable("worldgate.settings.security"));this.parent=parent;}
@@ -27,6 +28,10 @@ public final class AccountSecurityScreen extends Screen {
                 .bounds(width/2-110,70,220,20).build());
         for(int i=0;i<revokeButtons.length;i++){
             final int slot=i;
+            copyButtons[i]=addRenderableWidget(Button.builder(Component.literal("Copy"),b->{
+                String id=revokeIds[slot];
+                if(id!=null&&!id.isBlank()) CopyValue.copy(id, "Session ID");
+            }).bounds(width/2+5,96+i*28,58,20).build());
             revokeButtons[i]=addRenderableWidget(Button.builder(Component.translatable("worldgate.security.revoke"),b->{
                 String id=revokeIds[slot];
                 if(id!=null&&!id.isBlank()) revoke(id);
@@ -59,7 +64,9 @@ public final class AccountSecurityScreen extends Screen {
                 JsonObject item=sessions.get(i).getAsJsonObject();
                 if(item.has("sessionId")) revokeIds[i]=item.get("sessionId").getAsString();
             }
-            if(revokeButtons[i]!=null) revokeButtons[i].visible=revokeIds[i]!=null&&!revokeIds[i].isBlank();
+            boolean visible=revokeIds[i]!=null&&!revokeIds[i].isBlank();
+            if(revokeButtons[i]!=null) revokeButtons[i].visible=visible;
+            if(copyButtons[i]!=null) copyButtons[i].visible=visible;
         }
     }
 
