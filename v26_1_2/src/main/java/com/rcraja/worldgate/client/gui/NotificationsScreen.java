@@ -91,7 +91,7 @@ public final class NotificationsScreen extends Screen {
         if (daily) y += rowH + 8;
         if (activity) y += rowH + 8;
 
-        List<EliteCoinManager.Mail> mail = EliteCoinManager.mailbox();
+        List<EliteCoinManager.Mail> mail = safeMailbox();
         for (int i = 0; i < readButtons.size(); i++) {
             WorldGateButton button = readButtons.get(i);
             if (i < mail.size()) {
@@ -122,7 +122,7 @@ public final class NotificationsScreen extends Screen {
         int rowW = panelW - 36;
         int rowH = 54;
 
-        EliteCoinManager.RewardStatus rewards = EliteCoinManager.rewardStatus();
+        EliteCoinManager.RewardStatus rewards = safeRewardStatus();
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         boolean daily = !today.toString().equals(rewards.lastClaimDate())
                 && rewards.cycleCoins() < rewards.maxCycleCoins();
@@ -164,7 +164,17 @@ public final class NotificationsScreen extends Screen {
         super.extractRenderState(g, mx, my, delta);
     }
 
-    private EliteCoinManager.RewardStatus safeRewardStatus() { try { return EliteCoinManager.rewardStatus(); } catch (Exception ignored) { return new EliteCoinManager.RewardStatus(null,0,5,false,0,5); } }\n\n    private List<EliteCoinManager.Mail> safeMailbox() { try { return EliteCoinManager.mailbox(); } catch (Exception ignored) { return List.of(); } }\n\n    private void drawNotice(GuiGraphicsExtractor g, int x, int y, int w, int h,
+    private EliteCoinManager.RewardStatus safeRewardStatus() {
+        try { return EliteCoinManager.rewardStatus(); }
+        catch (Exception ignored) { return new EliteCoinManager.RewardStatus(null, 0, 5, false, 0, 5); }
+    }
+
+    private List<EliteCoinManager.Mail> safeMailbox() {
+        try { return EliteCoinManager.mailbox(); }
+        catch (Exception ignored) { return List.of(); }
+    }
+
+    private void drawNotice(GuiGraphicsExtractor g, int x, int y, int w, int h,
                             String title, String body, int accent) {
         g.fill(x, y, x + w, y + h, 0xED171F29);
         g.outline(x, y, w, h, 0xFF2D3B49);
