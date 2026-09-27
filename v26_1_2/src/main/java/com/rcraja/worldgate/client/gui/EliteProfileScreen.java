@@ -44,14 +44,18 @@ public final class EliteProfileScreen extends Screen {
                 }, 0xFF73C8E8));
 
         if (minecraft != null) {
-            int size = 96;
-            PlayerSkinWidget preview = new PlayerSkinWidget(
-                    size, size + 26, minecraft.getEntityModels(),
-                    () -> minecraft.playerSkinRenderCache()
-                            .getOrDefault(ResolvableProfile.createUnresolved(minecraft.getUser().getProfileId()))
-                            .playerSkin());
-            preview.setPosition(Math.max(18, width / 2 - 250), 72);
-            addRenderableWidget(preview);
+            try {
+                int size = 96;
+                PlayerSkinWidget preview = new PlayerSkinWidget(
+                        size, size + 26, minecraft.getEntityModels(),
+                        () -> minecraft.playerSkinRenderCache()
+                                .getOrDefault(ResolvableProfile.createUnresolved(minecraft.getUser().getProfileId()))
+                                .playerSkin());
+                preview.setPosition(Math.max(18, width / 2 - 250), 72);
+                addRenderableWidget(preview);
+            } catch (Exception ignored) {
+                status = "Profile ready without 3D preview.";
+            }
         }
         load();
     }
@@ -142,6 +146,6 @@ public final class EliteProfileScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        if (minecraft != null) minecraft.setScreen(parent);
     }
 }
