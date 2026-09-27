@@ -116,9 +116,7 @@ public class WorldGateScreen extends Screen {
             int previewY = roomY + 10;
             PlayerSkinWidget playerWidget = new PlayerSkinWidget(
                     previewSize, previewSize + 22, this.minecraft.getEntityModels(),
-                    () -> this.minecraft.playerSkinRenderCache()
-                            .getOrDefault(ResolvableProfile.createUnresolved(this.minecraft.getUser().getProfileId()))
-                            .playerSkin());
+                    () -> this.minecraft.getSkinManager().getInsecureSkin(this.minecraft.getGameProfile()));
             playerWidget.setPosition(previewX, previewY);
             addRenderableWidget(playerWidget);
         }
