@@ -48,7 +48,7 @@ public final class EliteProfileScreen extends Screen {
                 int size = 96;
                 PlayerSkinWidget preview = new PlayerSkinWidget(
                         size, size + 26, minecraft.getEntityModels(),
-                        () -> minecraft.getSkinManager().getInsecureSkin(minecraft.getGameProfile()));
+                        () -> minecraft.getSkinManager().createLookup(minecraft.getGameProfile(), false).get());
                 preview.setPosition(Math.max(18, width / 2 - 250), 72);
                 addRenderableWidget(preview);
             } catch (Exception ignored) {
