@@ -27,6 +27,8 @@ on:
 permissions:
   contents: read
 
+# Release touchpoint: keep the Java JAR and Modrinth modpack build independently triggerable.
+
 jobs:
   modpack:
     runs-on: ubuntu-latest
