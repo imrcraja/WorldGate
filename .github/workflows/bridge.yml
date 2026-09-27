@@ -18,11 +18,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Validate startup script
         run: |
           test -x relay/bridge/start.sh || chmod +x relay/bridge/start.sh
           sh -n relay/bridge/start.sh
+
       - name: Build bridge image
         run: docker build --pull -t worldgate-protocol-bridge:ci relay/bridge
+
       - name: Verify image metadata
         run: docker image inspect worldgate-protocol-bridge:ci >/dev/null
+
+      - name: Verify ViaProxy CLI contract
+        run: |
+          docker run --rm --entrypoint java worldgate-protocol-bridge:ci             -jar /opt/worldgate/ViaProxy.jar cli --help | tee /tmp/viaproxy-help.txt
+          grep -q -- '--bind-address' /tmp/viaproxy-help.txt
+          grep -q -- '--target-address' /tmp/viaproxy-help.txt
+          grep -q -- '--target-version' /tmp/viaproxy-help.txt
+          test -s /opt/worldgate/plugins/Geyser-ViaProxy.jar
