@@ -31,6 +31,12 @@ public final class EliteProfileScreen extends Screen {
                 Component.translatable("worldgate.button.refresh"), this::load, 0xFF73E0A1));
         addRenderableWidget(new WorldGateButton(width / 2 + 60, bottom, 104, 22,
                 Component.translatable("worldgate.button.back"), () -> minecraft.setScreen(parent), 0xFF9CA9B8));
+        addRenderableWidget(new WorldGateButton(width / 2 + 128, 129, 72, 20,
+                Component.literal("Copy ID"),
+                () -> {
+                    String id = UserProfileCache.value("publicId", "");
+                    if (id != null && !id.isBlank() && !"Not set".equals(id)) CopyValue.copy(id, "Public ID");
+                }, 0xFF73C8E8));
 
         if (minecraft != null) {
             int size = 96;
