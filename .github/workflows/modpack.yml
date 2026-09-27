@@ -86,7 +86,7 @@ jobs:
           }
 
           Path("modpack-build/modrinth.index.json").write_text(
-              json.dumps(index, indent=2) + "\\n",
+              json.dumps(index, indent=2) + "\n",
               encoding="utf-8",
           )
           PY
