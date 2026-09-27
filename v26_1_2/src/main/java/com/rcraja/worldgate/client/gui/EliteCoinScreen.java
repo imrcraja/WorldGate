@@ -156,9 +156,7 @@ public final class EliteCoinScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
-        super.extractRenderState(g, mx, my, delta);
-        int cx = width / 2;
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {int cx = width / 2;
         if (minecraft.player != null) {
             try {
                 EntityRenderState preview = minecraft.getEntityRenderDispatcher().getRenderer(minecraft.player).createRenderState(minecraft.player, delta);
@@ -210,6 +208,7 @@ public final class EliteCoinScreen extends Screen {
 
         g.centeredText(font, Component.literal(status),
                 cx, height - 48, 0xFF8E9AA6);
+        super.extractRenderState(g, mx, my, delta);
     }
 
     @Override
