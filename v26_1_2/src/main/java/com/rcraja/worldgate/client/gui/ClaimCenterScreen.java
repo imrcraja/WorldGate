@@ -289,10 +289,7 @@ public final class ClaimCenterScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
-        super.extractRenderState(g, mx, my, delta);
-
-        int cx = width / 2;
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {int cx = width / 2;
         g.centeredText(font, Component.literal("CLAIM CENTER"), cx, 18, 0xFFFFFFFF);
         g.centeredText(font,
                 Component.literal("Earn, gift and manage your Elite Coins"),
@@ -363,6 +360,7 @@ public final class ClaimCenterScreen extends Screen {
 
         g.centeredText(font, Component.literal(bottomStatus),
                 cx, height - 48, 0xFF8E9AA6);
+        super.extractRenderState(g, mx, my, delta);
     }
 
     @Override
