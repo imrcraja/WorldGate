@@ -51,9 +51,8 @@ public final class WorldGateMenuProfile {
         g.text(font, Component.literal("OWNED / CLAIMED"), x + 14, ownedY, 0xFFBFDFFF);
 
         List<EliteCoinManager.Item> owned = new ArrayList<>();
-        EliteCoinManager.Inventory inv = EliteCoinManager.Inventory.empty();
+        EliteCoinManager.Inventory inv = EliteCoinManager.inventory();
         try {
-            inv = EliteCoinManager.inventory();
             for (EliteCoinManager.Item item : EliteCoinManager.catalog().items()) {
                 if (item != null && inv.owns(item.id())) owned.add(item);
             }
