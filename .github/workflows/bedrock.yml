@@ -1,0 +1,49 @@
+name: WorldGate Bedrock
+
+on:
+  push:
+    paths:
+      - "bedrock/**"
+      - ".github/workflows/bedrock.yml"
+  pull_request:
+    paths:
+      - "bedrock/**"
+      - ".github/workflows/bedrock.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate manifests
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for path in Path("bedrock").rglob("manifest.json"):
+              json.loads(path.read_text())
+              print("OK", path)
+          PY
+
+      - name: Validate JavaScript
+        run: node --check bedrock/behavior_packs/worldgate_bp/scripts/main.js
+
+      - name: Package mcaddon
+        run: |
+          rm -rf dist
+          mkdir -p dist/worldgate
+          cp -R bedrock/behavior_packs/worldgate_bp dist/worldgate/WorldGate_BP
+          cp -R bedrock/resource_packs/worldgate_rp dist/worldgate/WorldGate_RP
+          cd dist/worldgate
+          zip -r ../WorldGate-Bedrock-1.26.52.3.mcaddon WorldGate_BP WorldGate_RP
+
+      - name: Upload Bedrock Add-On
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorldGate-Bedrock-1.26.52.3
+          path: dist/WorldGate-Bedrock-1.26.52.3.mcaddon
