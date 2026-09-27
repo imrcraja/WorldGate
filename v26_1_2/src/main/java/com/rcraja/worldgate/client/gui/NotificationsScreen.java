@@ -61,7 +61,7 @@ public final class NotificationsScreen extends Screen {
     }
 
     private void markReadAt(int index) {
-        List<EliteCoinManager.Mail> mail = EliteCoinManager.mailbox();
+        List<EliteCoinManager.Mail> mail = safeMailbox();
         if (index < 0 || index >= mail.size()) return;
         EliteCoinManager.Mail message = mail.get(index);
         if (message == null || message.id() == null || message.id().isBlank()) return;
@@ -75,7 +75,7 @@ public final class NotificationsScreen extends Screen {
     private void layoutReadButtons() {
         if (minecraft == null) return;
 
-        EliteCoinManager.RewardStatus rewards = EliteCoinManager.rewardStatus();
+        EliteCoinManager.RewardStatus rewards = safeRewardStatus();
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         boolean daily = !today.toString().equals(rewards.lastClaimDate())
                 && rewards.cycleCoins() < rewards.maxCycleCoins();
@@ -106,8 +106,7 @@ public final class NotificationsScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {g.blurBeforeThisStratum();
-        g.fill(0, 0, width, height, 0xD9080C12);
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {g.fill(0, 0, width, height, 0xD9080C12);
 
         int margin = Math.max(16, Math.min(36, width / 24));
         int panelW = Math.min(640, width - margin * 2);
@@ -165,7 +164,7 @@ public final class NotificationsScreen extends Screen {
         super.extractRenderState(g, mx, my, delta);
     }
 
-    private void drawNotice(GuiGraphicsExtractor g, int x, int y, int w, int h,
+    private EliteCoinManager.RewardStatus safeRewardStatus() { try { return EliteCoinManager.rewardStatus(); } catch (Exception ignored) { return new EliteCoinManager.RewardStatus(null,0,5,false,0,5); } }\n\n    private List<EliteCoinManager.Mail> safeMailbox() { try { return EliteCoinManager.mailbox(); } catch (Exception ignored) { return List.of(); } }\n\n    private void drawNotice(GuiGraphicsExtractor g, int x, int y, int w, int h,
                             String title, String body, int accent) {
         g.fill(x, y, x + w, y + h, 0xED171F29);
         g.outline(x, y, w, h, 0xFF2D3B49);
