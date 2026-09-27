@@ -27,6 +27,8 @@ on:
 permissions:
   contents: read
 
+# CI touchpoint: this workflow is intentionally kept self-triggering on workflow changes.
+
 jobs:
   modpack:
     runs-on: ubuntu-latest
