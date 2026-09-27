@@ -268,13 +268,28 @@ public class WorldGateScreen extends Screen {
                 boolean joined = lanDirect || WorldGateModClient.ROOM_MANAGER.playerJoin(code, ign);
                 if (!joined) { minecraft.execute(() -> sendMessage("WorldGate: could not register you in the room.")); return; }
                 int relayPort = WorldGateModClient.useInternetRelay() && !lanDirect ? RelayBridge.startPlayer(code) : -1;
+                if (!lanDirect && WorldGateModClient.useInternetRelay()) {
+                    long deadline = System.currentTimeMillis() + 12000L;
+                    while (relayPort > 0 && !RelayBridge.isConnected() && System.currentTimeMillis() < deadline) {
+                        try { Thread.sleep(100L); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
+                    }
+                    if (relayPort <= 0 || !RelayBridge.isConnected()) {
+                        RelayBridge.stop();
+                        minecraft.execute(() -> {
+                            sendMessage("WorldGate: relay did not connect. The host may be offline or the relay is unavailable.");
+                            WorldGateModClient.ROOM_MANAGER.playerLeave(code);
+                        });
+                        return;
+                    }
+                }
+                final int finalRelayPort = relayPort;
                 minecraft.execute(() -> {
                     hostingRoom = false;
                     WorldGateModClient.CURRENT_ROOM_CODE = code;
                     WorldGateModClient.startHeartbeat(false);
                     WorldGateSkinCache.refreshRoomPlayers(discoveredRoomJson);
                     ServerAddress address;
-                    if (relayPort > 0) address = new ServerAddress("127.0.0.1", relayPort);
+                    if (finalRelayPort > 0) address = new ServerAddress("127.0.0.1", finalRelayPort);
                     else if (WorldGateModClient.allowLanFallback() || lanDirect) address = new ServerAddress(hostAddress, hostPort);
                     else { sendMessage("WorldGate: Internet relay unavailable and LAN fallback is disabled."); WorldGateModClient.ROOM_MANAGER.playerLeave(code); return; }
                     ServerData serverData = new ServerData("WorldGate " + code, address.toString(), ServerData.Type.OTHER);
