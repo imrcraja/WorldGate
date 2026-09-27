@@ -595,10 +595,10 @@ public class FriendsScreen extends Screen {
                 }
 
                 if (friend.eliteLevel() > 0) {
-                    EliteBadgeRenderer.draw(graphics, font, right + 12, friendY - 5, 22, friend.eliteLevel());
+                    EliteBadgeRenderer.draw(graphics, font, right + 42, friendY - 5, 22, friend.eliteLevel());
                 }
 
-                int textX = friend.eliteLevel() > 0 ? right + 40 : right + 12;
+                int textX = friend.eliteLevel() > 0 ? right + 68 : right + 46;
                 graphics.text(font, friend.name(), textX, friendY, 0xFFFFFFFF);
                 graphics.text(font, "ID " + friend.code(), textX, friendY + 13, 0xFF8F9BA8);
 
