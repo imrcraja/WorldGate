@@ -43,7 +43,7 @@ public abstract class TitleScreenMixin extends Screen {
         int right = b[2];
 
         int previewSize = Math.min(98, Math.max(82, height / 3));
-        int previewX = Math.max(20, width / 2 - previewSize / 2);
+        int previewX = Math.max(20, Math.min(width - previewSize - 20, width / 2 - previewSize / 2));
         int previewY = Math.max(48, top - previewSize - 26);
         if (previewY + previewSize + 28 < top - 6 && previewX + previewSize < width - 20) {
             PlayerSkinWidget playerWidget = new PlayerSkinWidget(
@@ -58,8 +58,7 @@ public abstract class TitleScreenMixin extends Screen {
         }
 
         int railW = Math.min(214, Math.max(190, width / 8));
-        int railX = right + 18;
-        if (railX + railW > width - 12) railX = Math.max(12, width - railW - 12);
+        int railX = Math.min(Math.max(12, right + 18), Math.max(12, width - railW - 12));
         int railY = Math.max(46, Math.min(top - 8, height - (8 * 36) - 18));
         worldgate$addRail(railX, railY, railW);
 
