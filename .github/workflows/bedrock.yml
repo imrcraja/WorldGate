@@ -26,24 +26,49 @@ jobs:
           import json
           from pathlib import Path
           for path in Path("bedrock").rglob("manifest.json"):
-              json.loads(path.read_text())
+              data = json.loads(path.read_text())
+              assert data.get("header", {}).get("name"), f"Missing pack name: {path}"
+              assert data.get("header", {}).get("uuid"), f"Missing pack UUID: {path}"
+              assert data.get("modules"), f"Missing modules: {path}"
               print("OK", path)
           PY
 
       - name: Validate JavaScript
         run: node --check bedrock/behavior_packs/worldgate_bp/scripts/main.js
 
-      - name: Package mcaddon
+      - name: Package Bedrock packs
+        shell: bash
         run: |
+          set -euo pipefail
           rm -rf dist
-          mkdir -p dist/worldgate
-          cp -R bedrock/behavior_packs/worldgate_bp dist/worldgate/WorldGate_BP
-          cp -R bedrock/resource_packs/worldgate_rp dist/worldgate/WorldGate_RP
-          cd dist/worldgate
-          zip -r ../WorldGate-Bedrock-1.26.52.3.mcaddon WorldGate_BP WorldGate_RP
+          mkdir -p dist/packs/worldgate_bp dist/packs/worldgate_rp
+
+          cp -R bedrock/behavior_packs/worldgate_bp/. dist/packs/worldgate_bp/
+          cp -R bedrock/resource_packs/worldgate_rp/. dist/packs/worldgate_rp/
+
+          cd dist/packs/worldgate_bp
+          zip -qr ../../WorldGate-Behavior-1.26.52.3.mcpack .
+          unzip -l ../../WorldGate-Behavior-1.26.52.3.mcpack | grep -E '(^| )manifest\.json$' >/dev/null
+
+          cd ../worldgate_rp
+          zip -qr ../../WorldGate-Resources-1.26.52.3.mcpack .
+          unzip -l ../../WorldGate-Resources-1.26.52.3.mcpack | grep -E '(^| )manifest\.json$' >/dev/null
+
+          cd ../..
+          mkdir -p addon
+          cp WorldGate-Behavior-1.26.52.3.mcpack addon/
+          cp WorldGate-Resources-1.26.52.3.mcpack addon/
+          cd addon
+          zip -qr ../WorldGate-Bedrock-1.26.52.3.mcaddon .
+          cd ..
+          unzip -l WorldGate-Bedrock-1.26.52.3.mcaddon | grep -E '\.mcpack$' >/dev/null
 
       - name: Upload Bedrock Add-On
         uses: actions/upload-artifact@v4
         with:
           name: WorldGate-Bedrock-1.26.52.3
-          path: dist/WorldGate-Bedrock-1.26.52.3.mcaddon
+          path: |
+            dist/WorldGate-Bedrock-1.26.52.3.mcaddon
+            dist/WorldGate-Behavior-1.26.52.3.mcpack
+            dist/WorldGate-Resources-1.26.52.3.mcpack
+          if-no-files-found: error
