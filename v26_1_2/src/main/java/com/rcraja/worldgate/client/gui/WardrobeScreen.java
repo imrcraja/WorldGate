@@ -114,11 +114,6 @@ public final class WardrobeScreen extends Screen {
     }
 
     private void updateButtons() {
-        if (tab == Tab.EMOTES) {
-            g.text(font, Component.literal("FREE EMOTES"), width - 170, 196, 0xFF7DE2FF);
-            g.text(font, Component.literal("Wave • Cheer • Sit"), width - 178, 214, 0xFF9AA7B4);
-            g.text(font, Component.literal("3D preview"), width - 178, 232, 0xFF6F7C89);
-        }
         List<EliteCoinManager.Item> items = items();
         EliteCoinManager.Inventory inv = EliteCoinManager.inventory();
         for (int i = 0; i < itemButtons.size(); i++) {
@@ -212,6 +207,11 @@ public final class WardrobeScreen extends Screen {
         int gap = 10;
         int cardW = 148;
         int cardH = 92;
+        if (tab == Tab.EMOTES) {
+            g.text(font, Component.literal("FREE EMOTES"), width - 170, 196, 0xFF7DE2FF);
+            g.text(font, Component.literal("Wave • Cheer • Sit"), width - 178, 214, 0xFF9AA7B4);
+            g.text(font, Component.literal("3D preview"), width - 178, 232, 0xFF6F7C89);
+        }
         List<EliteCoinManager.Item> items = items();
         EliteCoinManager.Inventory inv = EliteCoinManager.inventory();
 
