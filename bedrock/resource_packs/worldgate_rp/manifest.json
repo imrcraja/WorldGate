@@ -1,0 +1,17 @@
+{
+  "format_version": 3,
+  "header": {
+    "name": "WorldGate Resources",
+    "description": "WorldGate Bedrock resource pack",
+    "uuid": "b4f7f6e2-0d42-4e3f-9f76-8e4e0b2d9b31",
+    "version": [1, 0, 0],
+    "min_engine_version": [1, 26, 50]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "a4f9b7ce-8f67-4b1c-8b21-9c8f3e2d1a44",
+      "version": [1, 0, 0]
+    }
+  ]
+}
