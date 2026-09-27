@@ -39,15 +39,15 @@ public final class DiscordLinkManager {
         WorldGateModClient.EXECUTOR.submit(() -> {
             try {
                 String response = BackendClient.discordAuthorize(WorldGateModClient.SESSION);
-                if (response == null) return;
+                if (response == null) { throw new IllegalStateException("Discord authorize endpoint unavailable"); }
 
                 JsonObject json = JsonParser.parseString(response).getAsJsonObject();
                 String url = json.has("authorizeUrl") ? json.get("authorizeUrl").getAsString() : "";
                 String ticket = json.has("ticket") ? json.get("ticket").getAsString() : "";
-                if (url.isBlank() || ticket.isBlank()) return;
+                if (url.isBlank() || ticket.isBlank()) { throw new IllegalStateException("Discord authorize response incomplete"); }
 
                 LocalWorldGateData.set(TICKET_KEY, ticket);
-                net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create(url));
+                net.minecraft.client.Minecraft.getInstance().execute(() -> { try { net.minecraft.util.Util.getPlatform().openUri(java.net.URI.create(url)); } catch (Exception ignored) {} });
 
                 for (int i = 0; i < 120; i++) {
                     Thread.sleep(2000L);
