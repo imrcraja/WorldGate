@@ -20,7 +20,4 @@ RUN chmod +x /opt/worldgate/start.sh
 EXPOSE 25568/tcp
 EXPOSE 19132/udp
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD sh -c 'nc -z 127.0.0.1 25568' || exit 1
-
 ENTRYPOINT ["/opt/worldgate/start.sh"]
