@@ -13,9 +13,8 @@ public final class CopyValue {
             Minecraft minecraft = Minecraft.getInstance();
             minecraft.keyboardHandler.setClipboard(safe);
             if (minecraft.player != null) {
-                minecraft.player.displayClientMessage(
-                        Component.literal("WorldGate: " + label + " copied."),
-                        true
+                minecraft.player.sendOverlayMessage(
+                        Component.literal("WorldGate: " + label + " copied.")
                 );
             }
             return true;
