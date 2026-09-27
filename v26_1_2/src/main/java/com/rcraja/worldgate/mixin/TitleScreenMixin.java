@@ -58,7 +58,7 @@ public abstract class TitleScreenMixin extends Screen {
         }
 
         int railW = Math.min(214, Math.max(190, width / 8));
-        int railX = Math.min(Math.max(12, right + 18), Math.max(12, width - railW - 12));
+        int railX = width >= 760 ? width - railW - 14 : 12;
         int railY = Math.max(46, Math.min(top - 8, height - (8 * 36) - 18));
         worldgate$addRail(railX, railY, railW);
 
