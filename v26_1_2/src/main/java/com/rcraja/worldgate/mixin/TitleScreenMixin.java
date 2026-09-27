@@ -43,9 +43,9 @@ public abstract class TitleScreenMixin extends Screen {
         int right = b[2];
 
         int previewSize = Math.min(98, Math.max(82, height / 3));
-        int previewX = Math.max(20, left - previewSize - 18);
-        int previewY = Math.max(70, top - 8);
-        if (previewX + previewSize <= left - 10 && previewY + previewSize + 28 < height - 12) {
+        int previewX = Math.max(20, width / 2 - previewSize / 2);
+        int previewY = Math.max(48, top - previewSize - 26);
+        if (previewY + previewSize + 28 < top - 6 && previewX + previewSize < width - 20) {
             PlayerSkinWidget playerWidget = new PlayerSkinWidget(
                     previewSize, previewSize + 28, minecraft.getEntityModels(),
                     () -> minecraft.getSkinManager().getInsecureSkin(minecraft.getGameProfile()));
