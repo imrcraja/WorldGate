@@ -3,17 +3,19 @@ package com.rcraja.worldgate.client.gui;
 import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.network.EliteCoinManager;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.PlayerSkinWidget;
-import net.minecraft.world.item.component.ResolvableProfile;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.client.renderer.RenderPipelines;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public final class WardrobeScreen extends Screen {
+    private static final Identifier WORLDGATE_CAPE_TEXTURE =
+            Identifier.fromNamespaceAndPath("worldgate", "textures/cosmetics/worldgate-cape.png");
+
     public enum Tab { COSMETICS, EMOTES }
 
     private final Screen parent;
@@ -22,59 +24,53 @@ public final class WardrobeScreen extends Screen {
     private String status = Component.translatable("worldgate.wardrobe.syncing").getString();
     private boolean loading = true;
     private boolean ownedOnly = false;
+    private int selectedIndex = 0;
 
     public WardrobeScreen(Screen parent, Tab tab) {
-        super(Component.translatable(tab == Tab.EMOTES ? "worldgate.wardrobe.emotes" : "worldgate.wardrobe.cosmetics"));
+        super(Component.literal(tab == Tab.EMOTES ? "WORLDGATE EMOTES" : "WORLDGATE SHOP"));
         this.parent = parent;
         this.tab = tab;
     }
 
     @Override
     protected void init() {
-        addRenderableWidget(new WorldGateButton(width / 2 - 156, 58, 100, 22,
-                caps(Component.translatable("worldgate.wardrobe.cosmetics")), () -> open(Tab.COSMETICS)));
-        addRenderableWidget(new WorldGateButton(width / 2 - 52, 58, 100, 22,
-                caps(Component.translatable("worldgate.wardrobe.emotes")), () -> open(Tab.EMOTES)));
+        itemButtons.clear();
+
+        addRenderableWidget(new WorldGateButton(width / 2 - 250, 58, 100, 22,
+                caps(Component.literal("SHOP")), () -> open(Tab.COSMETICS)));
+        addRenderableWidget(new WorldGateButton(width / 2 - 146, 58, 100, 22,
+                caps(Component.literal("EMOTES")), () -> open(Tab.EMOTES)));
+
         final WorldGateButton[] ownedButtonRef = new WorldGateButton[1];
-        ownedButtonRef[0] = new WorldGateButton(width / 2 + 156, 58, 108, 22,
+        ownedButtonRef[0] = new WorldGateButton(width / 2 - 38, 58, 118, 22,
                 Component.literal("OWNED ONLY: OFF"), () -> {
                     ownedOnly = !ownedOnly;
                     ownedButtonRef[0].setMessage(Component.literal("OWNED ONLY: " + (ownedOnly ? "ON" : "OFF")));
+                    selectedIndex = 0;
                     refresh();
                 });
         addRenderableWidget(ownedButtonRef[0]);
 
-        addRenderableWidget(new WorldGateButton(width / 2 + 52, 58, 100, 22,
-                caps(Component.translatable("worldgate.coin.shop")), () -> minecraft.setScreen(new EliteCoinScreen(this))));
+        addRenderableWidget(new WorldGateButton(width / 2 + 86, 58, 118, 22,
+                caps(Component.literal("ELITE COINS")), () -> minecraft.setScreen(new EliteCoinScreen(this))));
 
-        int left = Math.max(20, width / 2 - 310);
-        int top = tab == Tab.EMOTES ? 136 : 108;
-        if (tab == Tab.EMOTES && minecraft != null) {
-            try {
-                int previewSize = 96;
-                PlayerSkinWidget preview = new PlayerSkinWidget(
-                        previewSize, previewSize + 24, minecraft.getEntityModels(),
-                        () -> minecraft.playerSkinRenderCache()
-                                .getOrDefault(ResolvableProfile.createUnresolved(minecraft.getUser().getProfileId()))
-                                .playerSkin());
-                preview.setPosition(width - previewSize - 28, 88);
-                addRenderableWidget(preview);
-            } catch (Exception ignored) {
-                // A missing skin/profile must never make the wardrobe unusable.
-            }
-        }
+        int top = 108;
         int gap = 10;
-        int cardW = 148;
+        int cardW = 150;
         int cardH = 92;
+        int left = Math.max(18, width / 2 - 350);
 
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 6; i++) {
             final int index = i;
-            int col = i % 4;
-            int row = i / 4;
+            int col = i % 3;
+            int row = i / 3;
             int x = left + col * (cardW + gap);
             int y = top + row * (cardH + gap);
             WorldGateButton button = new WorldGateButton(x + 10, y + 66, cardW - 20, 20,
-                    Component.literal("LOADING"), () -> action(index));
+                    Component.literal("LOADING"), () -> {
+                        selectedIndex = index;
+                        action(index);
+                    });
             itemButtons.add(button);
             addRenderableWidget(button);
         }
@@ -105,7 +101,7 @@ public final class WardrobeScreen extends Screen {
             if (minecraft != null) minecraft.execute(() -> {
                 loading = false;
                 status = EliteCoinManager.wallet().available()
-                        ? Component.translatable("worldgate.wardrobe.synced",EliteCoinManager.wallet().balance()).getString()
+                        ? Component.translatable("worldgate.wardrobe.synced", EliteCoinManager.wallet().balance()).getString()
                         : Component.translatable("worldgate.wardrobe.unavailable").getString();
                 updateButtons();
             });
@@ -116,6 +112,8 @@ public final class WardrobeScreen extends Screen {
     private void updateButtons() {
         List<EliteCoinManager.Item> items = items();
         EliteCoinManager.Inventory inv = EliteCoinManager.inventory();
+        if (selectedIndex >= items.size()) selectedIndex = Math.max(0, items.size() - 1);
+
         for (int i = 0; i < itemButtons.size(); i++) {
             WorldGateButton button = itemButtons.get(i);
             if (i >= items.size()) {
@@ -123,16 +121,15 @@ public final class WardrobeScreen extends Screen {
                 button.active = false;
                 continue;
             }
+
             EliteCoinManager.Item item = items.get(i);
             button.active = true;
             if (!inv.owns(item.id())) {
-                button.setMessage(Component.literal(item.priceCoins() == 0
-                        ? "UNLOCK"
-                        : ("BUY • " + item.priceCoins() + " EC")));
+                button.setMessage(Component.literal(item.priceCoins() == 0 ? "CLAIM FREE" : ("BUY • " + item.priceCoins() + " EC")));
             } else if (inv.equipped(item.type(), item.id())) {
                 button.setMessage(Component.literal("EQUIPPED"));
             } else {
-                button.setMessage(Component.literal(item.type().equals("emote") ? "USE" : "EQUIP"));
+                button.setMessage(Component.literal("EQUIP"));
             }
         }
     }
@@ -141,15 +138,14 @@ public final class WardrobeScreen extends Screen {
         List<EliteCoinManager.Item> items = items();
         if (index < 0 || index >= items.size()) return;
         EliteCoinManager.Item item = items.get(index);
-        EliteCoinManager.Inventory inv = EliteCoinManager.inventory();
 
-        if (!inv.owns(item.id())) {
-            status = Component.translatable("worldgate.coin.purchasing",item.name()).getString();
+        if (!EliteCoinManager.inventory().owns(item.id())) {
+            status = Component.translatable("worldgate.coin.purchasing", item.name()).getString();
             WorldGateModClient.EXECUTOR.submit(() -> {
                 String response = EliteCoinManager.purchaseItem(item.id());
                 if (minecraft != null) minecraft.execute(() -> {
                     if (response != null && response.contains("\"ok\":true")) {
-                        status = Component.translatable("worldgate.coin.purchased",item.name()).getString();
+                        status = Component.translatable("worldgate.coin.purchased", item.name()).getString();
                     } else if (response != null && response.contains("insufficient_balance")) {
                         status = Component.translatable("worldgate.coin.insufficient").getString();
                     } else {
@@ -161,17 +157,17 @@ public final class WardrobeScreen extends Screen {
             return;
         }
 
-        status = Component.translatable("worldgate.wardrobe.equipping",item.name()).getString();
+        status = Component.translatable("worldgate.wardrobe.equipping", item.name()).getString();
         WorldGateModClient.EXECUTOR.submit(() -> {
             String response = EliteCoinManager.equipItem(item.id());
             if (minecraft != null) minecraft.execute(() -> {
                 if (response != null && response.contains("\"ok\":true")) {
-                    status = Component.translatable("worldgate.wardrobe.equipped_item",item.name()).getString();
+                    status = Component.translatable("worldgate.wardrobe.equipped_item", item.name()).getString();
                     if ("emote".equalsIgnoreCase(item.type())) {
                         String room = WorldGateModClient.CURRENT_ROOM_CODE;
                         if (room != null && !room.isBlank()) {
                             WorldGateModClient.EMOTE_MANAGER.sendEmote(room, item.id().substring("emote:".length()));
-                            status = Component.translatable("worldgate.wardrobe.used",item.name()).getString();
+                            status = Component.translatable("worldgate.wardrobe.used", item.name()).getString();
                         }
                     }
                 } else {
@@ -190,64 +186,90 @@ public final class WardrobeScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
-
-        g.centeredText(font, Component.literal(ownedOnly ? "Owned items only" : "All available items"),
-                width / 2, 50, 0xFF7DE2FF);
-
-        g.centeredText(font, tab == Tab.EMOTES ? Component.translatable("worldgate.wardrobe.emotes") : Component.translatable("worldgate.wardrobe.cosmetics"),
+        g.centeredText(font, Component.literal(ownedOnly ? "OWNED ITEMS" : "WORLDGATE SHOP"),
                 width / 2, 20, 0xFFFFFFFF);
         g.centeredText(font,
-                tab == Tab.EMOTES
-                        ? Component.translatable("worldgate.wardrobe.emote_note").getString()
-                        : Component.translatable("worldgate.wardrobe.cosmetic_note").getString(),
+                Component.literal(tab == Tab.EMOTES
+                        ? "Select an emote"
+                        : "Select a cosmetic to preview it before claiming or equipping"),
                 width / 2, 38, 0xFF9AA7B4);
 
-        int left = Math.max(20, width / 2 - 310);
-        int top = tab == Tab.EMOTES ? 136 : 108;
+        int top = 108;
         int gap = 10;
-        int cardW = 148;
+        int cardW = 150;
         int cardH = 92;
-        if (tab == Tab.EMOTES) {
-            g.text(font, Component.literal("FREE EMOTES"), width - 170, 196, 0xFF7DE2FF);
-            g.text(font, Component.literal("Wave • Cheer • Sit"), width - 178, 214, 0xFF9AA7B4);
-            g.text(font, Component.literal("3D preview"), width - 178, 232, 0xFF6F7C89);
-        }
+        int left = Math.max(18, width / 2 - 350);
+
         List<EliteCoinManager.Item> items = items();
         EliteCoinManager.Inventory inv = EliteCoinManager.inventory();
 
-        for (int i = 0; i < 8; i++) {
-            int col = i % 4;
-            int row = i / 4;
+        for (int i = 0; i < 6; i++) {
+            int col = i % 3;
+            int row = i / 3;
             int x = left + col * (cardW + gap);
             int y = top + row * (cardH + gap);
             boolean available = i < items.size();
+            boolean selected = available && i == selectedIndex;
+
             g.fill(x, y, x + cardW, y + cardH, available ? 0x4A10161D : 0x2810161D);
-            g.outline(x, y, cardW, cardH,
-                    available && inv.equipped(items.get(i).type(), items.get(i).id())
-                            ? 0xFF7DE2FF : 0xFF65727F);
+            g.outline(x, y, cardW, cardH, selected ? 0xFF72E0FF : 0xFF65727F);
 
             if (!available) {
-                g.centeredText(font, Component.translatable("worldgate.coin.no_item").getString(), x + cardW / 2, y + 34, 0xFF59636D);
+                g.centeredText(font, Component.literal("NO ITEM"), x + cardW / 2, y + 34, 0xFF59636D);
                 continue;
             }
 
             EliteCoinManager.Item item = items.get(i);
             boolean owned = inv.owns(item.id());
             boolean equipped = inv.equipped(item.type(), item.id());
+
             g.centeredText(font, Component.literal(item.name()),
                     x + cardW / 2, y + 18, 0xFFFFFFFF);
             g.centeredText(font, Component.literal(item.description()),
                     x + cardW / 2, y + 35, 0xFF8E9AA6);
-            String state = equipped ? Component.translatable("worldgate.wardrobe.equipped_upper").getString() : owned ? Component.translatable("worldgate.coin.owned_upper").getString() : item.priceCoins() + " EC";
-            g.centeredText(font, Component.literal(state),
-                    x + cardW / 2, y + 51,
-                    equipped ? 0xFF7DE2FF : owned ? 0xFF70E090 : 0xFFFFD45A);
+            String state = equipped ? "EQUIPPED" : owned ? "OWNED" : item.priceCoins() == 0 ? "FREE" : item.priceCoins() + " EC";
+            g.centeredText(font, Component.literal(state), x + cardW / 2, y + 51,
+                    equipped ? 0xFF72E0FF : owned ? 0xFF70E090 : item.priceCoins() == 0 ? 0xFF72E0FF : 0xFFFFD45A);
         }
 
-        g.centeredText(font, Component.literal(status),
-                width / 2, height - 48, 0xFF8E9AA6);
-        if (loading) WorldGateLoadingAnimation.draw(g, font, width / 2, height - 62);
-        // Widgets render last, so controls remain above the card layer.
+        // FreeFire-style item preview pane: no player dummy, only the selected cosmetic/emote.
+        int previewX = width - 250;
+        int previewY = 108;
+        int previewW = 220;
+        int previewH = 222;
+        g.fill(previewX, previewY, previewX + previewW, previewY + previewH, 0x5A101821);
+        g.outline(previewX, previewY, previewW, previewH, 0x663D5263);
+        g.text(font, Component.literal("PREVIEW"), previewX + 14, previewY + 12, 0xFF72DFFF);
+
+        if (selectedIndex < items.size()) {
+            EliteCoinManager.Item selected = items.get(selectedIndex);
+            g.centeredText(font, Component.literal(selected.name()),
+                    previewX + previewW / 2, previewY + 36, 0xFFFFFFFF);
+
+            if ("cosmetic:worldgate-cape".equals(selected.id())) {
+                g.fill(previewX + 28, previewY + 56, previewX + previewW - 28, previewY + 170, 0x321E2A35);
+                g.blit(RenderPipelines.GUI_TEXTURED, WORLDGATE_CAPE_TEXTURE,
+                        previewX + 40, previewY + 72, 0, 0, 160, 80, 64, 32);
+                g.centeredText(font, Component.literal("FREE CAPE"),
+                        previewX + previewW / 2, previewY + 184, 0xFF72E0FF);
+            } else {
+                g.fill(previewX + 48, previewY + 58, previewX + previewW - 48, previewY + 156, 0x321E2A35);
+                g.centeredText(font, Component.literal(tab == Tab.EMOTES ? "EMOTE" : "COSMETIC"),
+                        previewX + previewW / 2, previewY + 102, 0xFFBFDFFF);
+            }
+
+            boolean owned = inv.owns(selected.id());
+            boolean equipped = inv.equipped(selected.type(), selected.id());
+            String action = equipped ? "EQUIPPED" : owned ? "EQUIP" : selected.priceCoins() == 0 ? "CLAIM FREE" : "BUY";
+            g.centeredText(font, Component.literal(action),
+                    previewX + previewW / 2, previewY + 206, equipped ? 0xFF72E0FF : 0xFFFFFFFF);
+        } else {
+            g.centeredText(font, Component.literal("Select an item"),
+                    previewX + previewW / 2, previewY + 105, 0xFF7E8B98);
+        }
+
+        g.centeredText(font, Component.literal(status), width / 2 - 35, height - 48, 0xFF8E9AA6);
+        if (loading) WorldGateLoadingAnimation.draw(g, font, width / 2 - 35, height - 62);
         super.extractRenderState(g, mx, my, delta);
     }
 
