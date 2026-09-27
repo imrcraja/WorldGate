@@ -3,6 +3,7 @@ package com.rcraja.worldgate.client.gui;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.rcraja.worldgate.Constants;
+import com.rcraja.worldgate.WorldGateMod;
 import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.client.WorldGateSkinCache;
 import com.rcraja.worldgate.network.HostBridge;
