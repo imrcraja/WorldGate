@@ -267,10 +267,7 @@ public final class ChatScreen extends Screen {
             int mouseX,
             int mouseY,
             float delta
-    ) {
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
-
-        int cx = width / 2;
+    ) {int cx = width / 2;
         graphics.centeredText(font, Component.literal("WorldGate Chat • Room " + roomCode), cx, 18, 0xFFFFFF);
         graphics.centeredText(font, Component.literal(status), cx, 31, 0x8F9BA8);
 
@@ -311,6 +308,7 @@ public final class ChatScreen extends Screen {
         } else {
             graphics.centeredText(font, Component.literal("Select a message for reply, delete or link actions"), cx, height - 72, 0x68737E);
         }
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
     private record ChatLine(
