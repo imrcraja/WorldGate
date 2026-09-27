@@ -35,7 +35,7 @@ public abstract class TitleScreenMixin extends Screen {
      */
     @Inject(method = "init", at = @At("TAIL"))
     private void worldgate$modernize(CallbackInfo ci) {
-        if (minecraft == null || !com.rcraja.worldgate.client.gui.WorldGatePreferences.overlayEnabled()) return;
+        if (minecraft == null) return;
 
         int[] b = worldgate$vanillaBounds();
         int left = b[0];
@@ -48,9 +48,7 @@ public abstract class TitleScreenMixin extends Screen {
         if (previewX + previewSize <= left - 10 && previewY + previewSize + 28 < height - 12) {
             PlayerSkinWidget playerWidget = new PlayerSkinWidget(
                     previewSize, previewSize + 28, minecraft.getEntityModels(),
-                    () -> minecraft.playerSkinRenderCache()
-                            .getOrDefault(ResolvableProfile.createUnresolved(minecraft.getUser().getProfileId()))
-                            .playerSkin());
+                    () -> minecraft.getSkinManager().getInsecureSkin(minecraft.getGameProfile()));
             playerWidget.setPosition(previewX, previewY);
             addRenderableWidget(playerWidget);
             addRenderableWidget(new WorldGateButton(
