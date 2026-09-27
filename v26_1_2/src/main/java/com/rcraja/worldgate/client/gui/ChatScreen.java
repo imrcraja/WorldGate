@@ -14,6 +14,9 @@ import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.google.gson.JsonObject;
@@ -26,6 +29,7 @@ public final class ChatScreen extends Screen {
     private final Screen parent;
     private final String roomCode;
     private final List<ChatLine> messages = new ArrayList<>();
+    private final Map<String,String> senderNames = new ConcurrentHashMap<>();
 
     private EditBox input;
     private ChatLine selected;
@@ -216,17 +220,22 @@ public final class ChatScreen extends Screen {
         if (uid == null || uid.isBlank()) return "Player";
         String myUid = WorldGateModClient.FRIEND_MANAGER.myUid();
         if (uid.equals(myUid)) return "You";
-        try {
-            String profile = WorldGateModClient.FRIEND_MANAGER.getProfile(uid);
-            if (profile != null && !profile.isBlank() && !profile.equals("null")) {
-                com.google.gson.JsonObject object = com.google.gson.JsonParser.parseString(profile).getAsJsonObject();
-                if (object.has("displayName")) {
-                    String name = object.get("displayName").getAsString();
-                    if (!name.isBlank()) return name;
+        String cached = senderNames.get(uid);
+        if (cached != null && !cached.isBlank()) return cached;
+        senderNames.putIfAbsent(uid, "Player");
+        WorldGateModClient.EXECUTOR.submit(() -> {
+            try {
+                String profile = WorldGateModClient.FRIEND_MANAGER.getProfile(uid);
+                if (profile != null && !profile.isBlank() && !profile.equals("null")) {
+                    com.google.gson.JsonObject object = com.google.gson.JsonParser.parseString(profile).getAsJsonObject();
+                    if (object.has("displayName")) {
+                        String name = object.get("displayName").getAsString();
+                        if (!name.isBlank()) senderNames.put(uid, name);
+                    }
                 }
-            }
-        } catch (Exception ignored) {}
-        return "Player";
+            } catch (Exception ignored) {}
+        });
+        return senderNames.get(uid);
     }
 
     @Override
@@ -271,19 +280,43 @@ public final class ChatScreen extends Screen {
         graphics.centeredText(font, Component.literal("WorldGate Chat • Room " + roomCode), cx, 18, 0xFFFFFF);
         graphics.centeredText(font, Component.literal(status), cx, 31, 0x8F9BA8);
 
+        // WhatsApp-style conversation rail: each sender becomes a compact chat row,
+        // while the current room conversation stays on the right.
+        int railW = Math.min(190, Math.max(150, width / 5));
+        int railX = 12;
+        int railY = 42;
+        graphics.fill(railX, railY, railX + railW, height - 66, 0x66131B24);
+        graphics.outline(railX, railY, railW, height - 108, 0xFF293541);
+        graphics.text(font, Component.literal("CHATS"), railX + 10, railY + 10, 0xFF7DE2FF);
+        Map<String,ChatLine> latest = new LinkedHashMap<>();
+        for (ChatLine line : messages) latest.put(line.senderUid(), line);
+        int row = railY + 30;
+        for (ChatLine line : latest.values()) {
+            String name = displayName(line.senderUid());
+            String preview = line.text() == null ? "" : line.text();
+            if (preview.length() > 20) preview = preview.substring(0,20) + "...";
+            boolean activeChat = selected != null && selected.senderUid().equals(line.senderUid());
+            if (activeChat) graphics.fill(railX + 5, row - 4, railX + railW - 5, row + 30, 0x5534B8D4);
+            graphics.text(font, name, railX + 10, row, 0xFFF1F5F8);
+            graphics.text(font, preview, railX + 10, row + 14, 0xFF8E9AA6);
+            row += 38;
+            if (row > height - 90) break;
+        }
+
         int first = Math.max(0, messages.size() - 12);
         int y = 42;
-
+        int messageLeft = railX + railW + 18;
+        int messageRight = width - 12;
         for (int i = first; i < messages.size(); i++) {
             ChatLine line = messages.get(i);
             String marker = line == selected ? "> " : "  ";
             String reply = line.replyTo().isBlank() ? "" : " ↪ ";
             String text = marker + displayName(line.senderUid()) + reply + line.text();
 
-            graphics.centeredText(
+            graphics.text(
                     font,
                     Component.literal(text),
-                    cx,
+                    Math.max(messageLeft, (messageRight + messageLeft - font.width(text)) / 2),
                     y,
                     line.deleted() ? 0x777777 : 0xFFFFFF
             );
