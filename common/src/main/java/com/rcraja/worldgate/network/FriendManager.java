@@ -270,7 +270,7 @@ public class FriendManager {
         }
 
         String response = BackendClient.rejectFriendRequest(session, fromUid.trim());
-        return response != null && response.contains(""ok":true");
+        return response != null && response.contains("\"ok\":true");
     }
 
     public String getFriends() {
