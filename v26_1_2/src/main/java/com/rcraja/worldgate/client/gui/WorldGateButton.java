@@ -47,6 +47,8 @@ public final class WorldGateButton extends AbstractWidget {
 
         boolean hovered = isHoveredOrFocused();
         boolean pressed = isFocused() && hovered;
+        float pulse = hovered ? (float)(0.5 + 0.5 * Math.sin(System.nanoTime() / 260_000_000.0)) : 0.0f;
+        int lift = hovered ? 1 : 0;
 
         int shadow = hovered ? 0x2C000000 : 0x18000000;
         int glass = hovered ? 0x684C667A : 0x402C3A4A;
@@ -55,11 +57,11 @@ public final class WorldGateButton extends AbstractWidget {
         int shine = hovered ? 0x66FFFFFF : 0x3DFFFFFF;
         int textColor = !active ? 0xFF687583 : hovered ? 0xFFFFFFFF : 0xFFE8EEF4;
 
-        graphics.fill(getX() + 2, getY() + 3, getRight() + 2, getBottom() + 4, shadow);
-        graphics.fill(getX(), getY(), getRight(), getBottom(), glass);
-        graphics.fill(getX() + 1, getY() + 1, getRight() - 1, getBottom() - 1, glassInner);
-        graphics.outline(getX(), getY(), getWidth(), getHeight(), edge);
-        graphics.fill(getX() + 3, getY() + 2, getRight() - 3, getY() + 3, shine);
+        graphics.fill(getX() + 2, getY() + 3 + lift, getRight() + 2, getBottom() + 4 + lift, shadow);
+        graphics.fill(getX(), getY() - lift, getRight(), getBottom() - lift, glass);
+        graphics.fill(getX() + 1, getY() + 1 - lift, getRight() - 1, getBottom() - 1 - lift, glassInner);
+        graphics.outline(getX(), getY() - lift, getWidth(), getHeight(), edge);
+        graphics.fill(getX() + 3, getY() + 2 - lift, getRight() - 3, getY() + 3 - lift, hovered ? (shine | ((int)(pulse * 0x18) << 24)) : shine);
 
         if (pressed) {
             graphics.fill(getX() + 2, getBottom() - 3, getRight() - 2, getBottom() - 2, accent);
@@ -73,7 +75,7 @@ public final class WorldGateButton extends AbstractWidget {
         }
 
         graphics.centeredText(Minecraft.getInstance().font, getMessage(),
-                textX, getY() + (getHeight() - 9) / 2, textColor);
+                textX, getY() + (getHeight() - 9) / 2 - lift, textColor);
     }
 
     private static void drawIcon(GuiGraphicsExtractor g, int cx, int cy, Icon icon, int color) {
