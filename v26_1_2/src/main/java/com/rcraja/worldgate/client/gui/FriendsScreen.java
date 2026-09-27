@@ -620,8 +620,6 @@ public class FriendsScreen extends Screen {
             graphics.centeredText(font, requestNotification, width / 2, 10, 0xFF7DE2FF);
         }
 
-        updateButtons();
-
         if (pendingInviteRoom != null && !pendingInviteRoom.isBlank()) {
             graphics.text(font, "ROOM INVITE", center + 10, contentTop + 10, 0xFFB8A7FF);
             graphics.text(font, "Room " + pendingInviteRoom, center + 10, contentTop + 27, 0xFFFFFFFF);
