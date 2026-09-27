@@ -507,10 +507,7 @@ public class FriendsScreen extends Screen {
             int mouseX,
             int mouseY,
             float delta
-    ) {
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
-
-        int margin = Math.max(12, width / 20);
+    ) {int margin = Math.max(12, width / 20);
         int gap = margin;
         int left = margin;
         int center = left + panelWidth + gap;
@@ -612,6 +609,7 @@ public class FriendsScreen extends Screen {
         if (!status.isEmpty()) {
             graphics.centeredText(font, status, width / 2, height - 28, 0xFF9BA7B3);
         }
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
     private void drawPanel(
