@@ -45,19 +45,19 @@ public final class SettingsScreen extends Screen {
                 b -> sendMessage(RelayBridge.isConnected()
                         ? I18n.get("worldgate.settings.relay_connected")
                         : I18n.get("worldgate.settings.relay_idle")))
-                .bounds(x, 104, 240, 20).build());
+                .bounds(x, 132, 240, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("worldgate.settings.discord"),
                 b -> minecraft.setScreen(new DiscordLinkScreen(this)))
-                .bounds(x, 132, 240, 20).build());
+                .bounds(x, 160, 240, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("worldgate.settings.security"),
                 b -> minecraft.setScreen(new AccountSecurityScreen(this)))
-                .bounds(x, 160, 240, 20).build());
+                .bounds(x, 188, 240, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("worldgate.settings.privacy"),
                 b -> minecraft.setScreen(new LocalDataScreen(this)))
-                .bounds(x, 188, 240, 20).build());
+                .bounds(x, 216, 240, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("worldgate.button.back"),
                 b -> onClose()).bounds(x, height - 30, 240, 20).build());
