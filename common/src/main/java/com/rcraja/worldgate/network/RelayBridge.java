@@ -84,7 +84,7 @@ public final class RelayBridge {
                 // The relay may acknowledge the host with "waiting" before the
                 // player arrives. Keep the host bridge alive while waiting for
                 // the actual pair; only then does Minecraft traffic flow.
-                if (!waitForConnection(30 * 60)) {
+                if (!waitForConnection(45 * 60)) {
                     WorldGateMod.LOGGER.error(
                             "WorldGate relay host pairing timed out."
                     );
