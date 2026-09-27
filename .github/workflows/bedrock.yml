@@ -14,6 +14,8 @@ on:
 permissions:
   contents: read
 
+# Release touchpoint: keep the Pocket/Bedrock package workflow independently triggerable.
+
 jobs:
   validate-and-package:
     runs-on: ubuntu-latest
