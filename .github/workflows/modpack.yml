@@ -27,12 +27,9 @@ on:
 permissions:
   contents: read
 
-# CI touchpoint: this workflow is intentionally kept self-triggering on workflow changes.
-
 jobs:
   modpack:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,29 +48,24 @@ jobs:
       - name: Build WorldGate
         run: gradle :v26_1_2:build --stacktrace --no-daemon
 
-      - name: Prepare modpack
+      - name: Prepare modpack and direct mod JAR
         shell: bash
         run: |
           set -euo pipefail
-
           VERSION="26.1.2"
           LOADER_VERSION="0.19.3"
           FABRIC_API_VERSION="0.155.3+26.1.2"
-          FABRIC_API_URL="https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/${FABRIC_API_VERSION}/fabric-api-${FABRIC_API_VERSION}.jar"
-
-          rm -rf modpack-build
-          mkdir -p modpack-build/overrides/mods
-
+          FABRIC_API_URL="https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/$FABRIC_API_VERSION/fabric-api-$FABRIC_API_VERSION.jar"
+          rm -rf modpack-build release
+          mkdir -p modpack-build/overrides/mods release
           WORLDGATE_JAR="$(find v26_1_2/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' | head -n 1)"
           test -n "${WORLDGATE_JAR}"
-
+          cp "${WORLDGATE_JAR}" "release/WorldGate-${VERSION}.jar"
           cp "${WORLDGATE_JAR}" "modpack-build/overrides/mods/$(basename "${WORLDGATE_JAR}")"
           curl -fsSL "${FABRIC_API_URL}" -o "modpack-build/overrides/mods/fabric-api-${FABRIC_API_VERSION}.jar"
-
           python3 - <<'PY'
           import json
           from pathlib import Path
-
           index = {
               "formatVersion": 1,
               "game": "minecraft",
@@ -81,33 +73,26 @@ jobs:
               "name": "WorldGate 26.1.2",
               "summary": "Official WorldGate Fabric modpack for Minecraft 26.1.2",
               "files": [],
-              "dependencies": {
-                  "minecraft": "26.1.2",
-                  "fabric-loader": "0.19.3",
-              },
+              "dependencies": {"minecraft": "26.1.2", "fabric-loader": "0.19.3"},
           }
-
-          Path("modpack-build/modrinth.index.json").write_text(
-              json.dumps(index, indent=2) + "\n",
-              encoding="utf-8",
-          )
+          Path("modpack-build/modrinth.index.json").write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
           PY
-
           python3 -m json.tool modpack-build/modrinth.index.json >/dev/null
-
           cd modpack-build
-          zip -9 -r "../WorldGate-26.1.2-Modpack.mrpack" modrinth.index.json overrides >/dev/null
+          zip -9 -r "../release/WorldGate-26.1.2-Modpack.mrpack" modrinth.index.json overrides >/dev/null
 
       - name: Validate modpack archive
         run: |
           set -euo pipefail
-          unzip -t WorldGate-26.1.2-Modpack.mrpack
-          unzip -l WorldGate-26.1.2-Modpack.mrpack
-          unzip -p WorldGate-26.1.2-Modpack.mrpack modrinth.index.json | python3 -m json.tool >/dev/null
+          unzip -t release/WorldGate-26.1.2-Modpack.mrpack
+          unzip -p release/WorldGate-26.1.2-Modpack.mrpack modrinth.index.json | python3 -m json.tool >/dev/null
+          test -s release/WorldGate-26.1.2.jar
 
-      - name: Upload modpack
+      - name: Upload WorldGate modpack + direct JAR
         uses: actions/upload-artifact@v4
         with:
-          name: WorldGate-26.1.2-Modpack
-          path: WorldGate-26.1.2-Modpack.mrpack
+          name: WorldGate-26.1.2-Release
+          path: |
+            release/WorldGate-26.1.2-Modpack.mrpack
+            release/WorldGate-26.1.2.jar
           if-no-files-found: error
