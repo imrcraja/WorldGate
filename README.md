@@ -93,3 +93,6 @@ The 26.1.2 release now includes a relay-side integrity gate, protocol versioning
 The backend adds rate limiting, temporary IP bans, security-event logging, hardened response headers and a continuous watchdog. A scheduled GitHub Actions security workflow also runs dependency auditing, regression tests and credential-pattern checks.
 
 For production integrity enforcement, configure the relay with `WORLDGATE_ALLOWED_MOD_SHA256` set to the SHA-256 of the exact official 26.1.2 jar. Never put a secret signing key in the mod.
+
+
+<!-- build verification checkpoint 2026-09-27 -->
