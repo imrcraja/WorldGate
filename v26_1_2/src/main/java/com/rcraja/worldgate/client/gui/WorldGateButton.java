@@ -1,6 +1,7 @@
 package com.rcraja.worldgate.client.gui;
 
 import net.minecraft.client.Minecraft;
+import com.rcraja.worldgate.WorldGateMod;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -119,7 +120,10 @@ public final class WorldGateButton extends AbstractWidget {
 
     @Override
     public void onClick(MouseButtonEvent event, boolean doubleClick) {
-        if (active && visible) action.accept(event);
+        if (active && visible) {
+            try { action.accept(event); }
+            catch (Throwable t) { WorldGateMod.LOGGER.error("WorldGate UI action failed safely", t); }
+        }
     }
 
     @Override
