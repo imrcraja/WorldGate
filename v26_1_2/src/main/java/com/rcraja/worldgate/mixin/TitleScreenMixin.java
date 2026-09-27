@@ -55,9 +55,6 @@ public abstract class TitleScreenMixin extends Screen {
         int railY = Math.max(120, Math.min(height - railHeight - 34, height / 2 - railHeight / 2));
         worldgate$addRail(railX, railY, railW);
 
-        addRenderableWidget(new IconButton(width - 114, 18, 34,
-                IconButton.Icon.SETTINGS,
-                () -> minecraft.setScreen(new SettingsScreen(this))));
         addRenderableWidget(new IconButton(width - 76, 18, 34,
                 IconButton.Icon.BELL,
                 () -> minecraft.setScreen(new NotificationsScreen(this))));
