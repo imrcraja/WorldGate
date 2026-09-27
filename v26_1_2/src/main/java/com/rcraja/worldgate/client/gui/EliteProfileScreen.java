@@ -1,66 +1,134 @@
 package com.rcraja.worldgate.client.gui;
 
-import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.client.UserProfileCache;
+import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.client.elite.EliteBadgeRenderer;
 import com.rcraja.worldgate.client.elite.EliteManager;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.PlayerSkinWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.component.ResolvableProfile;
 
 public final class EliteProfileScreen extends Screen {
     private final Screen parent;
-    private EliteManager.EliteProfile profile=EliteManager.EliteProfile.unavailable();
-    private boolean loading=true;
-    private String status="Loading Elite profile...";
-    public EliteProfileScreen(Screen parent){super(Component.translatable("worldgate.elite.title"));this.parent=parent;}
-    @Override protected void init(){
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.coin.shop"),b->minecraft.setScreen(new EliteCoinScreen(this))).bounds(width/2-155,height-55,97,20).build());
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.refresh"),b->load()).bounds(width/2-52,height-55,104,20).build());
-        addRenderableWidget(Button.builder(Component.translatable("worldgate.button.back"),b->minecraft.setScreen(parent)).bounds(width/2+56,height-55,99,20).build());
+    private EliteManager.EliteProfile profile = EliteManager.EliteProfile.unavailable();
+    private boolean loading = true;
+    private String status = "Loading Elite profile...";
+
+    public EliteProfileScreen(Screen parent) {
+        super(Component.translatable("worldgate.elite.title"));
+        this.parent = parent;
+    }
+
+    @Override
+    protected void init() {
+        int bottom = height - 30;
+        addRenderableWidget(new WorldGateButton(width / 2 - 164, bottom, 104, 22,
+                Component.translatable("worldgate.coin.shop"),
+                () -> minecraft.setScreen(new EliteCoinScreen(this)), 0xFFFFD45A));
+        addRenderableWidget(new WorldGateButton(width / 2 - 52, bottom, 104, 22,
+                Component.translatable("worldgate.button.refresh"), this::load, 0xFF73E0A1));
+        addRenderableWidget(new WorldGateButton(width / 2 + 60, bottom, 104, 22,
+                Component.translatable("worldgate.button.back"), () -> minecraft.setScreen(parent), 0xFF9CA9B8));
+
+        if (minecraft != null) {
+            int size = 96;
+            PlayerSkinWidget preview = new PlayerSkinWidget(
+                    size, size + 26, minecraft.getEntityModels(),
+                    () -> minecraft.playerSkinRenderCache()
+                            .getOrDefault(ResolvableProfile.createUnresolved(minecraft.getUser().getProfileId()))
+                            .playerSkin());
+            preview.setPosition(Math.max(18, width / 2 - 250), 72);
+            addRenderableWidget(preview);
+        }
         load();
     }
-    private void load(){loading=true;status="Syncing profile...";WorldGateModClient.EXECUTOR.submit(()->{
-        EliteManager.refreshOwnProfile();
-        if(WorldGateModClient.SESSION.isReady()){
-            String uid=WorldGateModClient.SESSION.uid();
-            String raw=WorldGateModClient.FRIEND_MANAGER.getProfile(uid);
-            if(raw!=null && !raw.isBlank() && !"null".equals(raw)) UserProfileCache.save(raw);
-            WorldGateModClient.FRIEND_MANAGER.myFriendCode();
-        }
-        EliteManager.EliteProfile loaded=EliteManager.loadOwnProfile();
-        if(minecraft!=null)minecraft.execute(()->{
-            profile=loaded;
-            loading=false;
-            status=loaded.available()?"Server-synced Elite profile":"Using local profile cache; Elite entitlement is unavailable right now.";
+
+    private void load() {
+        loading = true;
+        status = "Syncing profile...";
+        WorldGateModClient.EXECUTOR.submit(() -> {
+            EliteManager.refreshOwnProfile();
+            if (WorldGateModClient.SESSION.isReady()) {
+                String uid = WorldGateModClient.SESSION.uid();
+                String raw = WorldGateModClient.FRIEND_MANAGER.getProfile(uid);
+                if (raw != null && !raw.isBlank() && !"null".equals(raw)) UserProfileCache.save(raw);
+                WorldGateModClient.FRIEND_MANAGER.myFriendCode();
+            }
+            EliteManager.EliteProfile loaded = EliteManager.loadOwnProfile();
+            if (minecraft != null) minecraft.execute(() -> {
+                profile = loaded;
+                loading = false;
+                status = loaded.available()
+                        ? "Server-synced Elite profile"
+                        : "Using local profile cache; Elite entitlement is unavailable right now.";
+            });
         });
-    });}
-    @Override public void extractRenderState(GuiGraphicsExtractor graphics,int mouseX,int mouseY,float delta){
-        super.extractRenderState(graphics,mouseX,mouseY,delta);
-        int cx=width/2;
-        graphics.centeredText(font,Component.translatable("worldgate.elite.title"),cx,18,0xFFFFFFFF);
-        graphics.centeredText(font,Component.translatable(profile.available()?"worldgate.elite.level":"worldgate.elite.profile",profile.available()?Integer.toString(profile.level()):""),cx,31,0xFFD8C7FF);
-
-        String displayName=UserProfileCache.value("displayName","Player");
-        String uid=WorldGateModClient.SESSION.uid();
-        String publicId=UserProfileCache.value("publicId","Not set");
-        graphics.centeredText(font,Component.literal(displayName),cx,52,0xFFFFFFFF);
-        graphics.centeredText(font,Component.literal("Public ID: "+(publicId==null?"—":publicId)),cx,67,0xFF7DE2FF);
-        
-
-        if(profile.hasElite()){
-            EliteBadgeRenderer.draw(graphics,font,cx,101,116,profile.level());
-            int y=224;
-            graphics.centeredText(font,Component.translatable("worldgate.elite.eligible_spending",money(profile.eligibleSpentMinorUnits())),cx,y,0xFFFFFFFF);
-            if(profile.nextLevelThresholdMinorUnits()>0)graphics.centeredText(font,Component.translatable("worldgate.elite.remaining_next",money(profile.remainingToNext())),cx,y+16,0xFFBDBDBD);
-            if(profile.maxLevelThresholdMinorUnits()>0)graphics.centeredText(font,Component.translatable("worldgate.elite.remaining_max",money(profile.remainingToMax())),cx,y+32,0xFFBDBDBD);
-            graphics.centeredText(font,Component.translatable("worldgate.elite.badge_note"),cx,y+55,0xFF8F8F8F);
-        }else{
-            graphics.centeredText(font,Component.translatable(loading?"worldgate.loading":"worldgate.elite.not_published"),cx,106,0xFFAAAAAA);
-        }
-        graphics.centeredText(font,Component.translatable("worldgate.status.raw",status),cx,height-76,0xFF888888);
     }
-    private static String money(long n){return String.format(java.util.Locale.ROOT,"USD %.2f",n/100.0);}
-    @Override public void onClose(){minecraft.setScreen(parent);}
+
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
+
+        int cx = width / 2;
+        int cardX = Math.max(18, cx - 258);
+        int cardY = 52;
+        int cardW = Math.min(516, width - 36);
+        int cardH = Math.min(330, height - 112);
+
+        graphics.blurBeforeThisStratum();
+        graphics.fill(0, 0, width, height, 0xA9080D14);
+        graphics.fill(cardX, cardY, cardX + cardW, cardY + cardH, 0x66334252);
+        graphics.outline(cardX, cardY, cardW, cardH, 0x706F8293);
+
+        graphics.text(font, Component.translatable("worldgate.elite.title"), cardX + 18, cardY + 16, 0xFFF5F7FA);
+
+        String displayName = UserProfileCache.value("displayName", "Player");
+        String publicId = UserProfileCache.value("publicId", "Not set");
+        graphics.text(font, Component.literal(displayName), cardX + 132, cardY + 42, 0xFFFFFFFF);
+        graphics.text(font, Component.literal("PUBLIC ID"), cardX + 132, cardY + 62, 0xFF9AA7B4);
+        graphics.text(font, clipped("Public ID: " + (publicId == null ? "—" : publicId), 250), cardX + 132, cardY + 77, 0xFF7DE2FF);
+
+        if (profile.hasElite()) {
+            EliteBadgeRenderer.draw(graphics, font, cx + 104, cardY + 96, 92, profile.level());
+            graphics.text(font, Component.literal("ELITE LEVEL " + profile.level()), cardX + 132, cardY + 108, 0xFFD8C7FF);
+            graphics.text(font, Component.literal("Eligible spending: " + money(profile.eligibleSpentMinorUnits())),
+                    cardX + 132, cardY + 130, 0xFFFFFFFF);
+            if (profile.nextLevelThresholdMinorUnits() > 0) {
+                graphics.text(font, Component.literal("Remaining to next: " + money(profile.remainingToNext())),
+                        cardX + 132, cardY + 148, 0xFFBFC9D3);
+            }
+            if (profile.maxLevelThresholdMinorUnits() > 0) {
+                graphics.text(font, Component.literal("Remaining to max: " + money(profile.remainingToMax())),
+                        cardX + 132, cardY + 166, 0xFFBFC9D3);
+            }
+            graphics.text(font, Component.translatable("worldgate.elite.badge_note"),
+                    cardX + 132, cardY + 190, 0xFF8F9BA8);
+        } else {
+            graphics.text(font, Component.translatable(loading ? "worldgate.loading" : "worldgate.elite.not_published"),
+                    cardX + 132, cardY + 112, 0xFFBFC9D3);
+        }
+
+        graphics.text(font, Component.literal("PROFILE STATUS"), cardX + 18, cardY + cardH - 50, 0xFF7DE2FF);
+        graphics.text(font, clipped(status, cardW - 36), cardX + 18, cardY + cardH - 34, 0xFF9AA7B4);
+    }
+
+    private String clipped(String value, int maxWidth) {
+        if (value == null) return "";
+        String out = value;
+        while (font.width(out) > maxWidth && out.length() > 5) {
+            out = out.substring(0, out.length() - 1);
+        }
+        return out.equals(value) ? out : out.substring(0, Math.max(1, out.length() - 3)) + "...";
+    }
+
+    private static String money(long n) {
+        return String.format(java.util.Locale.ROOT, "USD %.2f", n / 100.0);
+    }
+
+    @Override
+    public void onClose() {
+        minecraft.setScreen(parent);
+    }
 }
