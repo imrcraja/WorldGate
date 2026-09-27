@@ -38,6 +38,8 @@ public final class BackendClient {
     public static String giftCoins(FirebaseSession s,String toUid,long coins,String message){return post(Constants.BACKEND_BASE_URL+"/v1/coins/gift",s,"{\"toUid\":\""+escape(toUid)+"\",\"coins\":"+coins+",\"message\":\""+escape(message)+"\"}");}
     public static String markMailboxRead(FirebaseSession s,String messageId){return post(Constants.BACKEND_BASE_URL+"/v1/coins/mailbox/read",s,"{\"messageId\":\""+escape(messageId)+"\"}");}
     public static String purchaseCoinPackage(FirebaseSession s,String packageId){return post(Constants.BACKEND_BASE_URL+"/v1/coins/purchase-intent",s,"{\"packageId\":\""+escape(packageId)+"\"}");}
+    public static String compatibilityConfig(){return getPublic(Constants.BACKEND_BASE_URL+"/v1/public/compatibility");}
+
     public static String paymentPackages(){return getPublic(Constants.BACKEND_BASE_URL+"/v1/payments/packages");}
     public static String paymentStatus(String eventId){return getPublic(Constants.BACKEND_BASE_URL+"/v1/payments/status/"+escape(eventId));}
     public static String supportTickets(FirebaseSession s){return get(Constants.BACKEND_BASE_URL+"/v1/support/tickets",s);}
