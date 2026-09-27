@@ -31,7 +31,7 @@ public final class SettingsScreen extends Screen {
                     };
                     WorldGateModClient.setNetworkMode(mode);
                     b.setMessage(Component.translatable("worldgate.settings.connection", label(mode)));
-                }).bounds(x, 76, 240, 20).build());
+                }).bounds(x, 72, 240, 20).build());
 
         addRenderableWidget(Button.builder(Component.literal(
                 "WorldGate overlay: " + (WorldGatePreferences.overlayEnabled() ? "ON" : "OFF")),
@@ -39,25 +39,25 @@ public final class SettingsScreen extends Screen {
                     boolean enabled = !WorldGatePreferences.overlayEnabled();
                     WorldGatePreferences.setOverlayEnabled(enabled);
                     b.setMessage(Component.literal("WorldGate overlay: " + (enabled ? "ON" : "OFF")));
-                }).bounds(x, 104, 240, 20).build());
+                }).bounds(x, 100, 240, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("worldgate.settings.test_relay"),
                 b -> sendMessage(RelayBridge.isConnected()
                         ? I18n.get("worldgate.settings.relay_connected")
                         : I18n.get("worldgate.settings.relay_idle")))
-                .bounds(x, 132, 240, 20).build());
+                .bounds(x, 128, 240, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("worldgate.settings.discord"),
                 b -> minecraft.setScreen(new DiscordLinkScreen(this)))
-                .bounds(x, 160, 240, 20).build());
+                .bounds(x, 156, 240, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("worldgate.settings.security"),
                 b -> minecraft.setScreen(new AccountSecurityScreen(this)))
-                .bounds(x, 188, 240, 20).build());
+                .bounds(x, 184, 240, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("worldgate.settings.privacy"),
                 b -> minecraft.setScreen(new LocalDataScreen(this)))
-                .bounds(x, 216, 240, 20).build());
+                .bounds(x, 212, 240, 20).build());
 
         addRenderableWidget(Button.builder(Component.translatable("worldgate.button.back"),
                 b -> onClose()).bounds(x, height - 30, 240, 20).build());
@@ -79,6 +79,10 @@ public final class SettingsScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
         super.extractRenderState(g, mx, my, delta);
+        g.blurBeforeThisStratum();
+        g.fill(0, 0, width, height, 0xA9080D14);
+        g.fill(width / 2 - 150, 52, width / 2 + 150, height - 42, 0x5A334252);
+        g.outline(width / 2 - 150, 52, 300, height - 94, 0x706F8293);
         g.centeredText(font, I18n.get("worldgate.settings.heading"), width / 2, 22, 0xFFFFFFFF);
         g.centeredText(font, I18n.get("worldgate.settings.subtitle"), width / 2, 40, 0xFF9AA7B4);
         g.centeredText(font, I18n.get("worldgate.settings.auto_note"), width / 2, 58, 0xFF7D8792);
