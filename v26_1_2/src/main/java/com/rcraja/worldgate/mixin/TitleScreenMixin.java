@@ -43,9 +43,9 @@ public abstract class TitleScreenMixin extends Screen {
         int right = b[2];
 
         int previewSize = Math.min(98, Math.max(82, height / 3));
-        int previewX = Math.max(20, left - previewSize - 250);
+        int previewX = Math.max(20, left - previewSize - 18);
         int previewY = Math.max(70, top - 8);
-        if (previewX + previewSize <= left - 24) {
+        if (previewX + previewSize <= left - 10 && previewY + previewSize + 28 < height - 12) {
             PlayerSkinWidget playerWidget = new PlayerSkinWidget(
                     previewSize, previewSize + 28, minecraft.getEntityModels(),
                     () -> minecraft.playerSkinRenderCache()
@@ -60,9 +60,9 @@ public abstract class TitleScreenMixin extends Screen {
         }
 
         int railW = Math.min(214, Math.max(190, width / 8));
-        int railX = right + 64;
-        if (railX + railW > width - 18) railX = Math.max(right + 12, width - railW - 18);
-        int railY = Math.max(54, top - 8);
+        int railX = right + 18;
+        if (railX + railW > width - 12) railX = Math.max(12, width - railW - 12);
+        int railY = Math.max(46, Math.min(top - 8, height - (8 * 36) - 18));
         worldgate$addRail(railX, railY, railW);
 
         addRenderableWidget(new IconButton(width - 76, 18, 34,
