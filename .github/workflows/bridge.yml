@@ -1,0 +1,28 @@
+name: Validate WorldGate protocol bridge
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'relay/bridge/**'
+      - '.github/workflows/bridge.yml'
+  pull_request:
+    paths:
+      - 'relay/bridge/**'
+      - '.github/workflows/bridge.yml'
+  workflow_dispatch:
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate startup script
+        run: |
+          test -x relay/bridge/start.sh || chmod +x relay/bridge/start.sh
+          sh -n relay/bridge/start.sh
+      - name: Build bridge image
+        run: docker build --pull -t worldgate-protocol-bridge:ci relay/bridge
+      - name: Verify image metadata
+        run: docker image inspect worldgate-protocol-bridge:ci >/dev/null
