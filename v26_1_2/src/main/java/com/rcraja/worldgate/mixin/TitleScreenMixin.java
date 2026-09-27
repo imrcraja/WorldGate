@@ -42,7 +42,6 @@ public abstract class TitleScreenMixin extends Screen {
         int top = b[1];
         int right = b[2];
 
-        // Essential-style player preview on the left of the vanilla menu.
         int previewSize = Math.min(98, Math.max(82, height / 3));
         int previewX = Math.max(20, left - previewSize - 250);
         int previewY = Math.max(70, top - 8);
@@ -54,61 +53,24 @@ public abstract class TitleScreenMixin extends Screen {
                             .playerSkin());
             playerWidget.setPosition(previewX, previewY);
             addRenderableWidget(playerWidget);
-
-            // Small wardrobe shortcut beneath the player preview.
             addRenderableWidget(new WorldGateButton(
                     previewX + previewSize / 2 - 10, previewY + previewSize + 5, 20, 20,
                     Component.empty(), () -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)),
                     0xFFB8C4D0, WorldGateButton.Icon.WARDROBE));
         }
 
-        // Essential-style rail: fixed narrow controls beside the vanilla menu.
         int railW = Math.min(214, Math.max(190, width / 8));
         int railX = right + 64;
         if (railX + railW > width - 18) railX = Math.max(right + 12, width - railW - 18);
         int railY = Math.max(54, top - 8);
         worldgate$addRail(railX, railY, railW);
 
-        // Notification + mailbox remain independent top-right controls.
         addRenderableWidget(new IconButton(width - 76, 18, 34,
                 IconButton.Icon.BELL,
                 () -> minecraft.setScreen(new NotificationsScreen(this))));
         addRenderableWidget(new IconButton(width - 38, 18, 34,
                 IconButton.Icon.MAILBOX,
                 () -> minecraft.setScreen(new ClaimCenterScreen(this))));
-
-        // Keep the original WorldGate entry point as a separate overlay button.
-        int worldGateY = Math.min(height - 34, b[3] + 8);
-        if (worldGateY >= 8 && worldGateY + 28 <= height - 4) {
-            addRenderableWidget(new WorldGateButton(
-                    Math.max(18, width / 2 - 96), worldGateY, 192, 26,
-                    Component.literal("WorldGate"),
-                    () -> minecraft.setScreen(new WorldGateScreen(this)),
-                    0xFF67D8FF));
-        }
-    }
-
-    private void worldgate$addRail(int x, int y, int width) {
-        int h = 30;
-        int gap = 6;
-        int w = width;
-
-        addRenderableWidget(new WorldGateButton(x, y, w, h, Component.literal("WorldGate"),
-                () -> minecraft.setScreen(new WorldGateScreen(this)), 0xFF67D8FF, WorldGateButton.Icon.FEATURES));
-        addRenderableWidget(new WorldGateButton(x, y + (h + gap), w, h, Component.literal("Host"),
-                () -> minecraft.setScreen(new FriendsScreen(this)), 0xFF73E0A1, WorldGateButton.Icon.SOCIAL));
-        addRenderableWidget(new WorldGateButton(x, y + 2 * (h + gap), w, h, Component.literal("Social"),
-                () -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)), 0xFFFFB86B, WorldGateButton.Icon.WARDROBE));
-        addRenderableWidget(new WorldGateButton(x, y + 3 * (h + gap), w, h, Component.literal("Wardrobe"),
-                () -> minecraft.setScreen(new PicturesScreen(this)), 0xFFBDA6FF, WorldGateButton.Icon.PICTURES));
-        addRenderableWidget(new WorldGateButton(x, y + 4 * (h + gap), w, h, Component.literal("Features"),
-                () -> minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8, WorldGateButton.Icon.SETTINGS));
-        addRenderableWidget(new WorldGateButton(x, y + 5 * (h + gap), w, h, Component.literal("Pictures"),
-                () -> minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B, WorldGateButton.Icon.ACCOUNT));
-        addRenderableWidget(new WorldGateButton(x, y + 6 * (h + gap), w, h, Component.literal("Settings"),
-                () -> minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8, WorldGateButton.Icon.SETTINGS));
-        addRenderableWidget(new WorldGateButton(x, y + 7 * (h + gap), w, h, Component.literal("Account"),
-                () -> minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B, WorldGateButton.Icon.ACCOUNT));
     }
 
     private int[] worldgate$vanillaBounds() {
