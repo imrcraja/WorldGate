@@ -68,10 +68,7 @@ public final class EliteProfileScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
-
-        int cx = width / 2;
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {int cx = width / 2;
         int cardX = Math.max(18, cx - 258);
         int cardY = 52;
         int cardW = Math.min(516, width - 36);
@@ -112,6 +109,7 @@ public final class EliteProfileScreen extends Screen {
 
         graphics.text(font, Component.literal("PROFILE STATUS"), cardX + 18, cardY + cardH - 50, 0xFF7DE2FF);
         graphics.text(font, clipped(status, cardW - 36), cardX + 18, cardY + cardH - 34, 0xFF9AA7B4);
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
     private String clipped(String value, int maxWidth) {
