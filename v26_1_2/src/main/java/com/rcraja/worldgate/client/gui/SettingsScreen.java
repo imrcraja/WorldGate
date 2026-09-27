@@ -77,15 +77,14 @@ public final class SettingsScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
-        super.extractRenderState(g, mx, my, delta);
-        g.blurBeforeThisStratum();
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {g.blurBeforeThisStratum();
         g.fill(0, 0, width, height, 0xA9080D14);
         g.fill(width / 2 - 150, 52, width / 2 + 150, height - 42, 0x5A334252);
         g.outline(width / 2 - 150, 52, 300, height - 94, 0x706F8293);
         g.centeredText(font, I18n.get("worldgate.settings.heading"), width / 2, 22, 0xFFFFFFFF);
         g.centeredText(font, I18n.get("worldgate.settings.subtitle"), width / 2, 40, 0xFF9AA7B4);
         g.centeredText(font, I18n.get("worldgate.settings.auto_note"), width / 2, 58, 0xFF7D8792);
+        super.extractRenderState(g, mx, my, delta);
     }
 
     @Override public void onClose() { minecraft.setScreen(parent); }
