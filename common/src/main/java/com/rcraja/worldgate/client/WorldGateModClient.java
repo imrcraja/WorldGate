@@ -5,6 +5,7 @@ import com.rcraja.worldgate.network.ChatManager;
 import com.rcraja.worldgate.network.DynamicAssetManager;
 import com.rcraja.worldgate.network.EmoteManager;
 import com.rcraja.worldgate.network.FirebaseSession;
+import com.rcraja.worldgate.network.EliteCoinManager;
 import com.rcraja.worldgate.network.FriendManager;
 import com.rcraja.worldgate.network.HostBridge;
 import com.rcraja.worldgate.network.RelayBridge;
@@ -119,6 +120,13 @@ public class WorldGateModClient implements ClientModInitializer {
                 return t;
             });
 
+    private static final ScheduledExecutorService SOCIAL_REFRESH =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "WorldGate-Realtime-Refresh");
+                t.setDaemon(true);
+                return t;
+            });
+
     private static final ScheduledExecutorService HEARTBEAT =
             Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = new Thread(r, "WorldGate-Heartbeat");
@@ -206,6 +214,11 @@ public class WorldGateModClient implements ClientModInitializer {
         LocalWorldGateData.load();
         HostPermissionManager.load();
         startHostPermissionSync();
+        SOCIAL_REFRESH.scheduleAtFixedRate(() -> {
+            if (SESSION.isReady()) {
+                try { EliteCoinManager.refresh(); } catch (Exception e) { WorldGateMod.LOGGER.debug("Realtime social refresh failed", e); }
+            }
+        }, 2, 8, TimeUnit.SECONDS);
         networkMode = LocalWorldGateData.get("networkMode", "auto");
         registerVersionKeybinds();
         EXECUTOR.submit(DynamicAssetManager::refresh);
@@ -267,7 +280,7 @@ public class WorldGateModClient implements ClientModInitializer {
 
     /**
      * Sync the skin the local player is actually rendering. This is deliberately
-     * callable after entering a world because cracked/offline launchers may only
+     * callable after entering a world because offline/private launchers may only
      * expose their skin after the player object has been created.
      */
     public static void syncCurrentSkin() {
