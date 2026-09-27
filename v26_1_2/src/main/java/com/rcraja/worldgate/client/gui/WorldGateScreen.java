@@ -252,50 +252,79 @@ public class WorldGateScreen extends Screen {
         roomCodeBox.setValue(code);
         if (code.isEmpty()) return;
         sendMessage("WorldGate: joining...");
+
         WorldGateModClient.EXECUTOR.submit(() -> {
-            LanDiscovery.HostInfo lanHost = LanDiscovery.discover(code, 900);
-            String roomJson = null;
-            if (lanHost == null) roomJson = WorldGateModClient.ROOM_MANAGER.getRoom(code);
-            final String discoveredRoomJson = roomJson;
-            final LanDiscovery.HostInfo discoveredLanHost = lanHost;
-            minecraft.execute(() -> {
-                boolean lanDirect = discoveredLanHost != null;
-                if (!lanDirect && (discoveredRoomJson == null || discoveredRoomJson.equals("null"))) { sendMessage("WorldGate: room not found."); return; }
-                String hostAddress = lanDirect ? discoveredLanHost.address() : extractJsonString(discoveredRoomJson, "hostAddress");
-                int hostPort = lanDirect ? discoveredLanHost.port() : extractJsonInt(discoveredRoomJson, "hostPort");
-                if (hostAddress == null || hostAddress.isBlank() || hostPort <= 0 || hostPort > 65535) { sendMessage("WorldGate: invalid host address."); return; }
+            try {
+                LanDiscovery.HostInfo lanHost = LanDiscovery.discover(code, 900);
+                String roomJson = lanHost == null ? WorldGateModClient.ROOM_MANAGER.getRoom(code) : null;
+                boolean lanDirect = lanHost != null;
+
+                if (!lanDirect && (roomJson == null || roomJson.isBlank() || "null".equals(roomJson))) {
+                    minecraft.execute(() -> sendMessage("WorldGate: room not found."));
+                    return;
+                }
+
+                String hostAddress = lanDirect ? lanHost.address() : extractJsonString(roomJson, "hostAddress");
+                int hostPort = lanDirect ? lanHost.port() : extractJsonInt(roomJson, "hostPort");
+                if (hostAddress == null || hostAddress.isBlank() || hostPort <= 0 || hostPort > 65535) {
+                    minecraft.execute(() -> sendMessage("WorldGate: invalid host address."));
+                    return;
+                }
+
                 String ign = minecraft.getUser().getName();
                 boolean joined = lanDirect || WorldGateModClient.ROOM_MANAGER.playerJoin(code, ign);
-                if (!joined) { minecraft.execute(() -> sendMessage("WorldGate: could not register you in the room.")); return; }
-                int relayPort = WorldGateModClient.useInternetRelay() && !lanDirect ? RelayBridge.startPlayer(code) : -1;
+                if (!joined) {
+                    minecraft.execute(() -> sendMessage("WorldGate: could not register you in the room."));
+                    return;
+                }
+
+                int relayPort = WorldGateModClient.useInternetRelay() && !lanDirect
+                        ? RelayBridge.startPlayer(code)
+                        : -1;
+
                 if (!lanDirect && WorldGateModClient.useInternetRelay()) {
                     long deadline = System.currentTimeMillis() + 12000L;
                     while (relayPort > 0 && !RelayBridge.isConnected() && System.currentTimeMillis() < deadline) {
-                        try { Thread.sleep(100L); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
+                        try {
+                            Thread.sleep(100L);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
                     }
                     if (relayPort <= 0 || !RelayBridge.isConnected()) {
                         RelayBridge.stop();
-                        minecraft.execute(() -> {
-                            sendMessage("WorldGate: relay did not connect. The host may be offline or the relay is unavailable.");
-                            WorldGateModClient.ROOM_MANAGER.playerLeave(code);
-                        });
+                        WorldGateModClient.ROOM_MANAGER.playerLeave(code);
+                        minecraft.execute(() -> sendMessage("WorldGate: relay did not connect. The host may be offline or the relay is unavailable."));
                         return;
                     }
                 }
+
                 final int finalRelayPort = relayPort;
                 minecraft.execute(() -> {
                     hostingRoom = false;
                     WorldGateModClient.CURRENT_ROOM_CODE = code;
                     WorldGateModClient.startHeartbeat(false);
-                    WorldGateSkinCache.refreshRoomPlayers(discoveredRoomJson);
+                    WorldGateSkinCache.refreshRoomPlayers(roomJson);
+
                     ServerAddress address;
-                    if (finalRelayPort > 0) address = new ServerAddress("127.0.0.1", finalRelayPort);
-                    else if (WorldGateModClient.allowLanFallback() || lanDirect) address = new ServerAddress(hostAddress, hostPort);
-                    else { sendMessage("WorldGate: Internet relay unavailable and LAN fallback is disabled."); WorldGateModClient.ROOM_MANAGER.playerLeave(code); return; }
+                    if (finalRelayPort > 0) {
+                        address = new ServerAddress("127.0.0.1", finalRelayPort);
+                    } else if (WorldGateModClient.allowLanFallback() || lanDirect) {
+                        address = new ServerAddress(hostAddress, hostPort);
+                    } else {
+                        sendMessage("WorldGate: Internet relay unavailable and LAN fallback is disabled.");
+                        WorldGateModClient.ROOM_MANAGER.playerLeave(code);
+                        return;
+                    }
+
                     ServerData serverData = new ServerData("WorldGate " + code, address.toString(), ServerData.Type.OTHER);
                     ConnectScreen.startConnecting(this, minecraft, address, serverData, false, null);
                 });
-            });
+            } catch (Exception e) {
+                WorldGateMod.LOGGER.warn("WorldGate room join failed", e);
+                minecraft.execute(() -> sendMessage("WorldGate: join failed safely. Check the room code and host status."));
+            }
         });
     }
 
