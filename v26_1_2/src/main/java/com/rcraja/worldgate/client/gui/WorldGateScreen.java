@@ -98,6 +98,12 @@ public class WorldGateScreen extends Screen {
                 Component.translatable("worldgate.button.join"), this::onJoin));
         addRenderableWidget(new WorldGateButton(mainX + 16, roomY + 80, compact ? mainW - 32 : mainW - 190, 28,
                 Component.translatable("worldgate.button.create"), this::onCreate, 0xFF73E0A1));
+        addRenderableWidget(new WorldGateButton(mainX + mainW - 88, roomY + 102, 72, 22,
+                Component.literal("Copy"),
+                () -> {
+                    String room = WorldGateModClient.CURRENT_ROOM_CODE;
+                    if (room != null && !room.isBlank()) CopyValue.copy(room, "Room ID");
+                }, 0xFF73C8E8));
 
         // Sidebar navigation is the single dashboard navigation layer.
         // Do not duplicate the same actions in a second quick-access grid.
