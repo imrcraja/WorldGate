@@ -243,6 +243,10 @@ public class WorldGateModClient implements ClientModInitializer {
                 WorldGateOnlineSession.start();
                 String displayName = Minecraft.getInstance().getUser().getName();
                 FRIEND_MANAGER.setOnline(displayName);
+                // Keep social state live even when the Friends/Notifications screen
+                // is not currently open. Screens only render cached state.
+                FRIEND_MANAGER.startRealtime();
+                ROOM_MANAGER.startInviteRealtime();
                 syncCurrentSkin();
 
                 WorldGateMod.LOGGER.info(
