@@ -4,6 +4,8 @@ import com.rcraja.worldgate.client.WorldGateModClient;
 import com.rcraja.worldgate.network.EliteCoinManager;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.PlayerSkinWidget;
+import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -46,7 +48,21 @@ public final class WardrobeScreen extends Screen {
                 caps(Component.translatable("worldgate.coin.shop")), () -> minecraft.setScreen(new EliteCoinScreen(this))));
 
         int left = Math.max(20, width / 2 - 310);
-        int top = 108;
+        int top = tab == Tab.EMOTES ? 136 : 108;
+        if (tab == Tab.EMOTES && minecraft != null) {
+            try {
+                int previewSize = 96;
+                PlayerSkinWidget preview = new PlayerSkinWidget(
+                        previewSize, previewSize + 24, minecraft.getEntityModels(),
+                        () -> minecraft.playerSkinRenderCache()
+                                .getOrDefault(ResolvableProfile.createUnresolved(minecraft.getUser().getProfileId()))
+                                .playerSkin());
+                preview.setPosition(width - previewSize - 28, 88);
+                addRenderableWidget(preview);
+            } catch (Exception ignored) {
+                // A missing skin/profile must never make the wardrobe unusable.
+            }
+        }
         int gap = 10;
         int cardW = 148;
         int cardH = 92;
@@ -98,6 +114,11 @@ public final class WardrobeScreen extends Screen {
     }
 
     private void updateButtons() {
+        if (tab == Tab.EMOTES) {
+            g.text(font, Component.literal("FREE EMOTES"), width - 170, 196, 0xFF7DE2FF);
+            g.text(font, Component.literal("Wave • Cheer • Sit"), width - 178, 214, 0xFF9AA7B4);
+            g.text(font, Component.literal("3D preview"), width - 178, 232, 0xFF6F7C89);
+        }
         List<EliteCoinManager.Item> items = items();
         EliteCoinManager.Inventory inv = EliteCoinManager.inventory();
         for (int i = 0; i < itemButtons.size(); i++) {
@@ -187,7 +208,7 @@ public final class WardrobeScreen extends Screen {
                 width / 2, 38, 0xFF9AA7B4);
 
         int left = Math.max(20, width / 2 - 310);
-        int top = 108;
+        int top = tab == Tab.EMOTES ? 136 : 108;
         int gap = 10;
         int cardW = 148;
         int cardH = 92;
