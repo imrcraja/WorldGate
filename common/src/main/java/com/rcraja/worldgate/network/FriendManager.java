@@ -230,7 +230,8 @@ public class FriendManager {
                 + "\"fromPublicId\":\"" + escapeJson(senderId) + "\","
                 + "\"fromName\":\"" + escapeJson(senderName) + "\","
                 + "\"sentAt\":" + System.currentTimeMillis() + "}";
-        return session.db().put("/friend_requests/" + targetUid + "/" + session.uid(), json) != null;
+        String response = BackendClient.sendFriendRequest(session, publicId.trim());
+        return response != null && response.contains(""ok":true");
     }
 
     public String getIncomingRequests() {
@@ -239,9 +240,7 @@ public class FriendManager {
             return null;
         }
 
-        return session.db().get(
-                "/friend_requests/" + session.uid()
-        );
+        return BackendClient.friendRequests(session);
     }
 
     public boolean acceptRequest(String fromUid) {
@@ -254,32 +253,10 @@ public class FriendManager {
 
         fromUid = fromUid.trim();
 
-        session.db().put(
-                "/friends/"
-                        + session.uid()
-                        + "/"
-                        + fromUid,
-                "true"
-        );
-
-        session.db().put(
-                "/friends/"
-                        + fromUid
-                        + "/"
-                        + session.uid(),
-                "true"
-        );
-
-        session.db().delete(
-                "/friend_requests/"
-                        + session.uid()
-                        + "/"
-                        + fromUid
-        );
-
-        notifyFriendListChanged();
-
-        return true;
+        String response = BackendClient.acceptFriendRequest(session, fromUid);
+        boolean ok = response != null && response.contains(""ok":true");
+        if (ok) notifyFriendListChanged();
+        return ok;
     }
 
     public boolean rejectRequest(String fromUid) {
@@ -290,14 +267,8 @@ public class FriendManager {
             return false;
         }
 
-        session.db().delete(
-                "/friend_requests/"
-                        + session.uid()
-                        + "/"
-                        + fromUid.trim()
-        );
-
-        return true;
+        String response = BackendClient.rejectFriendRequest(session, fromUid.trim());
+        return response != null && response.contains(""ok":true");
     }
 
     public String getFriends() {
@@ -306,9 +277,14 @@ public class FriendManager {
             return null;
         }
 
-        return session.db().get(
-                "/friends/" + session.uid()
-        );
+        String response = BackendClient.friends(session);
+        if (response == null) return null;
+        try {
+            JsonObject root = JsonParser.parseString(response).getAsJsonObject();
+            return root.has("friends") ? root.get("friends").toString() : "{}";
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     /**
