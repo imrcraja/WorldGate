@@ -57,9 +57,9 @@ public final class WorldGateMenuProfile extends AbstractWidget {
 
         String name = minecraft.getUser().getName();
         g.centeredText(Minecraft.getInstance().font, Component.literal(name),
-                getX() + getWidth() / 2, getY() + 184, 0xFFFFFFFF);
+                getX() + getWidth() / 2, getY() + 203, 0xFFFFFFFF);
 
-        int ownedY = getY() + 210;
+        int ownedY = getY() + 226;
         g.text(Minecraft.getInstance().font, Component.literal("OWNED / CLAIMED"),
                 getX() + 14, ownedY, 0xFFBFDFFF);
 
