@@ -53,7 +53,6 @@ public abstract class PauseScreenMixin extends Screen {
                             .playerSkin());
             playerWidget.setPosition(previewX, previewY);
             addRenderableWidget(playerWidget);
-
             addRenderableWidget(new WorldGateButton(
                     previewX + previewSize / 2 - 10, previewY + previewSize + 5, 20, 20,
                     Component.empty(), () -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)),
@@ -72,38 +71,6 @@ public abstract class PauseScreenMixin extends Screen {
         addRenderableWidget(new IconButton(width - 38, 18, 34,
                 IconButton.Icon.MAILBOX,
                 () -> minecraft.setScreen(new ClaimCenterScreen(this))));
-
-        // Keep the original WorldGate entry point as a separate overlay button.
-        int worldGateY = Math.min(height - 34, b[3] + 8);
-        if (worldGateY >= 8 && worldGateY + 28 <= height - 4) {
-            addRenderableWidget(new WorldGateButton(
-                    Math.max(18, width / 2 - 96), worldGateY, 192, 26,
-                    Component.literal("WorldGate"),
-                    () -> minecraft.setScreen(new WorldGateScreen(this)),
-                    0xFF67D8FF));
-        }
-    }
-
-    private void worldgate$addRail(int x, int y, int width) {
-        int h = 28;
-        int gap = 6;
-
-        addRenderableWidget(new WorldGateButton(x, y, width, h, Component.literal("Host"),
-                () -> minecraft.setScreen(new WorldGateScreen(this)), 0xFF67D8FF, WorldGateButton.Icon.HOST));
-        addRenderableWidget(new WorldGateButton(x, y + (h + gap), width, h, Component.literal("Social"),
-                () -> minecraft.setScreen(new FriendsScreen(this)), 0xFF73E0A1, WorldGateButton.Icon.SOCIAL));
-        addRenderableWidget(new WorldGateButton(x, y + 2 * (h + gap), width, h, Component.literal("Wardrobe"),
-                () -> minecraft.setScreen(new WardrobeScreen(this, WardrobeScreen.Tab.COSMETICS)), 0xFFFFB86B, WorldGateButton.Icon.WARDROBE));
-        addRenderableWidget(new WorldGateButton(x, y + 3 * (h + gap), width, h, Component.literal("Pictures"),
-                () -> minecraft.setScreen(new PicturesScreen(this)), 0xFFBDA6FF, WorldGateButton.Icon.PICTURES));
-        addRenderableWidget(new WorldGateButton(x, y + 4 * (h + gap), width, h, Component.literal("Settings"),
-                () -> minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8, WorldGateButton.Icon.SETTINGS));
-        addRenderableWidget(new WorldGateButton(x, y + 5 * (h + gap), width, h, Component.literal("Account"),
-                () -> minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B, WorldGateButton.Icon.ACCOUNT));
-        addRenderableWidget(new WorldGateButton(x, y + 6 * (h + gap), w, h, Component.literal("Settings"),
-                () -> minecraft.setScreen(new SettingsScreen(this)), 0xFF9CA9B8, WorldGateButton.Icon.SETTINGS));
-        addRenderableWidget(new WorldGateButton(x, y + 7 * (h + gap), w, h, Component.literal("Account"),
-                () -> minecraft.setScreen(new EliteProfileScreen(this)), 0xFFFFD36B, WorldGateButton.Icon.ACCOUNT));
     }
 
     private int[] worldgate$vanillaBounds() {
